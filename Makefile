@@ -14,6 +14,7 @@ PROJ_DIR = $(shell pwd)
 
 #  Links to source Make files
 PROJECT_SPECIFIC_MAKEFILE = project_specific.mk
+GENERIC_MAKEFILE = generic.mk
 VIVADO_MAKEFILE = vivado.mk
 VITIS_MAKEFILE = vitis.mk
 GIT_MAKEFILE = git.mk
@@ -51,6 +52,17 @@ cmd_timeout:
 #  "vitis.mk" targets
 # -------------------------------------------------------------
 # TODO
+
+
+
+# -------------------------------------------------------------
+#  "generic.mk" targets
+# -------------------------------------------------------------
+# Redis server
+redis_start:
+	make -f $(GENERIC_MAKEFILE) $@
+redis_stop:
+	make -f $(GENERIC_MAKEFILE) $@
 
 
 
