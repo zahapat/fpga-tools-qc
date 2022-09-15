@@ -16,6 +16,7 @@ PROJ_DIR = $(shell pwd)
 PROJECT_SPECIFIC_MAKEFILE = project_specific.mk
 GENERIC_MAKEFILE = generic.mk
 VIVADO_MAKEFILE = vivado.mk
+SIM_MAKEFILE = sim.mk
 VITIS_MAKEFILE = vitis.mk
 GIT_MAKEFILE = git.mk
 PACKAGES_MAKEFILE = packages.mk
@@ -88,6 +89,14 @@ ip : $(PROJ_NAME).xpr 0_report_added_modules.rpt 0_report_added_xdc.rpt 1_netlis
 	make -f $(VIVADO_MAKEFILE) $@
 
 
+
+# -------------------------------------------------------------
+#  "sim.mk" targets
+# -------------------------------------------------------------
+sim : modelsim.ini
+	make -f $(SIM_MAKEFILE) $@
+sim_gui : modelsim.ini ./modelsim/run.do
+	make -f $(SIM_MAKEFILE) $@
 
 
 # -------------------------------------------------------------
