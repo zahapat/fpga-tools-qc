@@ -44,7 +44,49 @@ cmd_timeout:
 # -------------------------------------------------------------
 #  "vivado.mk" targets
 # -------------------------------------------------------------
-# TODO
+new :
+	make -f $(VIVADO_MAKEFILE) $@
+new_module : $(PROJ_NAME).xpr
+	make -f $(VIVADO_MAKEFILE) $@
+src : $(PROJ_NAME).xpr
+	make -f $(VIVADO_MAKEFILE) $@
+board : $(PROJ_NAME).xpr
+	make -f $(VIVADO_MAKEFILE) $@
+declare : $(PROJ_NAME).xpr
+	make -f $(VIVADO_MAKEFILE) $@
+generics : $(PROJ_NAME).xpr
+	make -f $(VIVADO_MAKEFILE) $@
+ooc : $(PROJ_NAME).xpr 0_report_added_modules.rpt
+	make -f $(VIVADO_MAKEFILE) $@
+synth : $(PROJ_NAME).xpr
+	make -f $(VIVADO_MAKEFILE) $@
+impl : 1_checkpoint_post_synth.dcp $(PROJ_NAME).xpr
+	make -f $(VIVADO_MAKEFILE) $@
+outd : 2_checkpoint_post_route.dcp 1_checkpoint_post_synth.dcp $(PROJ_NAME).xpr
+	make -f $(VIVADO_MAKEFILE) $@
+bit : 2_checkpoint_post_route.dcp 1_checkpoint_post_synth.dcp $(PROJ_NAME).xpr
+	make -f $(VIVADO_MAKEFILE) $@
+xsa : $(PROJ_NAME).xpr
+	make -f $(VIVADO_MAKEFILE) $@
+prog : 2_checkpoint_post_route.dcp 1_checkpoint_post_synth.dcp $(PROJ_NAME).xpr 3_bitstream_$(PROJ_NAME).bit
+	make -f $(VIVADO_MAKEFILE) $@
+probes : $(PROJ_NAME).xpr
+	make -f $(VIVADO_MAKEFILE) $@
+ila : $(PROJ_NAME).xpr
+	make -f $(VIVADO_MAKEFILE) $@
+all : $(PROJ_NAME).xpr
+	make -f $(VIVADO_MAKEFILE) $@
+old : 2_checkpoint_post_route.dcp 1_checkpoint_post_synth.dcp
+	make -f $(VIVADO_MAKEFILE) $@
+clean : $(PROJ_NAME).xpr
+	make -f $(VIVADO_MAKEFILE) $@
+gui : $(PROJ_NAME).xpr
+	make -f $(VIVADO_MAKEFILE) $@
+core : $(PROJ_NAME).xpr 0_report_added_modules.rpt 0_report_added_xdc.rpt 1_netlist_post_synth.edf
+	make -f $(VIVADO_MAKEFILE) $@
+ip : $(PROJ_NAME).xpr 0_report_added_modules.rpt 0_report_added_xdc.rpt 1_netlist_post_synth.edf
+	make -f $(VIVADO_MAKEFILE) $@
+
 
 
 
