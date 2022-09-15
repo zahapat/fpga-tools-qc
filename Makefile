@@ -31,7 +31,13 @@ PACKAGES_MAKEFILE = packages.mk
 # -------------------------------------------------------------
 #  "project_specific.mk" targets
 # -------------------------------------------------------------
-# TODO
+rebuild_proj:
+	make -f $(PROJECT_SPECIFIC_MAKEFILE) $@
+reset_bitfiles: 3_bitstream_$(PROJ_NAME).bit
+	make -f $(PROJECT_SPECIFIC_MAKEFILE) $@
+cmd_timeout:
+	make -f $(PROJECT_SPECIFIC_MAKEFILE) $@
+
 
 
 # -------------------------------------------------------------
