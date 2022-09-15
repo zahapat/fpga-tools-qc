@@ -51,7 +51,25 @@ cmd_timeout:
 # -------------------------------------------------------------
 #  "vitis.mk" targets
 # -------------------------------------------------------------
-# TODO
+# Generic Vitis Targets
+remove_vitis :
+	make -f $(VITIS_MAKEFILE) $@
+remove_ws_vitis :
+	make -f $(VITIS_MAKEFILE) $@
+new_vitis :
+	make -f $(VITIS_MAKEFILE) $@
+new_app_vitis :
+	make -f $(VITIS_MAKEFILE) $@
+add_sources_vitis :
+	make -f $(VITIS_MAKEFILE) $@
+gui_vitis :
+	make -f $(VITIS_MAKEFILE) $@
+bsp_regen_vitis :
+	make -f $(VITIS_MAKEFILE) $@
+reset_vitis :
+	make -f $(VITIS_MAKEFILE) $@
+all_vitis :
+	make -f $(VITIS_MAKEFILE) $@
 
 
 
