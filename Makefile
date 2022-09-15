@@ -82,6 +82,22 @@ py_gui_install:
 	make -f $(GENERIC_MAKEFILE) $@
 py_gui_exe: 
 	make -f $(GENERIC_MAKEFILE) $@
+crc:
+	make -f $(GENERIC_MAKEFILE) $@
+build_sim_gui_tx:
+	make -f $(GENERIC_MAKEFILE) $@
+build_sim_tx:
+	make -f $(GENERIC_MAKEFILE) $@
+build_sim_gui_rx:
+	make -f $(GENERIC_MAKEFILE) $@
+build_sim_rx:
+	make -f $(GENERIC_MAKEFILE) $@
+build_sim_txrx:
+	make -f $(GENERIC_MAKEFILE) $@
+build_sim_gui_crc:
+	make -f $(GENERIC_MAKEFILE) $@
+build_sim_crc:
+	make -f $(GENERIC_MAKEFILE) $@
 
 
 

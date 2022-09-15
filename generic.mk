@@ -108,3 +108,80 @@ py_gui_install:
 py_gui_exe: 
 	$(info ------- RUNNING PROJECT GUI EXECUTABLE -------)
 	$(PY_GUI_PATH)/$(PY_GUI_EXEFILE) $(PY_GUI_GENERIC_ARGS)
+
+
+#  CRC Generator
+SYMBOL_WIDTH = 4
+SYMBOLS_COUNT = 11
+PRIMITIVE_POLYNOMIAL_DECIMAL = 19
+GF_SEED = 1
+GENPOL_SYMBOLS_COUNT = 4
+TX_SUBMESSAGES_COUNT = 3
+RX_SUBMESSAGES_COUNT = 3
+SIM_TRANSACTIONS_COUNT = 20
+
+crc:
+	$(info ----- GENERATE CRC VHDL FILES -----)
+	python3 ./scripts/crc_gen/CrcGenMain.py \
+	    --symbol_width=$(SYMBOL_WIDTH) \
+		--symbols_count=$(SYMBOLS_COUNT) \
+		--primitive_polynomial=$(PRIMITIVE_POLYNOMIAL_DECIMAL) \
+		--gf_seed=$(GF_SEED) \
+		--genpol_symbols_count=$(GENPOL_SYMBOLS_COUNT) \
+		--tx_submessages_count=$(TX_SUBMESSAGES_COUNT) \
+		--rx_submessages_count=$(TX_SUBMESSAGES_COUNT) \
+		--sim_transactions_count=$(SIM_TRANSACTIONS_COUNT) \
+	    --proj_dir=$(PROJ_DIR) \
+		--gfmult_dir=$(PROJ_DIR)/modules/gfmult_constb \
+		--tx_dir=$(PROJ_DIR)/modules/tx_crc_symtuppar \
+		--rx_dir=$(PROJ_DIR)/modules/rx_crc_symtuppar \
+		--src_lib=$(LIB_SRC) \
+		--sim_lib=$(LIB_SIM)
+
+# TX CRC
+build_sim_gui_tx:
+	make reset
+	make crc
+	make src TOP=tx_crc_symtuppar_tb.vhd
+	make sim_gui
+
+build_sim_tx:
+	make reset
+	make crc
+	make src TOP=tx_crc_symtuppar_tb.vhd
+	make sim_gui
+
+# RX CRC
+build_sim_gui_rx:
+	make reset
+	make crc
+	make src TOP=rx_crc_symtuppar_tb.vhd
+	make sim_gui
+
+build_sim_rx:
+	make reset
+	make crc
+	make src TOP=rx_crc_symtuppar_tb.vhd
+	make sim_gui
+
+# TX + RX CRC sim cli
+build_sim_txrx:
+	make reset
+	make crc
+	make src TOP=tx_crc_symtuppar_tb.vhd
+	make sim
+	make src TOP=rx_crc_symtuppar_tb.vhd
+	make sim
+
+# CRC sim gui
+build_sim_gui_crc:
+	make reset
+	make crc
+	make src TOP=crc_tb.vhd
+	make sim_gui
+
+build_sim_crc:
+	make reset
+	make crc
+	make src TOP=crc_tb.vhd
+	make sim
