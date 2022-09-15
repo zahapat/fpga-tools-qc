@@ -70,6 +70,8 @@ init_modelsim : home_path
 	make -f $(GENERIC_MAKEFILE) $@
 init : init_modelsim
 	make -f $(GENERIC_MAKEFILE) $@
+vvc_gen :
+	make -f $(GENERIC_MAKEFILE) $@
 
 
 

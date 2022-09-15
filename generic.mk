@@ -40,3 +40,19 @@ init : init_modelsim
 	$(info ----- LAUNCH CYGWIN, SET MODELSIM ENV -----)
 	C:/cygwin64/cygwin.bat
 	set MODELSIM=modelsim.ini
+
+
+# UVVM Targets
+vvc_gen :
+	$(info ------- RUNNING UVVM VVC GENERATOR -------)
+	$(info RENAME THE OUTPUT FOLDER IN:)
+	$(info    ./packages/vip/output)
+	$(info TO:)
+	$(info    ./packages/vip/vip_<name>)
+	$(info ------------------------------------------)
+	pwd
+	cd ./packages/vip
+	pwd
+	py -3 ../uvvm/uvvm_vvc_framework/script/vvc_generator/vvc_generator.py
+	cd ~
+	pwd
