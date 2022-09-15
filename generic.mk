@@ -56,3 +56,55 @@ vvc_gen :
 	py -3 ../uvvm/uvvm_vvc_framework/script/vvc_generator/vvc_generator.py
 	cd ~
 	pwd
+
+
+# Generic Python GUI
+PY_GUI_PATH = ./scripts/gui
+PY_GUI_MAINFILE = guiMain.py
+PY_GUI_PIPFILE = pip_pkgs.bat
+PY_GUI_INSTALLFILE = install.bat
+PY_GUI_EXEFILE = gui.exe
+GUI_GEOMETRY = 100x100
+PY_GUI_GENERIC_ARGS = 	--generic1_name=$(GEN1_NAME) --generic1_val=$(GEN1_VAL) \
+						--generic2_name=$(GEN2_NAME) --generic2_val=$(GEN2_VAL) \
+						--generic3_name=$(GEN3_NAME) --generic3_val=$(GEN3_VAL) \
+						--generic4_name=$(GEN4_NAME) --generic4_val=$(GEN4_VAL) \
+						--generic5_name=$(GEN5_NAME) --generic5_val=$(GEN5_VAL) \
+						--generic6_name=$(GEN6_NAME) --generic6_val=$(GEN6_VAL) \
+						--generic7_name=$(GEN7_NAME) --generic7_val=$(GEN7_VAL) \
+						--generic8_name=$(GEN8_NAME) --generic8_val=$(GEN8_VAL) \
+						--generic9_name=$(GEN9_NAME) --generic9_val=$(GEN9_VAL) \
+						--generic10_name=$(GEN10_NAME) --generic10_val=$(GEN10_VAL) \
+						--generic11_name=$(GEN11_NAME) --generic11_val=$(GEN11_VAL) \
+						--generic12_name=$(GEN12_NAME) --generic12_val=$(GEN12_VAL) \
+						--generic13_name=$(GEN13_NAME) --generic13_val=$(GEN13_VAL) \
+						--generic14_name=$(GEN14_NAME) --generic14_val=$(GEN14_VAL) \
+						--generic15_name=$(GEN15_NAME) --generic15_val=$(GEN15_VAL) \
+
+py_gui_regen:
+	make py_gui_pipinstall
+	make py_gui_install
+	make py_gui_exe
+
+py_gui:
+	$(info ------- RUNNING PYTHON GUI FROM PYTHON SCRIPT -------)
+	py -3 $(PY_GUI_PATH)/$(PY_GUI_MAINFILE)\
+		$(PY_GUI_GENERIC_ARGS)\
+		--geometry=$(GUI_GEOMETRY)\
+		--proj_name=$(PROJ_NAME)\
+		--proj_dir=.\
+		--verbose
+
+py_gui_pipinstall:
+	$(info ------- INSTALLING ESSENTIAL PYTHON PACKAGES -------)
+	$(PY_GUI_PATH)/$(PY_GUI_PIPFILE)
+
+py_gui_install:
+	$(info ------- GENERATING EXECUTABLE USING PYTHONINSTALLER -------)
+	cd $(PY_GUI_PATH)
+	./$(PY_GUI_INSTALLFILE)
+	cd ~
+
+py_gui_exe: 
+	$(info ------- RUNNING PROJECT GUI EXECUTABLE -------)
+	$(PY_GUI_PATH)/$(PY_GUI_EXEFILE) $(PY_GUI_GENERIC_ARGS)

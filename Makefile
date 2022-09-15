@@ -72,6 +72,16 @@ init : init_modelsim
 	make -f $(GENERIC_MAKEFILE) $@
 vvc_gen :
 	make -f $(GENERIC_MAKEFILE) $@
+py_gui_regen:
+	make -f $(GENERIC_MAKEFILE) $@
+py_gui:
+	make -f $(GENERIC_MAKEFILE) $@
+py_gui_pipinstall:
+	make -f $(GENERIC_MAKEFILE) $@
+py_gui_install:
+	make -f $(GENERIC_MAKEFILE) $@
+py_gui_exe: 
+	make -f $(GENERIC_MAKEFILE) $@
 
 
 
