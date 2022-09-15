@@ -58,10 +58,17 @@ cmd_timeout:
 # -------------------------------------------------------------
 #  "generic.mk" targets
 # -------------------------------------------------------------
-# Redis server
 redis_start:
 	make -f $(GENERIC_MAKEFILE) $@
 redis_stop:
+	make -f $(GENERIC_MAKEFILE) $@
+reset :
+	make -f $(GENERIC_MAKEFILE) $@
+home_path :
+	make -f $(GENERIC_MAKEFILE) $@
+init_modelsim : home_path
+	make -f $(GENERIC_MAKEFILE) $@
+init : init_modelsim
 	make -f $(GENERIC_MAKEFILE) $@
 
 
