@@ -47,7 +47,7 @@ new_vitis :
 	$(info ----- RE/CREATE THE VITIS PLATFORM PROJECT: $(PLATFORM_NAME); AND BUILD APPS: $(PLATFORM_NAME) -----)
 	which vitis
 	which xsct
-	xsct.bat tcl/vitis/recreate_vitis_proj.tcl $(PART) $(BOARD) $(WORKSPACE_NAME) $(PLATFORM_NAME) $(XSA_PATH) $(DOMAIN_NAME) $(PROCESSOR_NAME) $(PROCESSOR_INSTANCE) $(DOMAIN_OS) $(SYSTEM_NAME)
+	xsct.bat tcl/generic/vitis/recreate_vitis_proj.tcl $(PART) $(BOARD) $(WORKSPACE_NAME) $(PLATFORM_NAME) $(XSA_PATH) $(DOMAIN_NAME) $(PROCESSOR_NAME) $(PROCESSOR_INSTANCE) $(DOMAIN_OS) $(SYSTEM_NAME)
 
 APP_NAME ?= app1
 new_app_vitis :
@@ -55,14 +55,14 @@ new_app_vitis :
 	$(info ----- CREATE AND BUILD AN APP: $(APP_NAME) -----)
 	which vitis
 	which xsct
-	xsct.bat tcl/vitis/make_new_app.tcl $(WORKSPACE_NAME) $(PLATFORM_NAME) $(DOMAIN_NAME) $(SYSTEM_NAME) $(APP_NAME)
+	xsct.bat tcl/generic/vitis/make_new_app.tcl $(WORKSPACE_NAME) $(PLATFORM_NAME) $(DOMAIN_NAME) $(SYSTEM_NAME) $(APP_NAME)
 
 add_sources_vitis :
 	$(SUBSHELL_ENV)
 	$(info ----- CREATE AND BUILD AN APP: $(APP_NAME) -----)
 	which vitis
 	which xsct
-	xsct.bat tcl/vitis/make_new_app.tcl $(WORKSPACE_NAME) $(PLATFORM_NAME) $(DOMAIN_NAME) $(SYSTEM_NAME) $(APP_NAME)
+	xsct.bat tcl/generic/vitis/make_new_app.tcl $(WORKSPACE_NAME) $(PLATFORM_NAME) $(DOMAIN_NAME) $(SYSTEM_NAME) $(APP_NAME)
 
 gui_vitis :
 	$(SUBSHELL_ENV)
