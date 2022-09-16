@@ -83,7 +83,7 @@ def main(argv):
     generic3_name = None
     generic3_val = None
 
-    output_dir = "./tcl"
+    output_dir = "./tcl/project_specific/vivado"
     
     generic_names = []
     generic_vals = []
