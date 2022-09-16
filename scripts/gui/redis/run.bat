@@ -1,0 +1,1 @@
+.\build_x64\Release\redis.exe

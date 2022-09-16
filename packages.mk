@@ -16,9 +16,28 @@ PROJ_DIR = $(shell pwd)
 pip_install:
 	py -3 -m pip install
 	pip install --user git
+	pip install pillow
+	pip freeze
+	pip install requests
+	pip install numpy
+	pip install matplotlib
+	pip install pyinstaller
+	pip install redis
+	pip install walrus
+	pip install pyqtgraph
+	pip install PyQt6
 
 pip_upgrade:
 	py -3 -m pip install --upgrade pip
+	pip install pillow --upgrade
+	pip install requests --upgrade
+	pip install numpy --upgrade
+	pip install matplotlib --upgrade
+	pip install pyinstaller --upgrade
+	pip install redis --upgrade
+	pip install walrus --upgrade
+	pip install pyqtgraph --upgrade
+	pip install PyQt6 --upgrade
 
 # Choco requires elevation
 choco_install:

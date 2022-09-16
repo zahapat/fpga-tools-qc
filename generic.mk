@@ -61,7 +61,6 @@ vvc_gen :
 # Generic Python GUI
 PY_GUI_PATH = ./scripts/gui
 PY_GUI_MAINFILE = guiMain.py
-PY_GUI_PIPFILE = pip_pkgs.bat
 PY_GUI_INSTALLFILE = install.bat
 PY_GUI_EXEFILE = gui.exe
 GUI_GEOMETRY = 100x100
@@ -94,10 +93,6 @@ py_gui:
 		--proj_name=$(PROJ_NAME)\
 		--proj_dir=.\
 		--verbose
-
-py_gui_pipinstall:
-	$(info ------- INSTALLING ESSENTIAL PYTHON PACKAGES -------)
-	$(PY_GUI_PATH)/$(PY_GUI_PIPFILE)
 
 py_gui_install:
 	$(info ------- GENERATING EXECUTABLE USING PYTHONINSTALLER -------)

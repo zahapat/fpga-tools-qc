@@ -11,3 +11,8 @@ doc
 *.dcp
 *.edf
 *.ini
+__pycache__
+build
+build_x64
+*.exe
+*.csv
