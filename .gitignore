@@ -74,3 +74,8 @@ packages/uvvm/*/*/*/*/sim
 modelsim/*
 !modelsim/*.do
 !modelsim/*.tcl
+
+
+
+boards/*
+!boards/*.tcl
