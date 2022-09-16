@@ -135,7 +135,7 @@ generics : $(PROJ_NAME).xpr
 		--proj_name=$(PROJ_NAME)\
 		--proj_dir=$(PROJ_DIR)\
 		--output_dir=./tcl
-	vivado.bat -nolog -nojou -mode batch -source "tcl/generic/vivado/make_generics.tcl" -notrace
+	vivado.bat -nolog -nojou -mode batch -source "tcl/project_specific/vivado/make_generics.tcl" -notrace
 
 # make ooc TOP=<module>: Run Synthesis in Out-of-context mode
 ooc : $(PROJ_NAME).xpr 0_report_added_modules.rpt
