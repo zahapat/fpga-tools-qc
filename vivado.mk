@@ -29,6 +29,11 @@ NAME_IP_PACK ?= $(PROJ_NAME)_ip
 
 
 # Generic Vivado/ModelSim Targets
+reset :
+	make new
+	make clean
+
+
 # make new: to create/recreate a project, set up settings
 new :
 	$(SUBSHELL_ENV)

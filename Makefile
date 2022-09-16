@@ -69,6 +69,8 @@ cmd_timeout:
 # -------------------------------------------------------------
 #  "vivado.mk" targets
 # -------------------------------------------------------------
+reset :
+	make -f $(VIVADO_MAKEFILE) $@
 new :
 	make -f $(VIVADO_MAKEFILE) $@
 new_module : $(PROJ_NAME).xpr
@@ -154,8 +156,6 @@ all_vitis :
 redis_start:
 	make -f $(GENERIC_MAKEFILE) $@
 redis_stop:
-	make -f $(GENERIC_MAKEFILE) $@
-reset :
 	make -f $(GENERIC_MAKEFILE) $@
 home_path :
 	make -f $(GENERIC_MAKEFILE) $@

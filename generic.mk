@@ -23,11 +23,7 @@ redis_stop:
 	wsl.exe echo "Redis Server Stopped"
 
 
-# Project initialization/reset targets
-reset :
-	make new
-	make clean
-
+# Project initialization
 home_path :
 	$(info ----- INITIALIZE CYGWIN HOME DIRECTORY -----)
 	py -3 helpers/init.py
