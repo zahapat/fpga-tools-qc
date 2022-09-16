@@ -12,7 +12,7 @@ PROJ_NAME = $(shell basename $(CURDIR))
 PROJ_DIR = $(shell pwd)
 
 
-# Links to source Make files
+# Links to related Makefiles
 PROJECT_SPECIFIC_MAKEFILE = project_specific.mk
 GENERIC_MAKEFILE = generic.mk
 VIVADO_MAKEFILE = vivado.mk
@@ -20,6 +20,27 @@ SIM_MAKEFILE = sim.mk
 VITIS_MAKEFILE = vitis.mk
 GIT_MAKEFILE = git.mk
 PACKAGES_MAKEFILE = packages.mk
+
+
+# Project author details
+ENGINEER ?= patrik_zahalka
+EMAIL ?= patrik.zahalka@univie.ac.at
+
+
+# [make new]: FPGA part number
+PART = xc7k160tffg676-1
+
+
+# Libraries for HDL sources and testbenches
+LIB_SRC ?= lib_src
+LIB_SIM ?= lib_sim
+
+
+# [make new_module]: Architecture type, generate extra files
+ARCH ?= rtl
+EXTRA ?= none
+
+
 
 
 # -------------------------------------------------------------

@@ -6,6 +6,21 @@ PROJ_NAME = $(shell basename $(CURDIR))
 PROJ_DIR = $(shell pwd)
 
 
+# Set subshell environment
+SUBSHELL_ENV = sed -i 's/\r//g' helpers/init.sh; . ./helpers/init.sh; vivado
+
+
+# Search for .xpr files in ./$(VPATH)
+VPATH = vivado
+
+
+# Prerequisites are located here
+OBJDIR := ./vivado
+
+
+# [make core/ip]: Name for the new IP package
+NAME_IP_PACK ?= $(PROJ_NAME)_ip
+
 
 # -------------------------------------------------------------
 #                     MAKEFILE TARGETS
