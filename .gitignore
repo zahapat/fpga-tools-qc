@@ -1,0 +1,13 @@
+vivado/*
+vitis/*
+!vivado/*.tcl
+.vscode
+.Xil
+doc
+!modelsim/*.do
+*.rpt
+*.bit
+*.xpr
+*.dcp
+*.edf
+*.ini
