@@ -75,7 +75,7 @@ gac_refractor:
 
 
 # [Template repo]
-# Git Add all changes in tamplate folders -> Commit all changes -> Push
+# Git Add all changes in "generic" folders -> Commit all changes -> Push
 # gacpt = Git Add Commit Push [Template repo]
 # example: make gacpt MSG="feat: Create new make command gacpt"
 gacpt:
@@ -83,7 +83,7 @@ gacpt:
 	git remote set-url origin $(GIT_TEMPLATE_HTTPS)
 	git switch main
 	git add -f \
-		./*/template/\* \
+		./*/generic/\* \
 		./Makefile \
 		./*.mk
 	git commit -m "$(MSG)"
