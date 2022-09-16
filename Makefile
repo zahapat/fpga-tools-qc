@@ -7,12 +7,12 @@
 # -------------------------------------------------------------
 #                     MAKEFILE VARIABLES
 # -------------------------------------------------------------
-#  Mandatory variables
+# Mandatory variables
 PROJ_NAME = $(shell basename $(CURDIR))
 PROJ_DIR = $(shell pwd)
 
 
-#  Links to source Make files
+# Links to source Make files
 PROJECT_SPECIFIC_MAKEFILE = project_specific.mk
 GENERIC_MAKEFILE = generic.mk
 VIVADO_MAKEFILE = vivado.mk
@@ -20,7 +20,6 @@ SIM_MAKEFILE = sim.mk
 VITIS_MAKEFILE = vitis.mk
 GIT_MAKEFILE = git.mk
 PACKAGES_MAKEFILE = packages.mk
-
 
 
 # -------------------------------------------------------------

@@ -1,7 +1,7 @@
 # -------------------------------------------------------------
 #                     MAKEFILE VARIABLES
 # -------------------------------------------------------------
-#  Mandatory variables
+# Mandatory variables
 PROJ_NAME = $(shell basename $(CURDIR))
 PROJ_DIR = $(shell pwd)
 
