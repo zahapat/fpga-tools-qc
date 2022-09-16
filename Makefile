@@ -41,6 +41,10 @@ ARCH ?= rtl
 EXTRA ?= none
 
 
+# [make src] Actual top module you are working with
+TOP ?= top.vhd
+
+
 
 
 # -------------------------------------------------------------
