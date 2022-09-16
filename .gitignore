@@ -20,6 +20,7 @@ build_x64
 *.gdb
 
 
+
 packages/uvvm/*/*/*/*/*
 packages/uvvm/*/sim
 packages/uvvm/*/*/sim
@@ -67,3 +68,9 @@ packages/uvvm/*/*/*/*/sim
 !packages/uvvm/*/*/*.sh
 !packages/uvvm/*/*/*/*.sh
 !packages/uvvm/*/*/*/*/*.sh
+
+
+
+modelsim/*
+!modelsim/*.do
+!modelsim/*.tcl
