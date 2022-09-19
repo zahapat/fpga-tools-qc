@@ -299,16 +299,16 @@ git_merge_to_main_branch:
 
 # Show what would be updated form the specific remote repo's branch, make no changes yet
 git_seek_changes_from_thisbranch_remote_repo:
-	git switch $(GIT_BRANCH)
 	git remote set-url origin $(GIT_PROJECT_HTTPS)
+	git switch $(GIT_BRANCH)
 	git status
 	git fetch origin $(GIT_BRANCH) --dry-run
 
 
 # Update your code with new changes form the specific remote repo's branch
 git_update_changes_from_thisbranch_remote_repo:
-	git switch $(GIT_BRANCH)
 	git remote set-url origin $(GIT_PROJECT_HTTPS)
+	git switch $(GIT_BRANCH)
 	git status
 	git fetch origin $(GIT_BRANCH)
 	git merge origin/$(GIT_BRANCH)
