@@ -297,20 +297,14 @@ git_merge_to_main_branch:
 	git merge $(GIT_BRANCH)
 
 
-# Show what would be updated form the specific remote repo's branch, make no changes yet
-git_seek_changes_from_thisbranch_remote_repo:
-	git remote set-url origin $(GIT_PROJECT_HTTPS)
-	git switch $(GIT_BRANCH)
-	git status
-	git fetch origin $(GIT_BRANCH) --dry-run
-
-
 # Update your code with new changes form the specific remote repo's branch
-git_update_changes_from_thisbranch_remote_repo:
+git_update_thisbranch_from_remote_projrepo:
 	git remote set-url origin $(GIT_PROJECT_HTTPS)
 	git switch $(GIT_BRANCH)
 	git status
+	@echo Fetch:
 	git fetch origin $(GIT_BRANCH)
+	@echo Merge:
 	git merge origin/$(GIT_BRANCH)
 
 
@@ -323,7 +317,7 @@ git_update_all_branches_templateremote:
 	git log --name-status HEAD^..HEAD
 	git status
 	@echo Apply bash oneliner to track all branches in a remote
-	$(shell git branch -r | grep -v '\->' | sed "s,\x1B\[[0-9;]*[a-zA-Z],,g" | while read remote; do git branch --track "${remote#origin/}" "$remote"; done)
+	git branch -r | grep -v '\->' | sed "s,\x1B\[[0-9;]*[a-zA-Z],,g" | while read remote; do git branch --track "${remote#origin/}" "$remote"; done
 	@echo Git fetch:
 	git fetch --all
 	@echo Git pull:
@@ -341,7 +335,7 @@ git_update_all_branches_projectremote:
 	git log --name-status HEAD^..HEAD
 	git status
 	@echo Apply bash oneliner to track all branches in a remote
-	$(shell git branch -r | grep -v '\->' | sed "s,\x1B\[[0-9;]*[a-zA-Z],,g" | while read remote; do git branch --track "${remote#origin/}" "$remote"; done)
+	git branch -r | grep -v '\->' | sed "s,\x1B\[[0-9;]*[a-zA-Z],,g" | while read remote; do git branch --track "${remote#origin/}" "$remote"; done
 	@echo Git fetch:
 	git fetch --all
 	@echo Git pull:
