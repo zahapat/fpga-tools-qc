@@ -273,7 +273,16 @@ git_compare_with_main_branch:
 	make -f $(GIT_MAKEFILE) $@
 git_merge_to_main_branch:
 	make -f $(GIT_MAKEFILE) $@
-
+git_seek_changes_from_thisbranch_remote_repo:
+	make -f $(GIT_MAKEFILE) $@
+git_update_changes_from_thisbranch_remote_repo:
+	make -f $(GIT_MAKEFILE) $@
+git_update_all_branches_templateremote:
+	make -f $(GIT_MAKEFILE) $@
+git_update_all_branches_projectremote:
+	make -f $(GIT_MAKEFILE) $@
+git_update_localfiles_from_allremotes:
+	make -f $(GIT_MAKEFILE) $@
 
 
 # -------------------------------------------------------------
