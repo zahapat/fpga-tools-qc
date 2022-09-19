@@ -275,11 +275,7 @@ git_merge_to_main_branch:
 	make -f $(GIT_MAKEFILE) $@
 git_update_thisbranch_from_remote_projrepo:
 	make -f $(GIT_MAKEFILE) $@
-git_update_all_branches_templateremote:
-	make -f $(GIT_MAKEFILE) $@
-git_update_all_branches_projectremote:
-	make -f $(GIT_MAKEFILE) $@
-git_update_localfiles_from_allremotes:
+git_update_mainbranch_from_remote_templrepo:
 	make -f $(GIT_MAKEFILE) $@
 
 

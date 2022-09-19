@@ -307,46 +307,15 @@ git_update_thisbranch_from_remote_projrepo:
 	@echo Merge:
 	git merge origin/$(GIT_BRANCH)
 
-
-# Apply remaining commits to up-to-date state in template files
-git_update_all_branches_templateremote:
-	@echo Add template remote repo URL
-	make git_new_remote_origin_template_https
+git_update_mainbranch_from_remote_templrepo:
+	@echo Set template remote:
 	git remote set-url origin $(GIT_TEMPLATE_HTTPS)
 	git switch main
-	git log --name-status HEAD^..HEAD
 	git status
-	@echo Apply bash oneliner to track all branches in a remote
-	git branch -r | grep -v '\->' | sed "s,\x1B\[[0-9;]*[a-zA-Z],,g" | while read remote; do git branch --track "${remote#origin/}" "$remote"; done
-	@echo Git fetch:
-	git fetch --all
-	@echo Git pull:
-	git pull --all
-	@echo Set back default remote url
+	@echo Fetch:
+	git fetch origin main
+	@echo Merge:
+	git merge origin/main
+	@echo Back to project remote work branch:
 	git remote set-url origin $(GIT_PROJECT_HTTPS)
 	git switch $(GIT_BRANCH)
-
-
-# Apply remaining commits to up-to-date state in project files
-git_update_all_branches_projectremote:
-	@echo Add project remote repo URL
-	make git_new_remote_origin_https
-	git remote set-url origin $(GIT_PROJECT_HTTPS)
-	git log --name-status HEAD^..HEAD
-	git status
-	@echo Apply bash oneliner to track all branches in a remote
-	git branch -r | grep -v '\->' | sed "s,\x1B\[[0-9;]*[a-zA-Z],,g" | while read remote; do git branch --track "${remote#origin/}" "$remote"; done
-	@echo Git fetch:
-	git fetch --all
-	@echo Git pull:
-	git pull --all
-	git switch $(GIT_BRANCH)
-
-
-# Apply remaining commits form remote repos
-git_update_localfiles_from_allremotes:
-	@echo Update all branches from template repo
-	make git_update_all_branches_templateremote
-	@echo Update all branches from project repo
-	make git_update_all_branches_projectremote
-	
