@@ -230,13 +230,10 @@ git_new_private_repo_from_template:
 	gh repo create $(PROJ_NAME) --private --template $(GIT_ACCOUNT)/$(GIT_TEMPLATE)
 	make git_new_remote_origin_https
 	make git_new_remote_origin_template_https
+	git clone $(GIT_TEMPLATE_HTTPS)
+	mv -f ./$(GIT_TEMPLATE)/* ./
+	rm -rf ./$(GIT_TEMPLATE)/
 	git remote set-url origin $(GIT_PROJECT_HTTPS)
-	git switch main
-	git status
-	@echo Fetch:
-	git fetch origin main
-	@echo Merge:
-	git merge origin/main
 	git checkout main
 	make gacp MSG="Initial commit"
 	
@@ -252,6 +249,7 @@ git_new_public_repo_from_template:
 	git clone $(GIT_TEMPLATE_HTTPS)
 	mv -f ./$(GIT_TEMPLATE)/* ./
 	rm -rf ./$(GIT_TEMPLATE)/
+	git remote set-url origin $(GIT_PROJECT_HTTPS)
 	git checkout main
 	make gacp MSG="Initial commit"
 
@@ -301,25 +299,62 @@ git_merge_to_main_branch:
 	git merge $(GIT_BRANCH)
 
 
-# Update your code with new changes form the specific remote repo's branch
-git_update_thisbranch_from_remote_projrepo:
+# Show what would be updated form the specific remote repo's branch, make no changes yet
+git_seek_changes_from_thisbranch_remote_repo:
 	git remote set-url origin $(GIT_PROJECT_HTTPS)
 	git switch $(GIT_BRANCH)
 	git status
-	@echo Fetch:
+	git fetch origin $(GIT_BRANCH) --dry-run
+
+
+# Update your code with new changes form the specific remote repo's branch
+git_update_changes_from_thisbranch_remote_repo:
+	git remote set-url origin $(GIT_PROJECT_HTTPS)
+	git switch $(GIT_BRANCH)
+	git status
 	git fetch origin $(GIT_BRANCH)
-	@echo Merge:
 	git merge origin/$(GIT_BRANCH)
 
-git_update_mainbranch_from_remote_templrepo:
-	@echo Set template remote:
+
+# Apply remaining commits to up-to-date state in template files
+git_update_all_branches_templateremote:
+	@echo Add template remote repo URL
+	make git_new_remote_origin_template_https
 	git remote set-url origin $(GIT_TEMPLATE_HTTPS)
 	git switch main
+	git log --name-status HEAD^..HEAD
 	git status
-	@echo Fetch changes:
-	git fetch origin main
-	@echo Merge changes:
-	git merge origin/main
-	@echo Switch back to project remote work branch:
+	@echo Apply bash oneliner to track all branches in a remote
+	$(shell git branch -r | grep -v '\->' | sed "s,\x1B\[[0-9;]*[a-zA-Z],,g" | while read remote; do git branch --track "${remote#origin/}" "$remote"; done)
+	@echo Git fetch:
+	git fetch --all
+	@echo Git pull:
+	git pull --all
+	@echo Set back default remote url
 	git remote set-url origin $(GIT_PROJECT_HTTPS)
 	git switch $(GIT_BRANCH)
+
+
+# Apply remaining commits to up-to-date state in project files
+git_update_all_branches_projectremote:
+	@echo Add project remote repo URL
+	make git_new_remote_origin_https
+	git remote set-url origin $(GIT_PROJECT_HTTPS)
+	git log --name-status HEAD^..HEAD
+	git status
+	@echo Apply bash oneliner to track all branches in a remote
+	$(shell git branch -r | grep -v '\->' | sed "s,\x1B\[[0-9;]*[a-zA-Z],,g" | while read remote; do git branch --track "${remote#origin/}" "$remote"; done)
+	@echo Git fetch:
+	git fetch --all
+	@echo Git pull:
+	git pull --all
+	git switch $(GIT_BRANCH)
+
+
+# Apply remaining commits form remote repos
+git_update_localfiles_from_allremotes:
+	@echo Update all branches from template repo
+	make git_update_all_branches_templateremote
+	@echo Update all branches from project repo
+	make git_update_all_branches_projectremote
+	
