@@ -273,9 +273,9 @@ git_compare_with_main_branch:
 	make -f $(GIT_MAKEFILE) $@
 git_merge_to_main_branch:
 	make -f $(GIT_MAKEFILE) $@
-git_update_all_branches_templateremote:
+git_update_changes_thisbranch_projrepo:
 	make -f $(GIT_MAKEFILE) $@
-git_update_all_branches_projectremote:
+git_update_changes_mainbranch_templrepo:
 	make -f $(GIT_MAKEFILE) $@
 
 
