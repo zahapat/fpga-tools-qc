@@ -313,3 +313,5 @@ git_update_changes_mainbranch_templrepo:
 	git status
 	git fetch origin main
 	git merge origin/main
+	git remote set-url origin $(GIT_PROJECT_HTTPS)
+	git switch $(GIT_BRANCH)
