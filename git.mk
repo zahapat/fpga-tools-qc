@@ -311,7 +311,7 @@ git_update_changes_mainbranch_templrepo:
 	git remote set-url origin $(GIT_TEMPLATE_HTTPS)
 	git switch main
 	git status
-	git fetch origin main
+	git pull origin main --allow-unrelated-histories
 	git merge origin/main
 	git remote set-url origin $(GIT_PROJECT_HTTPS)
 	git switch $(GIT_BRANCH)
