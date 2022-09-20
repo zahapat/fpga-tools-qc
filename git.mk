@@ -312,10 +312,10 @@ git_update_mainbranch_from_remote_templrepo:
 	git remote set-url origin $(GIT_TEMPLATE_HTTPS)
 	git switch main
 	git status
-	@echo Fetch:
+	@echo Fetch changes:
 	git fetch origin main
-	@echo Merge:
+	@echo Merge changes:
 	git merge origin/main
-	@echo Back to project remote work branch:
+	@echo Switch back to project remote work branch:
 	git remote set-url origin $(GIT_PROJECT_HTTPS)
 	git switch $(GIT_BRANCH)
