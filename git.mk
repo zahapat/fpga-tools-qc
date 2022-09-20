@@ -230,9 +230,13 @@ git_new_private_repo_from_template:
 	gh repo create $(PROJ_NAME) --private --template $(GIT_ACCOUNT)/$(GIT_TEMPLATE)
 	make git_new_remote_origin_https
 	make git_new_remote_origin_template_https
-	git clone $(GIT_TEMPLATE_HTTPS)
-	mv -f ./$(GIT_TEMPLATE)/* ./
-	rm -rf ./$(GIT_TEMPLATE)/
+	git remote set-url origin $(GIT_PROJECT_HTTPS)
+	git switch main
+	git status
+	@echo Fetch:
+	git fetch origin main
+	@echo Merge:
+	git merge origin/main
 	git checkout main
 	make gacp MSG="Initial commit"
 	
