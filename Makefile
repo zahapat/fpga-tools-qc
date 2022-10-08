@@ -27,10 +27,6 @@ ENGINEER ?= patrik_zahalka
 EMAIL ?= patrik.zahalka@univie.ac.at
 
 
-# [make new]: FPGA part number
-PART = xc7k160tffg676-1
-
-
 # Libraries for HDL sources and testbenches
 LIB_SRC ?= lib_src
 LIB_SIM ?= lib_sim
