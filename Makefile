@@ -55,7 +55,7 @@ TOP ?= top.vhd
 # -------------------------------------------------------------
 rebuild_proj:
 	make -f $(PROJECT_SPECIFIC_MAKEFILE) $@
-reset_bitfiles: 3_bitstream_$(PROJ_NAME).bit
+reset_bitfiles:
 	make -f $(PROJECT_SPECIFIC_MAKEFILE) $@
 cmd_timeout:
 	make -f $(PROJECT_SPECIFIC_MAKEFILE) $@
