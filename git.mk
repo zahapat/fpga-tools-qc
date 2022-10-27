@@ -45,11 +45,16 @@ gac:
 # In CLI: make gacp MSG="feat: Enable commit msg from cli"
 # gacp = Git Add Commit Push
 # example: make gacp MSG="feat: Create new make command gacp"
+exclude_file_from_staging_project:
+	git reset ./do/modules.tcl
+
 gacp: 
 	make git_new_remote_origin_https
 	git remote set-url origin $(GIT_PROJECT_HTTPS)
 	git switch $(GIT_BRANCH)
-	git add --all && git commit -m "$(MSG)"
+	git add --all
+	make exclude_file_from_staging_project
+	git commit -m "$(MSG)"
 	make gp
 	git log --name-status HEAD^..HEAD
 
@@ -78,6 +83,9 @@ gac_refractor:
 # Git Add all changes in "generic" folders -> Commit all changes -> Push
 # gacpt = Git Add Commit Push [Template repo]
 # example: make gacpt MSG="feat: Create new make command gacpt"
+exclude_file_from_staging_template:
+	git reset ./do/modules.tcl
+
 gacpt:
 	make git_new_remote_origin_template_https
 	git remote set-url origin $(GIT_TEMPLATE_HTTPS)
@@ -86,9 +94,11 @@ gacpt:
 		./*/generic/\* \
 		./Makefile \
 		./*.mk
+	make exclude_file_from_staging_template
 	git commit -m "$(MSG)"
 	git push https://github.com/$(GIT_ACCOUNT)/$(GIT_TEMPLATE) -f
 	git log --name-status HEAD^..HEAD
+	make git_new_remote_origin_https
 	git remote set-url origin $(GIT_PROJECT_HTTPS)
 
 
