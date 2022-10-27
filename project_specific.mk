@@ -12,8 +12,11 @@ PROJ_DIR = $(shell pwd)
 # -------------------------------------------------------------
 .ONESHELL:
 
+build:
+	make reset
+	make src TOP=top_gflow_tb.vhd
 
-rebuild_proj:
+build_all:
 	make reset
 	make src TOP=top_gflow_tb.vhd
 	make generics
