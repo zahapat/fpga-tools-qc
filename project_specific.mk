@@ -15,7 +15,6 @@ PROJ_DIR = $(shell pwd)
 build:
 	make reset
 	make src TOP=top_gflow_tb.vhd
-	make generics
 
 build_all:
 	make reset
