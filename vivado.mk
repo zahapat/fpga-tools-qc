@@ -50,8 +50,6 @@ TOP ?= top.vhd
 
 # Generic Vivado/ModelSim Targets
 reset :
-	rm -r ./vivado
-	mkdir ./vivado
 	make new
 	make clean
 
@@ -59,6 +57,9 @@ reset :
 # make new: to create/recreate a project, set up settings
 new :
 	$(info ----- RE/CREATE THE VIVADO PROJECT: $(PROJ_NAME) -----)
+	rm -r ./.Xil
+	rm -r ./vivado
+	mkdir ./vivado
 	$(VIVADO_BINPATH)/vivado.bat -nolog -nojou -mode batch -source ./tcl/generic/vivado/recreate_vivado_proj.tcl -notrace -tclargs $(PART)
 
 
@@ -225,6 +226,7 @@ old : 2_checkpoint_post_route.dcp 1_checkpoint_post_synth.dcp
 # make clean: Clean project files and ModelSim project folder content
 clean : $(PROJ_NAME).xpr
 	$(info ----- CLEAN VIVADO & MODELSIM PROJECT JUNK FILES, CLEAN ENVIRONMENT -----)
+	rm -r ./.Xil
 	$(VIVADO_BINPATH)/vivado.bat -nolog -nojou -mode batch -source ./tcl/generic/vivado/make_clean.tcl -notrace -tclargs $(LIB_SRC) $(LIB_SIM)
 
 
