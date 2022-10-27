@@ -14,7 +14,7 @@ PROJ_DIR = $(shell pwd)
 
 # Pip
 pip_install:
-	py -3 -m pip install
+	powershell -Command "Start-Process -FilePath 'cmd.exe' -ArgumentList ('/c py -3 -m pip install') -Verb RunAs"
 	pip install --user git
 	pip install pillow
 	pip freeze
