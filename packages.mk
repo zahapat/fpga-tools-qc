@@ -28,7 +28,7 @@ pip_install:
 	pip install PyQt6
 
 pip_upgrade:
-	py -3 -m pip install --upgrade pip
+	powershell -Command "Start-Process -FilePath 'cmd.exe' -ArgumentList ('/c py -3 -m pip install --upgrade pip') -Verb RunAs"
 	pip install pillow --upgrade
 	pip install requests --upgrade
 	pip install numpy --upgrade
