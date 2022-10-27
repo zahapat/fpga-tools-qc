@@ -115,9 +115,9 @@ ip :
 # -------------------------------------------------------------
 #  "sim.mk" targets
 # -------------------------------------------------------------
-sim : modelsim.ini
+sim :
 	make -f $(SIM_MAKEFILE) $@
-sim_gui : modelsim.ini ./modelsim/run.do
+sim_gui :
 	make -f $(SIM_MAKEFILE) $@
 
 
