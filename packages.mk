@@ -50,11 +50,7 @@ choco_upgrade:
 
 # Winget
 winget_install:
-	winget install --id Git.Git -e --source winget
-	winget install --id Microsoft.VisualStudio.2022.Community --source winget
-	winget install --id Microsoft.VisualStudio.2022.BuildTools --source winget
 	winget install --id Kitware.CMake --source winget
-	winget install --id Microsoft.WindowsSDK --source winget
 
 winget_upgrade:
 	winget upgrade -h --id Git.Git
