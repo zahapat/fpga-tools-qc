@@ -28,6 +28,20 @@ OBJDIR := ./vivado
 NAME_IP_PACK ?= $(PROJ_NAME)_ip
 
 
+# Libraries for HDL sources and testbenches
+LIB_SRC ?= lib_src
+LIB_SIM ?= lib_sim
+
+
+# [make new_module]: Architecture type, generate extra files
+ARCH ?= rtl
+EXTRA ?= none
+
+
+# [make src] Actual top module you are working with
+TOP ?= top.vhd
+
+
 # -------------------------------------------------------------
 #                     MAKEFILE TARGETS
 # -------------------------------------------------------------
