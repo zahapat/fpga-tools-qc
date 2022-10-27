@@ -55,7 +55,6 @@ winget_install:
 winget_upgrade:
 	winget upgrade -h --id Git.Git
 	winget upgrade -h --id Microsoft.VisualStudio.2022.Community
-	winget upgrade -h --id Microsoft.VisualStudio.2022.BuildTools
 	winget upgrade -h --id Kitware.CMake
 	winget upgrade -h --id Microsoft.WindowsSDK
 
