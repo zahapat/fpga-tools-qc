@@ -166,8 +166,8 @@ home_path :
 	make -f $(GENERIC_MAKEFILE) $@
 init_modelsim :
 	make -f $(GENERIC_MAKEFILE) $@
-init :
-	make -f $(GENERIC_MAKEFILE) $@
+# init :
+# 	make -f $(GENERIC_MAKEFILE) $@
 vvc_gen :
 	make -f $(GENERIC_MAKEFILE) $@
 py_gui_regen:

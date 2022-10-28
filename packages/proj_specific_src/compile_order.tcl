@@ -1,5 +1,5 @@
 set this_file_name "[file tail [info script]]"
-set relpath_to_module "./[string trimleft [file dirname [info script]] [file normalize ${origin_dir}]]"
+set relpath_to_module ".[string range [file dirname [info script]] [string length [file normalize ${origin_dir}]] end]"
 puts "TCL: Adding sources of: $relpath_to_module"
 set simulator_comporder_path "${origin_dir}/do/modules.tcl"
 set simulator_comporder [open ${simulator_comporder_path} "a"]

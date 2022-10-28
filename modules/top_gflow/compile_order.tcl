@@ -1,5 +1,5 @@
 set this_file_name "[file tail [info script]]"
-set relpath_to_module "./[string trimleft [file dirname [info script]] [file normalize ${origin_dir}]]"
+set relpath_to_module ".[string range [file dirname [info script]] [string length [file normalize ${origin_dir}]] end]"
 puts "TCL: Adding sources of: $relpath_to_module"
 set simulator_comporder_path "${origin_dir}/do/modules.tcl"
 set simulator_comporder [open ${simulator_comporder_path} "a"]
@@ -59,6 +59,7 @@ set foundFiles [glob -nocomplain -type f \
     ${relpath_to_module}/*{.xdc} \
     ${relpath_to_module}/*/*{.xdc} \
 ]
+puts "TCL DEBUG: xdc foundFiles = $foundFiles"
 if {[llength $foundFiles] > 0} {
     foreach file_path $foundFiles {
         add_files -norecurse -fileset "constrs_1" "$file_path"
@@ -71,6 +72,7 @@ set foundFiles [glob -nocomplain -type f \
     ${relpath_to_module}/*{.tcl} \
     ${relpath_to_module}/*/*{.tcl} \
 ]
+puts "TCL DEBUG: tcl foundFiles = $foundFiles"
 if {[llength $foundFiles] > 0} {
     foreach file_path $foundFiles {
         if { [string first $this_file_name $file_path] == -1} {

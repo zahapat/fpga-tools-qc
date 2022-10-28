@@ -322,7 +322,7 @@ puts "TCL: Path to the new Top module: $topFileFound_normalized"
 # report_compile_order -used_in synthesis
 # get_files -compile_order sources_1 -used_in synthesis
 
-
+quit
 
 # Set target language of the project based on the TOP file (Verilog, VHDL)
 set ip_name [lindex [split $topFileFound_normalized "."] 0]
