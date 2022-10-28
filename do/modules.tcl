@@ -40,12 +40,6 @@
  ./modules/reset/hdl/reset_tb.vhd
  ./modules/qubit_deskew/hdl/qubit_deskew.vhd
  ./modules/qubit_deskew/sim/qubit_deskew_tb.vhd
- ./modules/qubit_deskew/hdl/qubit_deskew.vhd
- ./modules/qubit_deskew/sim/qubit_deskew_tb.vhd
- ./modules/qubit_deskew/hdl/qubit_deskew.vhd
- ./modules/qubit_deskew/sim/qubit_deskew_tb.vhd
- ./modules/qubit_deskew/hdl/qubit_deskew.vhd
- ./modules/qubit_deskew/sim/qubit_deskew_tb.vhd
  ./modules/fsm_gflow/hdl/fsm_gflow.vhd
  ./modules/fsm_gflow/sim/fsm_gflow_tb.vhd
  ./modules/lfsr_bitgen/hdl/lfsr_bitgen.vhd
@@ -55,12 +49,6 @@
  ./modules/pulse_gen/hdl/pulse_gen.vhd
  ./modules/pulse_gen/sim/output_pulse_gen_tb.vhd
  ./modules/xilinx_obufs/hdl/xilinx_obufs.vhd
- ./modules/nff_cdcc/hdl/nff_cdcc.vhd
- ./modules/nff_cdcc/sim/nff_cdcc_tb.vhd
- ./modules/nff_cdcc/hdl/nff_cdcc.vhd
- ./modules/nff_cdcc/sim/nff_cdcc_tb.vhd
- ./modules/nff_cdcc/hdl/nff_cdcc.vhd
- ./modules/nff_cdcc/sim/nff_cdcc_tb.vhd
  ./modules/nff_cdcc/hdl/nff_cdcc.vhd
  ./modules/nff_cdcc/sim/nff_cdcc_tb.vhd
  ./modules/xilinx_ibufs/hdl/xilinx_ibufs.vhd

@@ -499,8 +499,8 @@ for {set i 0} {$i < $hier_levels} {incr i} {
         # Search for modules in each hierarchy level
         if { [string first $pattern $line] != -1} {
 
-            set line_part [string map {")/(" "|"} $line]
-            set line_missing_module_name [string map {")" "|"} $line_part]
+            set line_part [string map {"\)/\(" "|"} $line]
+            set line_missing_module_name [string map {"\)" "|"} $line_part]
 
             set line_part_trim 1
             if { [string first "|" ${line_missing_module_name}] != -1} {

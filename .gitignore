@@ -1,6 +1,5 @@
 vivado/*
 vitis/*
-!vivado/*.tcl
 .vscode
 .Xil
 doc
@@ -18,7 +17,10 @@ build_x64
 *.csv
 *.pdf
 *.gdb
+*.str
 
+
+do/modules.tcl
 
 
 packages/uvvm/*/*/*/*/*
