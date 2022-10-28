@@ -83,7 +83,7 @@ gacpt:
 	make git_new_remote_origin_template_https
 	git remote set-url origin $(GIT_TEMPLATE_HTTPS)
 	git switch main
-	git add \
+	git add -f \
 		./*/generic/\* \
 		./Makefile \
 		./*.mk
