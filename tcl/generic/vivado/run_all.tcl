@@ -76,7 +76,7 @@ write_edif -force "${origin_dir}/vivado/1_netlist_post_synth.edf"
 
 # Run Implementation + Generate Bitstream if out-of-date
 puts "TCL: Run Implementation and Generate Bitstream. "
-source "${origin_dir}/tcl/project_specific/strategy_impl.tcl"
+source "${origin_dir}/tcl/project_specific/vivado/strategy_impl.tcl"
 launch_runs impl_1 -to_step route_design -jobs 4
 wait_on_run impl_1
 open_run impl_1
