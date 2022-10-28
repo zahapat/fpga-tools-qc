@@ -253,6 +253,9 @@
         signal s_stable_channels_to_cdcc : std_logic_vector(CHANNELS_CNT-1 downto 0) := (others => '0');
         signal s_valid_qubits_stable_to_cdcc : std_logic_vector(CHANNELS_CNT/2-1 downto 0) := (others => '0');
 
+        signal sl_inemul_ready : std_logic := '0';
+        signal sl_inemul_valid : std_logic := '0';
+
         signal s_q1_valid_to_sampler : std_logic := '0';
         signal s_q2_valid_to_sampler : std_logic := '0';
         signal s_q3_valid_to_sampler : std_logic := '0';
@@ -371,25 +374,26 @@
         inst_wire_in_addr_00 : entity lib_src.okWireIn
         port map (
             okHE       => okHE,
-            ep_addr    => x"00",
+            -- ep_addr    => std_logic_vector(to_unsigned(0, 8)),
+            ep_addr    => std_logic_vector(to_unsigned(16#00#, 8)),
             ep_dataout => slv_win_ep00 -- slv_win_ep00 = reset + throttle_set
         );
         inst_wire_in_addr_01 : entity lib_src.okWireIn 
         port map (
             okHE       => okHE,
-            ep_addr    => x"01",
+            ep_addr    => std_logic_vector(to_unsigned(16#01#, 8)),
             ep_dataout => slv_win_ep01_throttle_out
         );
         inst_wire_in_addr_02 : entity lib_src.okWireIn
         port map (
             okHE       => okHE,
-            ep_addr    => x"02",
+            ep_addr    => std_logic_vector(to_unsigned(16#02#, 8)),
             ep_dataout => slv_win_ep02_throttle_in
         );
         inst_wire_in_addr_03 : entity lib_src.okWireIn
         port map (
             okHE       => okHE, 
-            ep_addr    => x"03", 
+            ep_addr    => std_logic_vector(to_unsigned(16#03#, 8)),
             ep_dataout => slv_win_ep03_fixed_pattern
         );
 
@@ -399,7 +403,7 @@
         port map (
             okHE      => okHE, 
             okEH      => okEHx( 1*65-1 downto 0*65 ), -- Common output bus loc to be OR-ed
-            ep_addr   => x"20", 
+            ep_addr   => std_logic_vector(to_unsigned(16#20#, 8)),
             ep_datain => slv_wout_ep20
         );
 
@@ -408,7 +412,7 @@
         port map (
             okHE      => okHE,
             okEH      => okEHx( 2*65-1 downto 1*65 ), -- Common output bus loc to be OR-ed
-            ep_addr   => x"21",
+            ep_addr   => std_logic_vector(to_unsigned(16#21#, 8)),
             ep_datain => slv_wout_ep21_rcv_errors
         );
 
@@ -417,7 +421,7 @@
         port map (
             okHE      => okHE,
             okEH      => okEHx( 3*65-1 downto 2*65 ), -- Common output bus loc to be OR-ed
-            ep_addr   => x"3e",
+            ep_addr   => std_logic_vector(to_unsigned(16#3e#, 8)),
             ep_datain => slv_wout_ep3e
         );
 
@@ -426,7 +430,7 @@
         port map (
             okHE      => okHE,
             okEH      => okEHx( 4*65-1 downto 3*65 ), -- Common output bus loc to be OR-ed
-            ep_addr   => x"3f",
+            ep_addr   => std_logic_vector(to_unsigned(16#3f#, 8)),
             ep_datain => slv_wout_ep3f
         );
 
@@ -443,7 +447,7 @@
         --     port map (
         --         okHE	       => okHE,
         --         okEH	       => okEHx( 5*65-1 downto 4*65 ),
-        --         ep_addr        => x"80",
+        --         ep_addr        => 16#80#,
         --         ep_write       => slv_pipe_in_endp_write_en,
         --         ep_blockstrobe => slv_blockstrobe_pipe_in,
         --         ep_dataout     => slv_pipe_in_endp_data,    -- DATA IN
@@ -459,7 +463,7 @@
         port map (
             okHE           => okHE,
             okEH           => okEHx( 5*65-1 downto 4*65 ),
-            ep_addr        => x"A0",
+            ep_addr        => std_logic_vector(to_unsigned(16#A0#, 8)),
             ep_read        => slv_pipe_out_endp_read_en,
             ep_blockstrobe => slv_blockstrobe_pipe_out,
             ep_datain      => slv_pipe_out_endp_data,   -- DATA OUT
@@ -603,18 +607,24 @@
         gen_emul_true : if EMULATE_INPUTS = true generate 
             inst_lfsr_inemul : entity lib_src.lfsr_inemul(rtl)
             generic map (
-                RST_VAL           => RST_VAL,
-                SYMBOL_WIDTH      => CHANNELS_CNT,
-                REQUESTED_FREQ_HZ => REQUESTED_EMUL_FREQ_HZ,
-                SYSTEMCLK_FREQ_HZ => SYSTEMCLK_EMUL_FREQ_HZ
+                -- RST_VAL           => RST_VAL,
+                -- SYMBOL_WIDTH      => CHANNELS_CNT,
+                -- REQUESTED_FREQ_HZ => REQUESTED_EMUL_FREQ_HZ,
+                -- SYSTEMCLK_FREQ_HZ => SYSTEMCLK_EMUL_FREQ_HZ
+                RST_VAL               => RST_VAL,
+                SYMBOL_WIDTH          => CHANNELS_CNT,
+                PRIM_POL_INT_VAL      => 501,
+                GF_SEED               => 1,
+                DATA_PULLDOWN_ENABLE  => true,
+                PULLDOWN_CYCLES       => 2 -- min 2
             )
             port map (
                 clk => sys_clk,
                 rst => sl_rst_sysclk,
         
-                -- ready
-                data_out => s_noisy_channels
-                -- valid_out
+                ready => sl_inemul_ready,
+                data_out => s_noisy_channels,
+                valid_out => sl_inemul_valid
             );
         end generate;
 
