@@ -156,7 +156,7 @@ generics : $(PROJ_NAME).xpr
 		--generic15_val=$(GEN15_VAL)\
 		--proj_name=$(PROJ_NAME)\
 		--proj_dir=$(PROJ_DIR)\
-		--output_dir=./tcl
+		--output_dir=./tcl/project_specific/vivado
 	$(VIVADO_BINPATH)/vivado.bat -nolog -nojou -mode batch -source ./tcl/project_specific/vivado/make_generics.tcl -notrace
 
 # make ooc TOP=<module>: Run Synthesis in Out-of-context mode
