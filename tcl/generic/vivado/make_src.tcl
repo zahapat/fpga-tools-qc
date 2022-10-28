@@ -492,7 +492,7 @@ for {set i 0} {$i < $hier_levels} {incr i} {
     }
 
     # Find all missing modules in the current level of hierarchy
-    puts "TCL: ===== HIERARCHY LEVEL $i ====="
+    puts "TCL: ===== ADDING MISSING MODULES ====="
     set slurp_file [open "${origin_dir}/vivado/0_report_modules_missing.rpt" r]
     while {-1 != [gets $slurp_file line]} {
 

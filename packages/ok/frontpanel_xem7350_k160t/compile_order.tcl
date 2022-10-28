@@ -16,7 +16,7 @@ set vivado_added_scripts_report [open $vivado_added_scripts_report_path "a"]
 #      USER INPUT
 # 1.0) Opal Kelly Frontpanel Package -> sources_1 + default library work (no action)
 add_files -fileset "sources_1" -norecurse {\
-    ./packages/ok/frontpanel_xem7350_k160t/hdl/okCoreHarness.v\ 
+    ./packages/ok/frontpanel_xem7350_k160t/hdl/okCoreHarness.v\
     ./packages/ok/frontpanel_xem7350_k160t/hdl/okTriggerOut.v\
     ./packages/ok/frontpanel_xem7350_k160t/hdl/okWireIn.v\
     ./packages/ok/frontpanel_xem7350_k160t/hdl/okBTPipeOut.v\
@@ -30,7 +30,7 @@ add_files -fileset "sources_1" -norecurse {\
 }
 
 set_property library "lib_src" [get_files {\
-    ./packages/ok/frontpanel_xem7350_k160t/hdl/okCoreHarness.v\ 
+    ./packages/ok/frontpanel_xem7350_k160t/hdl/okCoreHarness.v\
     ./packages/ok/frontpanel_xem7350_k160t/hdl/okTriggerOut.v\
     ./packages/ok/frontpanel_xem7350_k160t/hdl/okWireIn.v\
     ./packages/ok/frontpanel_xem7350_k160t/hdl/okBTPipeOut.v\
@@ -44,7 +44,7 @@ set_property library "lib_src" [get_files {\
 }]
 
 puts -nonewline $vivado_added_hdl_report "\
-    ./packages/ok/frontpanel_xem7350_k160t/hdl/okCoreHarness.v\n\ 
+    ./packages/ok/frontpanel_xem7350_k160t/hdl/okCoreHarness.v\n\
     ./packages/ok/frontpanel_xem7350_k160t/hdl/okTriggerOut.v\n\
     ./packages/ok/frontpanel_xem7350_k160t/hdl/okWireIn.v\n\
     ./packages/ok/frontpanel_xem7350_k160t/hdl/okBTPipeOut.v\n\
@@ -61,7 +61,7 @@ update_compile_order -fileset "sources_1"
 #    * ModelSim
 #      USER INPUT
 puts -nonewline $simulator_comporder "\
-    ./packages/ok/frontpanel_xem7350_k160t/hdl/okCoreHarness.v\n\ 
+    ./packages/ok/frontpanel_xem7350_k160t/hdl/okCoreHarness.v\n\
     ./packages/ok/frontpanel_xem7350_k160t/hdl/okTriggerOut.v\n\
     ./packages/ok/frontpanel_xem7350_k160t/hdl/okWireIn.v\n\
     ./packages/ok/frontpanel_xem7350_k160t/hdl/okBTPipeOut.v\n\

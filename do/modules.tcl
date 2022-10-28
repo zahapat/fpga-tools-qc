@@ -1,6 +1,5 @@
  ./packages/ok/frontpanel_xem7350_k160t/hdl/okCoreHarness.v
- 
-    ./packages/ok/frontpanel_xem7350_k160t/hdl/okTriggerOut.v
+ ./packages/ok/frontpanel_xem7350_k160t/hdl/okTriggerOut.v
  ./packages/ok/frontpanel_xem7350_k160t/hdl/okWireIn.v
  ./packages/ok/frontpanel_xem7350_k160t/hdl/okBTPipeOut.v
  ./packages/ok/frontpanel_xem7350_k160t/hdl/okRegisterBridge.v
