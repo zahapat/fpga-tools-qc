@@ -604,7 +604,7 @@
             inst_lfsr_inemul : entity lib_src.lfsr_inemul(rtl)
             generic map (
                 RST_VAL           => RST_VAL,
-                CHANNELS_CNT      => CHANNELS_CNT,
+                SYMBOL_WIDTH      => CHANNELS_CNT,
                 REQUESTED_FREQ_HZ => REQUESTED_EMUL_FREQ_HZ,
                 SYSTEMCLK_FREQ_HZ => SYSTEMCLK_EMUL_FREQ_HZ
             )
