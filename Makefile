@@ -53,9 +53,9 @@ TOP ?= top.vhd
 # -------------------------------------------------------------
 #  "project_specific.mk" targets
 # -------------------------------------------------------------
-build:
+init:
 	make -f $(PROJECT_SPECIFIC_MAKEFILE) $@
-build_all:
+build:
 	make -f $(PROJECT_SPECIFIC_MAKEFILE) $@
 reset_bitfiles:
 	make -f $(PROJECT_SPECIFIC_MAKEFILE) $@
