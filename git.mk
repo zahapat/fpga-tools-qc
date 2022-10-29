@@ -84,7 +84,7 @@ gacpt:
 	git remote set-url origin $(GIT_TEMPLATE_HTTPS)
 	git switch main
 	git add -f \
-		./boards/\* \
+		./boards/*.tcl \
 		./*/generic/\* \
 		./Makefile \
 		./*.mk
