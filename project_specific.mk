@@ -17,8 +17,7 @@ init:
 	make src TOP=top_gflow_tb.vhd
 
 build:
-	make reset
-	make src TOP=top_gflow_tb.vhd
+	make init
 	make generics
 	make all
 	make reset_bitfiles
