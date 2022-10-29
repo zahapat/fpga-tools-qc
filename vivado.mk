@@ -42,6 +42,8 @@ EXTRA ?= none
 TOP ?= top.vhd
 
 
+BOARD ?= top
+
 # -------------------------------------------------------------
 #                     MAKEFILE TARGETS
 # -------------------------------------------------------------
@@ -82,7 +84,7 @@ src : $(PROJ_NAME).xpr
 # make board
 board : $(PROJ_NAME).xpr
 	$(info ----- RE/ADD ALL BOARD FILES -----)
-	$(VIVADO_BINPATH)/vivado.bat -nolog -nojou -mode batch -source ./tcl/generic/vivado/make_board.tcl -notrace
+	$(VIVADO_BINPATH)/vivado.bat -nolog -nojou -mode batch -source ./tcl/generic/vivado/make_board.tcl -notrace -tclargs $(BOARD)
 
 
 # make declare TOP=<module.suffix>: Find the relative top module, scan for signals, constants, subtypes..., automatically add missing declararions

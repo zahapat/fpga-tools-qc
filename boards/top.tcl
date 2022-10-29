@@ -1,6 +1,6 @@
 # CHANGE DESIGN NAME HERE
 variable design_name
-set design_name top
+set design_name [lindex [split [file tail [info script]] "."] 0]
 
 set origin_dir "."
 
@@ -85,66 +85,33 @@ proc create_root_design { parentCell } {
 
 
 
+  # -------------------------------------------------------------
+  #  USER INPUT: Paste the core of the exported .tcl board
+  # -------------------------------------------------------------
+  # Create interface ports
 
-  # Create instance -> (+ set properties if needed) -> (+ run connection automation if needed)
-  puts "TCL: Instance microblaze_0"
-  create_bd_cell -type ip -vlnv xilinx.com:ip:microblaze:11.0 microblaze_0
-  apply_bd_automation -rule xilinx.com:bd_rule:microblaze -config { axi_intc {0} axi_periph {Enabled} cache {None} clk {New Clocking Wizard} cores {1} debug_module {Debug Only} ecc {None} local_mem {64KB} preset {None}}  [get_bd_cells microblaze_0]
-  regenerate_bd_layout
-  apply_bd_automation -rule xilinx.com:bd_rule:board -config { Manual_Source {Auto}}  [get_bd_intf_pins clk_wiz_1/CLK_IN1_D]
-  apply_bd_automation -rule xilinx.com:bd_rule:board -config { Board_Interface {reset ( System Reset ) } Manual_Source {Auto}}  [get_bd_pins clk_wiz_1/reset]
-  apply_bd_automation -rule xilinx.com:bd_rule:board -config { Board_Interface {reset ( System Reset ) } Manual_Source {Auto}}  [get_bd_pins rst_clk_wiz_1_100M/ext_reset_in]
-  regenerate_bd_layout
+  # Create ports
+  set clk_in1_0 [ create_bd_port -dir I -type clk clk_in1_0 ]
+  set clk_out1_0 [ create_bd_port -dir O -type clk clk_out1_0 ]
 
-    # Corrections after "run connection automation"
-    delete_bd_objs [get_bd_nets reset_0_1] [get_bd_ports reset_0]
-    connect_bd_net [get_bd_ports reset] [get_bd_pins rst_clk_wiz_1_100M/ext_reset_in]
+  # Create instance: clk_wiz_0, and set properties
+  set clk_wiz_0 [ create_bd_cell -type ip -vlnv xilinx.com:ip:clk_wiz:6.0 clk_wiz_0 ]
 
-    delete_bd_objs [get_bd_intf_nets diff_clock_rtl_1] [get_bd_intf_ports diff_clock_rtl]
-    delete_bd_objs [get_bd_nets reset_inv_0_Res] [get_bd_nets clk_wiz_1_locked] [get_bd_cells clk_wiz_1]
-    delete_bd_objs [get_bd_cells reset_inv_0]
+  # Create port connections
+  connect_bd_net -net clk_in1_0_1 [get_bd_ports clk_in1_0] [get_bd_pins clk_wiz_0/clk_in1]
+  connect_bd_net -net clk_wiz_0_clk_out1 [get_bd_ports clk_out1_0] [get_bd_pins clk_wiz_0/clk_out1]
 
-  # Create instance -> (+ set properties if needed) -> (+ run connection automation if needed)
-  puts "TCL: Instance clk_wiz_0"
-  create_bd_cell -type ip -vlnv xilinx.com:ip:clk_wiz:6.0 clk_wiz_0
-  apply_board_connection -board_interface "ddr_clock" -ip_intf "clk_wiz_0/clock_CLK_IN1" -diagram "top" 
-  apply_bd_automation -rule xilinx.com:bd_rule:board -config { Board_Interface {reset ( System Reset ) } Manual_Source {Auto}}  [get_bd_pins clk_wiz_0/reset]
-  apply_bd_automation -rule xilinx.com:bd_rule:clkrst -config { Clk {/clk_wiz_0/clk_out1 (100 MHz)} Freq {100} Ref_Clk0 {} Ref_Clk1 {} Ref_Clk2 {}}  [get_bd_pins rst_clk_wiz_1_100M/slowest_sync_clk]
+  # Create address segments
 
-    # Corrections after "run connection automation"
-    connect_bd_net [get_bd_pins clk_wiz_0/locked] [get_bd_pins rst_clk_wiz_1_100M/dcm_locked]
-    delete_bd_objs [get_bd_nets reset_inv_0_Res] [get_bd_cells reset_inv_0]
-    set_property -dict [list CONFIG.RESET_TYPE {ACTIVE_LOW} CONFIG.RESET_PORT {resetn}] [get_bd_cells clk_wiz_0]
-    connect_bd_net [get_bd_ports reset] [get_bd_pins clk_wiz_0/resetn]
-    regenerate_bd_layout
-    validate_bd_design
-
-  # Create instance -> (+ set properties if needed) -> (+ run connection automation if needed)
-  puts "TCL: Instance axi_uartlite_0"
-  startgroup
-  create_bd_cell -type ip -vlnv xilinx.com:ip:axi_uartlite:2.0 axi_uartlite_0
-  apply_board_connection -board_interface "usb_uart" -ip_intf "axi_uartlite_0/UART" -diagram "top" 
-  endgroup
-    # Always when we are connecting an AXI Slave to AXI Master, signals must go through AXI Interconnect/Smart Connect:
-  apply_bd_automation -rule xilinx.com:bd_rule:axi4 -config { Clk_master {/clk_wiz_0/clk_out1 (100 MHz)} Clk_slave {Auto} Clk_xbar {Auto} Master {/microblaze_0 (Periph)} Slave {/axi_uartlite_0/S_AXI} ddr_seg {Auto} intc_ip {New AXI Interconnect} master_apm {0}}  [get_bd_intf_pins axi_uartlite_0/S_AXI]
-  validate_bd_design
-
-    # Corrections after "run connection automation"
-    set_property -dict [list CONFIG.C_BAUDRATE {115200}] [get_bd_cells axi_uartlite_0]
-
-  # Create external interface ports
-  # ...
-  
-  # Connect ports
-  # ...
-
-  assign_bd_address
 
   # Restore current instance
   current_bd_instance $oldCurInst
 
-  validate_bd_design
   save_bd_design
+
+  # -------------------------------------------------------------
+  #  End of copying
+  # -------------------------------------------------------------
 }
 # End of create_root_design()
 
