@@ -189,17 +189,17 @@ if {${find_tb_file} == 1} {
 
 
 # Search for the given file in the project
-puts "TCL: Search for the given file in the project"
-set topFileFound_path [glob modules/*/{$topFile}* modules/*/*/{$topFile}* modules/*/*/*/{$topFile}* modules/*/*/*/*/{$topFile}*]
+# puts "TCL: Search for the given file in the project"
+# set topFileFound_path [glob modules/*/{$topFile}* modules/*/*/{$topFile}* modules/*/*/*/{$topFile}* modules/*/*/*/*/{$topFile}*]
 
-# Assess that the number of occurrences of this file is 1
-puts "TCL: Assess that the number of occurrences of this file is 1"
-if { [llength $topFileFound_path] == 1 } {
-    puts "TCL: File $topFile exists: $topFileFound_path"
-} else {
-    puts "TCL: ERROR: File specified by the Command-line argument does not exist or there are multiple files in the project. "
-    return 2
-}
+# # Assess that the number of occurrences of this file is 1
+# puts "TCL: Assess that the number of occurrences of this file is 1"
+# if { [llength $topFileFound_path] == 1 } {
+#     puts "TCL: File $topFile exists: $topFileFound_path"
+# } else {
+#     puts "TCL: ERROR: File specified by the Command-line argument does not exist or there are multiple files in the project. "
+#     return 2
+# }
 
 
 # -------------------------
@@ -264,9 +264,9 @@ puts "TCL: Find missing sources to compile the new temp top module and report co
 set_property source_mgmt_mode All [current_project]
 update_compile_order
 # Set 'sources_1' fileset TOP module
-set topFileFound_normalized "[file normalize $topFileFound_path]"
-set path_to_topfile "[string trimright $topFileFound_normalized $topFile]"
-puts "TCL: path_to_topfile = $path_to_topfile"
+# set topFileFound_normalized "[file normalize $topFileFound_path]"
+# set path_to_topfile "[string trimright $topFileFound_normalized $topFile]"
+# puts "TCL: path_to_topfile = $path_to_topfile"
 
 # if {[regexp -all {_tb.} $topFile] == 1} {
 #     if {[regexp -all {_tb.vhd} $topFile] == 1} {
@@ -315,6 +315,10 @@ if { [llength $foundSrcs] == 1 } {
 }
 # lappend ModelSim_SrcsComporder $topFileFound_normalized
 # set_property TOP $topFile [current_fileset]
+set topFileFound_path $foundSrcs
+set topFileFound_normalized "[file normalize $topFileFound_path]"
+set path_to_topfile "[string trimright $topFileFound_normalized $topFile]"
+puts "TCL: path_to_topfile = $path_to_topfile"
 
 update_compile_order
 set newTop [get_property TOP [current_fileset]]
