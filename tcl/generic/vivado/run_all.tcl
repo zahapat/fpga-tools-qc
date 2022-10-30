@@ -98,7 +98,14 @@ if {$constrs eq ""} {
     open_run impl_1
     set_property BITSTREAM.GENERAL.COMPRESS TRUE [current_design]
     write_bitstream -verbose    -force "${origin_dir}/vivado/3_bitstream_$_xil_proj_name_.bit"
-    write_hw_platform -fixed -include_bit -force -file "${origin_dir}/vivado/3_hw_platform_$_xil_proj_name_.xsa"
+
+    if {[catch {\
+        write_hw_platform -fixed -include_bit -force -file "${origin_dir}/vivado/3_hw_platform_$_xil_proj_name_.xsa"\
+    } error_msg]} {
+        puts "TCL: Unable to generate Hardware Platform for Vitis. The project does not contain modules for Vitis project."
+    } else {
+        puts "TCL: Generating Hardware Platform for Vitis."
+    }
 }
 
 # Get verbose reports about config affecting timing analysis
