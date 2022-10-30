@@ -20,9 +20,9 @@ build:
 	make init
 	make generics
 	make all
-	make reset_bitfiles
+	make distribute_bitfiles
 
-reset_bitfiles: ./vivado/3_bitstream_$(PROJ_NAME).bit
+distribute_bitfiles: ./vivado/3_bitstream_$(PROJ_NAME).bit
 	rm ./scripts/gui/redis/bitfile.bit
 	cp ./vivado/3_bitstream_$(PROJ_NAME).bit ./scripts/gui/redis/bitfile.bit
 

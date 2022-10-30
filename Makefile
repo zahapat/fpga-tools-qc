@@ -64,7 +64,7 @@ init:
 	make -f $(PROJECT_SPECIFIC_MAKEFILE) $@
 build:
 	make -f $(PROJECT_SPECIFIC_MAKEFILE) $@
-reset_bitfiles:
+distribute_bitfiles:
 	make -f $(PROJECT_SPECIFIC_MAKEFILE) $@
 cmd_timeout:
 	make -f $(PROJECT_SPECIFIC_MAKEFILE) $@
