@@ -22,7 +22,7 @@ build:
 	make all
 	make reset_bitfiles
 
-reset_bitfiles: 3_bitstream_$(PROJ_NAME).bit
+reset_bitfiles: ./vivado/3_bitstream_$(PROJ_NAME).bit
 	rm ./scripts/gui/redis/bitfile.bit
 	cp ./vivado/3_bitstream_$(PROJ_NAME).bit ./scripts/gui/redis/bitfile.bit
 
