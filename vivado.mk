@@ -16,14 +16,6 @@ VIVADO_BINPATH = $(VIVADO_INSTALLPATH)/$(VIVADO_VERSION)/bin
 PART = xc7k160tffg676-1
 
 
-# Search for .xpr files in ./$(VPATH)
-VPATH = vivado
-
-
-# Prerequisites are located here
-OBJDIR := ./vivado
-
-
 # [make core/ip]: Name for the new IP package
 NAME_IP_PACK ?= $(PROJ_NAME)_ip
 
@@ -67,13 +59,13 @@ new :
 
 
 # make new_module (e.g. NAME=top.vhd ARCH=str ...): Create a new VHDL/V/SV rtl module + sim + xdc and its subfolder
-new_module : $(PROJ_NAME).xpr
+new_module : ./vivado/$(PROJ_NAME).xpr
 	$(info ----- CREATE A NEW VHDL/VERILOG/SYSTEMVERILOG MODULE -----)
 	$(VIVADO_BINPATH)/vivado.bat -nolog -nojou -mode batch -source ./tcl/generic/vivado/make_new_module/make_new_module.tcl -notrace -tclargs $(NAME) $(ARCH) $(EXTRA) $(LIB_SRC) $(LIB_SIM) $(ENGINEER) $(EMAIL)
 
 
 # make src TOP=<module>: Set a file graph for synthesis or/and implementation under the given TOP module
-src : $(PROJ_NAME).xpr
+src : ./vivado/$(PROJ_NAME).xpr
 	$(info ----- SEARCH FOR TOP MODULE AND ALL ITS SUBMODULES -----)
 	rm -r ./vivado/0_report_added_modules.rpt
 	rm -r ./vivado/0_report_added_xdc.rpt
@@ -82,13 +74,13 @@ src : $(PROJ_NAME).xpr
 
 
 # make board
-board : $(PROJ_NAME).xpr
+board : ./vivado/$(PROJ_NAME).xpr
 	$(info ----- RE/ADD ALL BOARD FILES -----)
 	$(VIVADO_BINPATH)/vivado.bat -nolog -nojou -mode batch -source ./tcl/generic/vivado/make_board.tcl -notrace -tclargs $(BOARD)
 
 
 # make declare TOP=<module.suffix>: Find the relative top module, scan for signals, constants, subtypes..., automatically add missing declararions
-declare : $(PROJ_NAME).xpr
+declare : ./vivado/$(PROJ_NAME).xpr
 	$(info ----- ADD MISSING DECLARATIONS -----)
 	$(VIVADO_BINPATH)/vivado.bat -nolog -nojou -mode batch -source ./tcl/generic/make_declare/make_declare.tcl -notrace -tclargs $(TOP) $(LIB_SRC)
 
@@ -124,7 +116,7 @@ GEN7_VAL ?= -3181.05
 # GEN14_VAL ?= default_value
 # GEN15_NAME ?= Generic_Name
 # GEN15_VAL ?= default_value
-generics : $(PROJ_NAME).xpr
+generics : ./vivado/$(PROJ_NAME).xpr
 	$(info ----- SET GENERICS BEFORE SYNTHESIS -----)
 	py -3 ./scripts/generics/genTclGenericsMain.py \
 		--generic1_name=$(GEN1_NAME)\
@@ -163,71 +155,71 @@ generics : $(PROJ_NAME).xpr
 	$(VIVADO_BINPATH)/vivado.bat -nolog -nojou -mode batch -source ./tcl/project_specific/vivado/make_generics.tcl -notrace
 
 # make ooc TOP=<module>: Run Synthesis in Out-of-context mode
-ooc : $(PROJ_NAME).xpr 0_report_added_modules.rpt
+ooc : ./vivado/$(PROJ_NAME).xpr 0_report_added_modules.rpt
 	$(info ----- RUN SYNTHESIS IN OUT-OF-CONTEXT MODE -----)
 	$(VIVADO_BINPATH)/vivado.bat -nolog -nojou -mode batch -source ./tcl/generic/vivado/make_ooc.tcl -notrace -tclargs $(TOP)
 
 
 # make synth: Run Synthesis only, use current fileset
-synth : $(PROJ_NAME).xpr
+synth : ./vivado/$(PROJ_NAME).xpr
 	$(info ----- RUN SYNTHESIS -----)
 	$(VIVADO_BINPATH)/vivado.bat -nolog -nojou -mode batch -source ./tcl/generic/vivado/synth_design.tcl -notrace
 
 
 # make impl: Run Implementation only, use current fileset
-impl : 1_checkpoint_post_synth.dcp $(PROJ_NAME).xpr
+impl : ./vivado/1_checkpoint_post_synth.dcp $(PROJ_NAME).xpr
 	$(info ----- RUN IMPLEMENTATION -----)
 	$(VIVADO_BINPATH)/vivado.bat -nolog -nojou -mode batch -source ./tcl/generic/vivado/impl_design.tcl -notrace
 
 
 # make outd: Run synthesis or/and implementation if out-of-date
-outd : 2_checkpoint_post_route.dcp 1_checkpoint_post_synth.dcp $(PROJ_NAME).xpr
+outd : ./vivado/2_checkpoint_post_route.dcp ./vivado/1_checkpoint_post_synth.dcp $(PROJ_NAME).xpr
 	$(info ----- RUN/RERUN OUTDATED STAGES: SYNTH, IMPL -----)
 	$(VIVADO_BINPATH)/vivado.bat -nolog -nojou -mode batch -source ./tcl/generic/vivado/run_outdated.tcl  -notrace
 
 
 # make bit: Run synthesis or/and implementation if out-of-date
-bit : 2_checkpoint_post_route.dcp 1_checkpoint_post_synth.dcp $(PROJ_NAME).xpr
+bit : ./vivado/2_checkpoint_post_route.dcp ./vivado/1_checkpoint_post_synth.dcp $(PROJ_NAME).xpr
 	$(info ----- RUN GENERATE BITSTREAM -----)
 	$(VIVADO_BINPATH)/vivado.bat -nolog -nojou -mode batch -source ./tcl/generic/vivado/run_bitstream.tcl  -notrace
 
 # make xsa: Run synthesis, implementation, generate bitstream -> generate HW Platform .xsa file form .bit file
-xsa : $(PROJ_NAME).xpr
+xsa : ./vivado/$(PROJ_NAME).xpr
 	$(info ----- RUN ALL THE WAY THROUGH BIT GEN AND GENERATE HW PLATFORM -----)
 	$(VIVADO_BINPATH)/vivado.bat -nolog -nojou -mode batch -source ./tcl/generic/vivado/make_run_hw_platform.tcl  -notrace
 
 # make prog: Use 3_bitstream_<PROJ_NAME> to program the target FPGA
-prog : 2_checkpoint_post_route.dcp 1_checkpoint_post_synth.dcp $(PROJ_NAME).xpr 3_bitstream_$(PROJ_NAME).bit
+prog : ./vivado/2_checkpoint_post_route.dcp ./vivado/1_checkpoint_post_synth.dcp $(PROJ_NAME).xpr ./vivado/3_bitstream_$(PROJ_NAME).bit
 	$(info ----- PROGRAM FPGA -----)
 	$(VIVADO_BINPATH)/vivado.bat -nolog -nojou -mode batch -source ./tcl/generic/vivado/make_prog.tcl  -notrace
 
 
 # make probes: find all nets mark_debug, create ILA probes, make all
-probes : $(PROJ_NAME).xpr
+probes : ./vivado/$(PROJ_NAME).xpr
 	$(info ----- MAKE ALL AND CREATE ILA PROBES -----)
 	$(VIVADO_BINPATH)/vivado.bat -nolog -nojou -mode batch -source ./tcl/generic/vivado/make_probes.tcl  -notrace
 
 
 # make ila: make prog and trigger ILA (NOT DONE YET)
-ila : $(PROJ_NAME).xpr
+ila : ./vivado/$(PROJ_NAME).xpr
 	$(info ----- PROGRAM FPGA AND TRIGGER ILA -----)
 	$(VIVADO_BINPATH)/vivado.bat -nolog -nojou -mode batch -source ./tcl/generic/vivado/make_ila.tcl  -notrace
 
 
 # make all: Run Synthesis, Implementation, Generate Bitstream
-all : $(PROJ_NAME).xpr
+all : ./vivado/$(PROJ_NAME).xpr
 	$(info ----- RUN ALL STAGES: SYNTH, IMPL + BIT -----)
 	$(VIVADO_BINPATH)/vivado.bat -nolog -nojou -mode batch -source ./tcl/generic/vivado/run_all.tcl -notrace
 
 
 # make old: Run Synthesis, Implementation, Generate Bitstream if out-of-date
-old : 2_checkpoint_post_route.dcp 1_checkpoint_post_synth.dcp
+old : ./vivado/2_checkpoint_post_route.dcp ./vivado/1_checkpoint_post_synth.dcp
 	$(info ----- RERUN STAGES IF OLD: SYNTH, IMPL + BIT -----)
 	$(VIVADO_BINPATH)/vivado.bat -nolog -nojou -mode batch -source ./tcl/generic/vivado/run_old.tcl -notrace
 
 
 # make clean: Clean project files and ModelSim project folder content
-clean : $(PROJ_NAME).xpr
+clean : ./vivado/$(PROJ_NAME).xpr
 	$(info ----- CLEAN VIVADO & MODELSIM PROJECT JUNK FILES, CLEAN ENVIRONMENT -----)
 	rm -r ./.Xil
 	find . -name "*.str" -type f -delete
@@ -235,18 +227,18 @@ clean : $(PROJ_NAME).xpr
 
 
 # make gui: Run Vivado in mode GUI and open project in the vivado folder
-gui : $(PROJ_NAME).xpr
+gui : ./vivado/$(PROJ_NAME).xpr
 	$(info ----- RUN VIVADO IN MODE GUI -----)
 	$(VIVADO_BINPATH)/vivado.bat -nolog -nojou -mode gui -notrace ./vivado/$(PROJ_NAME).xpr
 
 
 # make core: Packaging VHDL/V/SV files which have been already synthesized and verified
-core : $(PROJ_NAME).xpr 0_report_added_modules.rpt 0_report_added_xdc.rpt 1_netlist_post_synth.edf
+core : ./vivado/$(PROJ_NAME).xpr ./vivado/0_report_added_modules.rpt ./vivado/0_report_added_xdc.rpt ./vivado/1_netlist_post_synth.edf
 	$(info ----- CREATE A NEW IP CORE PACKAGE -----)
 	$(VIVADO_BINPATH)/vivado.bat -nolog -nojou -mode batch -source ./tcl/generic/vivado/make_core.tcl -notrace -tclargs $(NAME_IP_PACK)
 
 
 # make ip: Generate IP output files (xci, xco)
-ip : $(PROJ_NAME).xpr 0_report_added_modules.rpt 0_report_added_xdc.rpt 1_netlist_post_synth.edf
+ip : $(PROJ_NAME).xpr 0_report_added_modules.rpt ./vivado/0_report_added_xdc.rpt ./vivado/1_netlist_post_synth.edf
 	$(info ----- CREATE IP CORE OUTPUT FILES OF AN EXISTING USER IP CORE -----)
 	$(VIVADO_BINPATH)/vivado.bat -nolog -nojou -mode batch -source ./tcl/generic/vivado/make_ip.tcl -notrace -tclargs $(NAME_IP_PACK)
