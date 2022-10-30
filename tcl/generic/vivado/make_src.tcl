@@ -299,7 +299,8 @@ source "./packages/proj_specific_sim/compile_order.tcl"
 
 # Add Top File
 puts "TCL: Searching for module: $topFile"
-set foundSrcs [glob -nocomplain -type f modules/*/{${topFile}}* modules/*/*/{${topFile}}* modules/*/*/*/{${topFile}}* modules/*/*/*/*/{${topFile}}*]
+set topFile_noposix [lindex [split $topFile "."] 0]
+set foundSrcs [glob -nocomplain -type f modules/*/{${topFile}}* modules/${topFile_noposix}/*/{${topFile}}* modules/${topFile_noposix}/*/*/{${topFile}}* modules/${topFile_noposix}/*/*/*/{${topFile}}*]
 
 if { [llength $foundSrcs] == 1 } {
     set srcPathFound [string range $foundSrcs 0 end]
@@ -623,7 +624,7 @@ for {set i 0} {$i < $hier_levels} {incr i} {
             # - SEARCHING FOR .VHD FILES -
             # ----------------------------
             puts "TCL: Searching for module: $moduleVHD"
-            set foundSrcsVHD [glob -nocomplain -type f modules/*/{$moduleVHD}* modules/*/*/{$moduleVHD}* modules/*/*/*/{$moduleVHD}* modules/*/*/*/*/{$moduleVHD}*]
+            set foundSrcsVHD [glob -nocomplain -type f modules/*/{$moduleVHD}* modules/$line_missing_module_name/*/{$moduleVHD}* modules/$line_missing_module_name/*/*/{$moduleVHD}* modules/$line_missing_module_name/*/*/*/{$moduleVHD}*]
 
             if { [llength $foundSrcsVHD] == 1 } {
                 set srcPathFound [string range $foundSrcsVHD 0 end]
@@ -646,7 +647,7 @@ for {set i 0} {$i < $hier_levels} {incr i} {
                 # - SEARCHING FOR .SV FILES -
                 # ---------------------------
                 puts "TCL: Module $moduleVHD not found; searching for $moduleSV file. "
-                set foundSrcsSV [glob -nocomplain -type f modules/*/{$moduleSV}* modules/*/*/{$moduleSV}* modules/*/*/*/{$moduleSV}* modules/*/*/*/*/{$moduleSV}*]
+                set foundSrcsSV [glob -nocomplain -type f modules/*/{$moduleSV}* modules/$line_missing_module_name/*/{$moduleSV}* modules/$line_missing_module_name/*/*/{$moduleSV}* modules/$line_missing_module_name/*/*/*/{$moduleSV}*]
 
                 if { [llength $foundSrcsSV] == 1 } {
                     set srcPathFound [string range $foundSrcsSV 0 end]
@@ -667,7 +668,7 @@ for {set i 0} {$i < $hier_levels} {incr i} {
                     # - SEARCHING FOR .V FILES -
                     # --------------------------
                     puts "TCL: Module $moduleSV not found; searching for $moduleV file. "
-                    set foundSrcsV [glob -nocomplain -type f modules/*/{$moduleV}* modules/*/*/{$moduleV}* modules/*/*/*/{$moduleV}* modules/*/*/*/*/{$moduleV}*]
+                    set foundSrcsV [glob -nocomplain -type f modules/*/{$moduleV}* modules/$line_missing_module_name/*/{$moduleV}* modules/$line_missing_module_name/*/*/{$moduleV}* modules/$line_missing_module_name/*/*/*/{$moduleV}*]
 
                     if { [llength $foundSrcsV] == 1 } {
                         set srcPathFound [string range $foundSrcsV 0 end]
