@@ -4,7 +4,7 @@ variable run_time "-all"
 # Open project
 if {$lib_sim_vhdl eq "work"} {
     if {$lib_src_vhdl eq "work"} {
-        project open $proj_root_dir/modelsim/project.mpf
+        project open $proj_root_dir/simulator/project.mpf
         project compileall
     }
 }

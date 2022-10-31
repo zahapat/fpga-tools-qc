@@ -1,8 +1,5 @@
 set this_file_name "[file tail [info script]]"
 set relpath_to_module ".[string range [file normalize [file dirname [info script]]] [string length [file normalize ${origin_dir}]] end]"
-puts "TCL DEBUG: info_script = [file dirname [info script]]"
-puts "TCL DEBUG: origin_dir = [file normalize ${origin_dir}]"
-puts "TCL: Adding sources of: $relpath_to_module"
 set simulator_comporder_path "${origin_dir}/do/modules.tcl"
 set simulator_comporder [open ${simulator_comporder_path} "a"]
 set vivado_added_hdl_report_path "${origin_dir}/vivado/0_report_added_modules.rpt"

@@ -61,8 +61,8 @@ gacp_comment:
 
 # [Project repo]
 # Generic commit message: "feat: refresh" [push]
-gacp_refractor:
-	make gacp MSG="refractor: Update code for readability"
+gacp_refactor:
+	make gacp MSG="refactor: Update code for readability"
 
 # [Project repo]
 # Generic commit message: "doc: add comments" [no push]
@@ -71,8 +71,8 @@ gac_comment:
 
 # [Project repo]
 # Generic commit message: "feat: refresh" [no push]
-gac_refractor:
-	make gac MSG="refractor: Update code for readability"
+gac_refactor:
+	make gac MSG="refactor: Update code for readability"
 
 
 # [Template repo]
