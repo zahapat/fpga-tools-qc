@@ -1,0 +1,1 @@
+echo "`whoami` ALL=(ALL) NOPASSWDxit:ALL" | sudo tee /etc/sudoers.d/`whoami` && sudo chmod 0440 /etc/sudoers.d/`whoami`
