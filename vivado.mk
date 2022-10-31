@@ -42,7 +42,7 @@ BOARD ?= top
 .ONESHELL:
 
 
-# Generic Vivado/ModelSim Targets
+# Generic Vivado/Simulator Targets
 reset :
 	make new
 	make clean
@@ -218,9 +218,9 @@ old : ./vivado/2_checkpoint_post_route.dcp ./vivado/1_checkpoint_post_synth.dcp
 	$(VIVADO_BINPATH)/vivado.bat -nolog -nojou -mode batch -source ./tcl/generic/vivado/run_old.tcl -notrace
 
 
-# make clean: Clean project files and ModelSim project folder content
+# make clean: Clean Vivado project files and Simulator project folder content
 clean : ./vivado/$(PROJ_NAME).xpr
-	$(info ----- CLEAN VIVADO & MODELSIM PROJECT JUNK FILES, CLEAN ENVIRONMENT -----)
+	$(info ----- CLEAN VIVADO & QUESTA PROJECT JUNK FILES, CLEAN ENVIRONMENT -----)
 	rm -r ./.Xil
 	find . -name "*.str" -type f -delete
 	$(VIVADO_BINPATH)/vivado.bat -nolog -nojou -mode batch -source ./tcl/generic/vivado/make_clean.tcl -notrace -tclargs $(LIB_SRC) $(LIB_SIM)

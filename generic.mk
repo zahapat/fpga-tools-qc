@@ -23,7 +23,7 @@ redis_stop:
 	wsl.exe echo "Redis Server Stopped"
 
 
-# Initialize Simulator (Modelsim/Questa)
+# Initialize Simulator (Questa)
 sim_init :
 	$(info ----- INITIALIZE SIMULATOR -----)
 	vmap -c
