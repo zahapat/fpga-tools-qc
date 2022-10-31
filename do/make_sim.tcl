@@ -66,19 +66,19 @@ if { $arg_count == $arguments_cnt } {
 
 
 # Remove all the following libraries and mappings
-if {[file exist "$proj_root_dir/modelsim/work"]} {
+if {[file exist "$proj_root_dir/simulator/work"]} {
     # vmap -del work
-    vdel -all -lib $proj_root_dir/modelsim/work
+    vdel -all -lib $proj_root_dir/simulator/work
     puts "TCL: Library 'work' deleted."
 }
-if {[file exist "$proj_root_dir/modelsim/$lib_src_vhdl"]} {
+if {[file exist "$proj_root_dir/simulator/$lib_src_vhdl"]} {
     # vmap -del $lib_src_vhdl
-    vdel -all -lib $proj_root_dir/modelsim/$lib_src_vhdl
+    vdel -all -lib $proj_root_dir/simulator/$lib_src_vhdl
     puts "TCL: Library '$lib_src_vhdl' deleted."
 }
-if {[file exist "$proj_root_dir/modelsim/$lib_sim_vhdl"]} {
+if {[file exist "$proj_root_dir/simulator/$lib_sim_vhdl"]} {
     # vmap -del $lib_sim_vhdl
-    vdel -all -lib $proj_root_dir/modelsim/$lib_sim_vhdl
+    vdel -all -lib $proj_root_dir/simulator/$lib_sim_vhdl
     puts "TCL: Library '$lib_sim_vhdl' deleted."
 }
 
@@ -122,7 +122,7 @@ if [batch_mode] {
 } else {
     # Create a new project based on modelsim.ini file
     # source "$proj_root_dir/do/compile_all.tcl"
-    source "$proj_root_dir/do/new_modelsim_proj.tcl"
+    source "$proj_root_dir/do/new_simulator_proj.tcl"
 }
 
 
@@ -130,7 +130,7 @@ if [batch_mode] {
 if [batch_mode] {
     source "$proj_root_dir/do/run_batch.tcl"
     
-    # Exit form modelsim
+    # Exit form simulator
     exit
 } else {
     source "$proj_root_dir/do/run_gui.tcl"

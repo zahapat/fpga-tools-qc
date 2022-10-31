@@ -1,14 +1,14 @@
-# Create a new modelsim project, delete the previous one
+# Create a new simulator project, delete the previous one
 
-if {[file exists "./modelsim/project.mpf"]} {
+if {[file exists "./simulator/project.mpf"]} {
     # Re/create a new project
     if [batch_mode] {
-        project delete $proj_root_dir/modelsim/project.mpf
-        project new $proj_root_dir/modelsim project work $proj_root_dir/modelsim.ini 0
+        project delete $proj_root_dir/simulator/project.mpf
+        project new $proj_root_dir/simulator project work $proj_root_dir/modelsim.ini 0
     }
 
     # Open project
-    project open $proj_root_dir/modelsim/project.mpf
+    project open $proj_root_dir/simulator/project.mpf
 
     # Add & compile all
     source "$proj_root_dir/do/compile_all.tcl"
@@ -21,11 +21,11 @@ if {[file exists "./modelsim/project.mpf"]} {
 
 } else {
     # Re/create a new project, nocomplain
-    project delete $proj_root_dir/modelsim/project.mpf
-    project new $proj_root_dir/modelsim project work $proj_root_dir/modelsim.ini 0
+    project delete $proj_root_dir/simulator/project.mpf
+    project new $proj_root_dir/simulator project work $proj_root_dir/modelsim.ini 0
 
     # Open project
-    project open $proj_root_dir/modelsim/project.mpf
+    project open $proj_root_dir/simulator/project.mpf
 
     # Add & compile all
     source "$proj_root_dir/do/compile_all.tcl"

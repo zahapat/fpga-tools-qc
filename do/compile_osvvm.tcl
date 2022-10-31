@@ -45,7 +45,7 @@
 puts "Compiling OSVVM Library"
 set OSVVM_LIB_NAME osvvm
 set OSVVM_DIR "$proj_root_dir/packages/osvvm"
-set OSVVM_LIB_DIR "$proj_root_dir/modelsim/osvvm"
+set OSVVM_LIB_DIR "$proj_root_dir/simulator/osvvm"
 
 # Compile all files in OSVVM_DIR list to library osvvm
 if { [file exist $OSVVM_LIB_DIR] == 0 } {

@@ -17,7 +17,7 @@
 #   arg 2: Target directory
 #-----------------------------------------------------------------------
 
-# Overload quietly (Modelsim specific command) to let it work in Riviera-Pro
+# Overload quietly (simulator specific command) to let it work in Riviera-Pro
 proc quietly { args } {
   if {[llength $args] == 0} {
     puts "quietly"
@@ -156,7 +156,7 @@ vmap $vip_lib_name $vip_target_path/$vip_lib_name
 
 # set UVVM_LIB_NAME uvvm
 # set UVVM_DIR "$proj_root_dir/packages/uvvm"
-# set UVVM_LIB_DIR "$proj_root_dir/modelsim/uvvm"
+# set UVVM_LIB_DIR "$proj_root_dir/simulator/uvvm"
 
 # vlib $UVVM_LIB_DIR
 # vmap uvvm $UVVM_LIB_DIR

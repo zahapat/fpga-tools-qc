@@ -98,8 +98,8 @@ foreach item $file_data {
     quietly set target_path "$source_path/../$item/sim"
 
     # AFTER:
-    # quietly set vip_target_path "$proj_root_dir/modelsim/uvvm/$item"
-    quietly set vip_target_path "$proj_root_dir/modelsim/vip"
+    # quietly set vip_target_path "$proj_root_dir/simulator/uvvm/$item"
+    quietly set vip_target_path "$proj_root_dir/simulator/vip"
     puts "TCL: DEBUG vip_target_path = $vip_target_path"
   }
   # BEFORE:

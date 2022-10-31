@@ -28,7 +28,7 @@ if {$switch_compile == 1} {
     set filesUnisimSYSTEMVERILOG [glob $unisimVERILOGlocation/*{.sv}*]
 
     # Compile all files in unisimVHDlocation list to library unisim
-    set unisim_lib_path "$proj_root_dir/modelsim/unisim"
+    set unisim_lib_path "$proj_root_dir/simulator/unisim"
     # set unisim_lib_path "C:/intelFPGA_lite/20.1/modelsim_ase/unisim"
 
     if { [file exist $unisim_lib_path] == 0 } {

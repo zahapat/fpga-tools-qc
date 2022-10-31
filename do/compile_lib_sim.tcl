@@ -3,7 +3,7 @@
 puts "Compiling proj_specific_sim library"
 set lib_name lib_sim
 set dir "$proj_root_dir/packages/proj_specific_sim"
-set lib_dir "$proj_root_dir/modelsim/proj_specific_sim"
+set lib_dir "$proj_root_dir/simulator/proj_specific_sim"
 
 # Re/Compile all files in dir list to library
 if { [file exist $lib_dir] == 0 } {

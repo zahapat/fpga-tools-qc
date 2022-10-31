@@ -5,10 +5,10 @@
 variable run_time "-all"
 
 # Open project
-set required_proj_file "$proj_root_dir/modelsim/project.mpf"
+set required_proj_file "$proj_root_dir/simulator/project.mpf"
 if {![file exist "$required_file"]} {
-    puts "TCL: Opening existing project: ./modelsim/project.mpf"
-    project open $proj_root_dir/modelsim/project.mpf
+    puts "TCL: Opening existing project: ./simulator/project.mpf"
+    project open $proj_root_dir/simulator/project.mpf
     project compileall
     exit
 } else {

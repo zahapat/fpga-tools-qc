@@ -3,7 +3,7 @@
 puts "Compiling sim_tools library"
 set lib_name sim_tools
 set dir "$proj_root_dir/packages/sim_tools"
-set lib_dir "$proj_root_dir/modelsim/sim_tools"
+set lib_dir "$proj_root_dir/simulator/sim_tools"
 
 # Compile all files in dir list to library osvvm
 if { [file exist $lib_dir] == 0 } {
