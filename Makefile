@@ -162,12 +162,8 @@ redis_start:
 	make -f $(GENERIC_MAKEFILE) $@
 redis_stop:
 	make -f $(GENERIC_MAKEFILE) $@
-home_path :
+sim_init :
 	make -f $(GENERIC_MAKEFILE) $@
-init_modelsim :
-	make -f $(GENERIC_MAKEFILE) $@
-# init :
-# 	make -f $(GENERIC_MAKEFILE) $@
 vvc_gen :
 	make -f $(GENERIC_MAKEFILE) $@
 py_gui_regen:

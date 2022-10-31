@@ -23,18 +23,10 @@ redis_stop:
 	wsl.exe echo "Redis Server Stopped"
 
 
-# Project initialization
-home_path :
-	$(info ----- INITIALIZE CYGWIN HOME DIRECTORY -----)
-	py -3 helpers/init.py
-
-init_modelsim : home_path
-	$(info ----- INITIALIZE MODELSIM -----)
+# Initialize Simulator (Modelsim/Questa)
+sim_init :
+	$(info ----- INITIALIZE SIMULATOR -----)
 	vmap -c
-
-init : init_modelsim
-	$(info ----- LAUNCH CYGWIN, SET MODELSIM ENV -----)
-	C:/cygwin64/cygwin.bat
 	set MODELSIM=modelsim.ini
 
 
