@@ -7,24 +7,25 @@
 
     entity memristor_ctrl is
         generic (
-            CTRL_DATA_WIDTH : positive := 3;
-            CLK_SYS_HZ : natural := 100e6
+            INT_CTRL_DATA_WIDTH : positive := 3;
+            INT_CLK_SYS_HZ : natural := 100e6
         );
         port (
             -- Clocks
-            clk0      : in  std_logic;
-            clk1      : in  std_logic;
-            clk2      : in  std_logic;
-            clk3      : in  std_logic;
-            clk4      : in  std_logic;
-            clk5      : in  std_logic;
-            sys_clk       : in  std_logic;
+            clk0 : in  std_logic;
+            clk1 : in  std_logic;
+            clk2 : in  std_logic;
+            clk3 : in  std_logic;
+            clk4 : in  std_logic;
+            clk5 : in  std_logic;
+            sys_clk : in  std_logic;
 
             -- Data in
-            ctrl_data_in : std_logic_vector(CTRL_DATA_WIDTH-1 downto 0);
+            in_valid : in std_logic;
+            in_data : in std_logic_vector(INT_CTRL_DATA_WIDTH-1 downto 0);
 
             -- Data out
-            out_pulses : out std_logic
+            out_pulse : out std_logic
         );
     end memristor_ctrl;
 
@@ -32,16 +33,16 @@
 
 
         -- Data & valid pulse crossed from another domain
-        signal sl_crossdomain_valid : std_logic := '0';
-        signal slv_crossdomain_data_prev : std_logic_vector(CTRL_DATA_WIDTH-1 downto 0) := (others => '0');
-        signal slv_crossdomain_data_new : std_logic_vector(CTRL_DATA_WIDTH-1 downto 0) := (others => '0');
+        signal sl_value_valid : std_logic := '0';
+        signal slv_value_prev : std_logic_vector(INT_CTRL_DATA_WIDTH-1 downto 0) := (others => '0');
+        signal slv_value_new : std_logic_vector(INT_CTRL_DATA_WIDTH-1 downto 0) := (others => '0');
 
         -- Add new clicks
-        signal int_add_new_clicks : integer range 0 to 2*CTRL_DATA_WIDTH-1;
+        signal int_add_new_clicks : integer range 0 to 2*INT_CTRL_DATA_WIDTH-1;
 
         -- Counter
         -- constant C_COUNTER_SECOND_MAXCOUNTS : natural := 1000000; -- TODO: Per second
-        constant C_COUNTER_SECOND_MAXCOUNTS : natural := CLK_SYS_HZ;
+        constant C_COUNTER_SECOND_MAXCOUNTS : natural := INT_CLK_SYS_HZ;
         signal slv_lap_counter : integer range 0 to C_COUNTER_SECOND_MAXCOUNTS-1 := 0;
         signal int_clicks_total_lap : integer := 0;
         signal int_clicks_selector : integer := 0;
@@ -76,6 +77,8 @@
         -- 111 = 3
         -- 110 = 4
         -- 100 = 5
+        sl_value_valid <= in_valid;
+        slv_value_new <= in_data;
         proc_add_new_clicks : process(sys_clk)
         begin
             if falling_edge(sys_clk) then
@@ -83,117 +86,117 @@
                 -- Default
                 int_add_new_clicks <= 0;
 
-                if sl_crossdomain_valid = '1' then
-                    case slv_crossdomain_data_prev is
+                if sl_value_valid = '1' then
+                    case slv_value_prev is
                         when "000" => -- 0
-                            if slv_crossdomain_data_new = "001" then -- 1
+                            if slv_value_new = "001" then -- 1
                                 int_add_new_clicks <= 1;
 
-                            elsif slv_crossdomain_data_new = "011" then -- 2
+                            elsif slv_value_new = "011" then -- 2
                                 int_add_new_clicks <= 2;
 
-                            elsif slv_crossdomain_data_new = "111" then -- 3
+                            elsif slv_value_new = "111" then -- 3
                                 int_add_new_clicks <= 3;
 
-                            elsif slv_crossdomain_data_new = "110" then -- 4
+                            elsif slv_value_new = "110" then -- 4
                                 int_add_new_clicks <= 4;
 
-                            elsif slv_crossdomain_data_new = "100" then -- 5
+                            elsif slv_value_new = "100" then -- 5
                                 int_add_new_clicks <= 5;
                             else
                                 int_add_new_clicks <= 0;
                             end if;
 
                         when "001" => -- 1
-                            if slv_crossdomain_data_new = "011" then -- 1
+                            if slv_value_new = "011" then -- 1
                                 int_add_new_clicks <= 1;
 
-                            elsif slv_crossdomain_data_new = "111" then -- 2
+                            elsif slv_value_new = "111" then -- 2
                                 int_add_new_clicks <= 2;
 
-                            elsif slv_crossdomain_data_new = "110" then -- 3
+                            elsif slv_value_new = "110" then -- 3
                                 int_add_new_clicks <= 3;
 
-                            elsif slv_crossdomain_data_new = "100" then -- 4
+                            elsif slv_value_new = "100" then -- 4
                                 int_add_new_clicks <= 4;
 
-                            elsif slv_crossdomain_data_new = "000" then -- 5
+                            elsif slv_value_new = "000" then -- 5
                                 int_add_new_clicks <= 5;
                             else
                                 int_add_new_clicks <= 0;
                             end if;
 
                         when "011" => -- 2
-                            if slv_crossdomain_data_new = "111" then -- 1
+                            if slv_value_new = "111" then -- 1
                                 int_add_new_clicks <= 1;
 
-                            elsif slv_crossdomain_data_new = "110" then -- 2
+                            elsif slv_value_new = "110" then -- 2
                                 int_add_new_clicks <= 2;
 
-                            elsif slv_crossdomain_data_new = "100" then -- 3
+                            elsif slv_value_new = "100" then -- 3
                                 int_add_new_clicks <= 3;
 
-                            elsif slv_crossdomain_data_new = "000" then -- 4
+                            elsif slv_value_new = "000" then -- 4
                                 int_add_new_clicks <= 4;
 
-                            elsif slv_crossdomain_data_new = "100" then -- 5
+                            elsif slv_value_new = "100" then -- 5
                                 int_add_new_clicks <= 5;
                             else
                                 int_add_new_clicks <= 0;
                             end if;
 
                         when "111" => -- 3
-                            if slv_crossdomain_data_new = "110" then -- 1
+                            if slv_value_new = "110" then -- 1
                                 int_add_new_clicks <= 1;
 
-                            elsif slv_crossdomain_data_new = "100" then -- 2
+                            elsif slv_value_new = "100" then -- 2
                                 int_add_new_clicks <= 2;
 
-                            elsif slv_crossdomain_data_new = "000" then -- 3
+                            elsif slv_value_new = "000" then -- 3
                                 int_add_new_clicks <= 3;
 
-                            elsif slv_crossdomain_data_new = "001" then -- 4
+                            elsif slv_value_new = "001" then -- 4
                                 int_add_new_clicks <= 4;
 
-                            elsif slv_crossdomain_data_new = "011" then -- 5
+                            elsif slv_value_new = "011" then -- 5
                                 int_add_new_clicks <= 5;
                             else
                                 int_add_new_clicks <= 0;
                             end if;
 
                         when "110" => -- 4
-                            if slv_crossdomain_data_new = "100" then -- 1
+                            if slv_value_new = "100" then -- 1
                                 int_add_new_clicks <= 1;
 
-                            elsif slv_crossdomain_data_new = "000" then -- 2
+                            elsif slv_value_new = "000" then -- 2
                                 int_add_new_clicks <= 2;
 
-                            elsif slv_crossdomain_data_new = "001" then -- 3
+                            elsif slv_value_new = "001" then -- 3
                                 int_add_new_clicks <= 3;
 
-                            elsif slv_crossdomain_data_new = "011" then -- 4
+                            elsif slv_value_new = "011" then -- 4
                                 int_add_new_clicks <= 4;
 
-                            elsif slv_crossdomain_data_new = "111" then -- 5
+                            elsif slv_value_new = "111" then -- 5
                                 int_add_new_clicks <= 5;
                             else
                                 int_add_new_clicks <= 0;
                             end if;
 
                         when "100" => -- 5
-                            if slv_crossdomain_data_new = "000" then -- 1
+                            if slv_value_new = "000" then -- 1
                                 int_add_new_clicks <= 1;
 
-                            elsif slv_crossdomain_data_new = "001" then -- 2
+                            elsif slv_value_new = "001" then -- 2
                                 int_add_new_clicks <= 2;
 
-                            elsif slv_crossdomain_data_new = "011" then -- 3
+                            elsif slv_value_new = "011" then -- 3
                                 int_add_new_clicks <= 3;
 
-                            elsif slv_crossdomain_data_new = "111" then -- 4
+                            elsif slv_value_new = "111" then -- 4
                                 int_add_new_clicks <= 4;
 
-                            elsif slv_crossdomain_data_new = "110" then -- 5
+                            elsif slv_value_new = "110" then -- 5
                                 int_add_new_clicks <= 5;
                             else
                                 int_add_new_clicks <= 0;
@@ -321,6 +324,6 @@
             S => slv_level_trig(0)      -- 1-bit input: Clock select
         );
 
-        out_pulses <= slv_level_out(0);
+        out_pulse <= slv_level_out(0);
 
     end architecture;

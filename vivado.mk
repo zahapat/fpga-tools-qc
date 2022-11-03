@@ -8,7 +8,7 @@ PROJ_DIR = $(shell pwd)
 
 # Vivado parameters
 VIVADO_VERSION = 2020.2
-VIVADO_INSTALLPATH = C:/Xilinx/Vivado/
+VIVADO_INSTALLPATH = C:/Xilinx/Vivado
 VIVADO_BINPATH = $(VIVADO_INSTALLPATH)/$(VIVADO_VERSION)/bin
 
 

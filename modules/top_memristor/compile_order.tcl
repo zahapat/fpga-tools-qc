@@ -19,22 +19,19 @@ set vivado_added_scripts_report [open $vivado_added_scripts_report_path "a"]
 # 1.1) Add SRC HDL Files
 # -------------------------------------------------------
 #    * Vivado
-set srcfile_added_or_not [add_files -fileset "sources_1" -norecurse {\
-    ./modules/nff_cdcc_fedge/hdl/nff_cdcc_fedge.vhd\
-}]
-
-if {$srcfile_added_or_not ne ""} {
-    set_property library "lib_src" [get_files {\
-        ./modules/nff_cdcc_fedge/hdl/nff_cdcc_fedge.vhd\
-    }]
-    puts -nonewline $vivado_added_hdl_report "\
-        ./modules/nff_cdcc_fedge/hdl/nff_cdcc_fedge.vhd\n"
-    update_compile_order -fileset "sources_1"
-
-    #    * ModelSim
-    puts -nonewline $simulator_comporder "\
-        ./modules/nff_cdcc_fedge/hdl/nff_cdcc_fedge.vhd\n"
+add_files -fileset "sources_1" -norecurse {\
+    ./modules/top_memristor/hdl/top_memristor.vhd\
 }
+set_property library "lib_src" [get_files {\
+    ./modules/top_memristor/hdl/top_memristor.vhd\
+}]
+puts -nonewline $vivado_added_hdl_report "\
+    ./modules/top_memristor/hdl/top_memristor.vhd\n"
+update_compile_order -fileset "sources_1"
+
+#    * ModelSim
+puts -nonewline $simulator_comporder "\
+    ./modules/top_memristor/hdl/top_memristor.vhd\n"
 
 
 # -------------------------------------------------------
@@ -43,15 +40,12 @@ if {$srcfile_added_or_not ne ""} {
 #    * ModelSim
 
 
-
 # -------------------------------------------------------
 # 2.1) Add TB Files
 # -------------------------------------------------------
 #    * ModelSim
-if {$srcfile_added_or_not ne ""} {
-    puts -nonewline $simulator_comporder "\
-        ./modules/nff_cdcc_fedge/sim/nff_cdcc_fedge_tb.vhd\n"
-}
+puts -nonewline $simulator_comporder "\
+    ./modules/top_memristor/sim/top_memristor_tb.vhd\n"
 
 
 
@@ -61,29 +55,29 @@ if {$srcfile_added_or_not ne ""} {
 # DO NOT TOUCH
 # Search for xdc/tcl foles up to 2 levels of hierarchy
 # Search for all .xdc sources associated with this module
-if {$srcfile_added_or_not ne ""} {
-    set foundFiles [glob -nocomplain -type f \
-        ${relpath_to_module}/*{.xdc} \
-        ${relpath_to_module}/*/*{.xdc} \
-    ]
-    if {[llength $foundFiles] > 0} {
-        foreach file_path $foundFiles {
-            add_files -norecurse -fileset "constrs_1" "$file_path"
-            puts -nonewline $vivado_added_scripts_report "$file_path\n"
-        }
+set foundFiles [glob -nocomplain -type f \
+    ${relpath_to_module}/*{.xdc} \
+    ${relpath_to_module}/*/*{.xdc} \
+]
+puts "TCL DEBUG: xdc foundFiles = $foundFiles"
+if {[llength $foundFiles] > 0} {
+    foreach file_path $foundFiles {
+        add_files -norecurse -fileset "constrs_1" "$file_path"
+        puts -nonewline $vivado_added_scripts_report "$file_path\n"
     }
+}
 
-    # Search for all .tcl sources associated with this module
-    set foundFiles [glob -nocomplain -type f \
-        ${relpath_to_module}/*{.tcl} \
-        ${relpath_to_module}/*/*{.tcl} \
-    ]
-    if {[llength $foundFiles] > 0} {
-        foreach file_path $foundFiles {
-            if { [string first $this_file_name $file_path] == -1} {
-                source $file_path
-                puts -nonewline $vivado_added_scripts_report "$file_path\n"
-            }
+# Search for all .tcl sources associated with this module
+set foundFiles [glob -nocomplain -type f \
+    ${relpath_to_module}/*{.tcl} \
+    ${relpath_to_module}/*/*{.tcl} \
+]
+puts "TCL DEBUG: tcl foundFiles = $foundFiles"
+if {[llength $foundFiles] > 0} {
+    foreach file_path $foundFiles {
+        if { [string first $this_file_name $file_path] == -1} {
+            source $file_path
+            puts -nonewline $vivado_added_scripts_report "$file_path\n"
         }
     }
 }

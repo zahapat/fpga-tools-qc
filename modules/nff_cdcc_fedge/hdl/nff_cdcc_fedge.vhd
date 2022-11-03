@@ -2,50 +2,50 @@
     use ieee.std_logic_1164.all;
     use ieee.numeric_std.all;
 
-    entity nff_cdcc is
+    entity nff_cdcc_fedge is
         generic (
-            ASYNC_FLOPS_CNT : positive := 2;
-            ASYNC_FLOPS_CNT_EVENTGEN : positive := 2;
-            DATA_WIDTH : natural := 3;
-            FLOPS_BEFORE_CROSSING_CNT : positive := 1;
-            FLOPS_BEFORE_CROSSING_EVENTGEN : positive := 1
+            INT_ASYNC_FLOPS_CNT : positive := 2;
+            INT_ASYNC_FLOPS_CNT_EVENTGEN : positive := 2;
+            INT_DATA_WIDTH : natural := 3;
+            INT_FLOPS_BEFORE_CROSSING_CNT : positive := 1;
+            INT_FLOPS_BEFORE_CROSSING_EVENTGEN : positive := 1
         );
         port (
             -- Write ports (faster clock, wr_en at rate A)
             clk_write : in  std_logic;
-            wr_data   : in  std_logic_vector(DATA_WIDTH-1 downto 0);
+            wr_data   : in  std_logic_vector(INT_DATA_WIDTH-1 downto 0);
 
             -- Read ports (slower clock, rd_en_pulse at rate similar to A)
             clk_read : in  std_logic;
             rd_valid : out std_logic;
-            rd_data  : out std_logic_vector(DATA_WIDTH-1 downto 0)
+            rd_data  : out std_logic_vector(INT_DATA_WIDTH-1 downto 0)
         );
-    end nff_cdcc;
+    end nff_cdcc_fedge;
 
-    architecture rtl of nff_cdcc is
+    architecture rtl of nff_cdcc_fedge is
 
         -- Sample and latch data
-        signal slv_data_to_cross_latched : std_logic_vector(DATA_WIDTH-1 downto 0) := (others => '0');
+        signal slv_data_to_cross_latched : std_logic_vector(INT_DATA_WIDTH-1 downto 0) := (others => '0');
         signal sl_bit_to_cross_latched : std_logic := '0';
 
-        type t_slv_data_to_cross_2d is array(FLOPS_BEFORE_CROSSING_CNT downto 0) of std_logic_vector(DATA_WIDTH-1 downto 0);
+        type t_slv_data_to_cross_2d is array(INT_FLOPS_BEFORE_CROSSING_CNT downto 0) of std_logic_vector(INT_DATA_WIDTH-1 downto 0);
         signal slv_data_to_cross_2d : t_slv_data_to_cross_2d := (others => (others => '0'));
-        signal slv_bit_to_cross : std_logic_vector(FLOPS_BEFORE_CROSSING_CNT downto 0) := (others => '0');
+        signal slv_bit_to_cross : std_logic_vector(INT_FLOPS_BEFORE_CROSSING_CNT downto 0) := (others => '0');
 
 
         -- CDCC: Async n-FF synchronizer
-        type t_slv_data_async_2ff_2d is array(ASYNC_FLOPS_CNT downto 0) of std_logic_vector(DATA_WIDTH-1 downto 0);
+        type t_slv_data_async_2ff_2d is array(INT_ASYNC_FLOPS_CNT downto 0) of std_logic_vector(INT_DATA_WIDTH-1 downto 0);
         signal slv_data_asyncff_2d : t_slv_data_async_2ff_2d := (others => (others => '0'));
-        signal slv_bit_asyncff : std_logic_vector(ASYNC_FLOPS_CNT downto 0) := (others => '0');
-        signal slv_data_synchronized : std_logic_vector(DATA_WIDTH-1 downto 0) := (others => '0');
+        signal slv_bit_asyncff : std_logic_vector(INT_ASYNC_FLOPS_CNT downto 0) := (others => '0');
+        signal slv_data_synchronized : std_logic_vector(INT_DATA_WIDTH-1 downto 0) := (others => '0');
         signal sl_bit_synchronized : std_logic := '0';
 
 
         -- Event generator / Oscillator
         signal sl_eventgen : std_logic := '0';
         signal sl_flop_eventgen_for_samplhz : std_logic := '0';
-        signal slv_eventgen_to_cross : std_logic_vector(FLOPS_BEFORE_CROSSING_EVENTGEN downto 0) := (others => '0');
-        signal slv_bit_asyncff_eventgen : std_logic_vector(ASYNC_FLOPS_CNT_EVENTGEN downto 0) := (others => '0');
+        signal slv_eventgen_to_cross : std_logic_vector(INT_FLOPS_BEFORE_CROSSING_EVENTGEN downto 0) := (others => '0');
+        signal slv_bit_asyncff_eventgen : std_logic_vector(INT_ASYNC_FLOPS_CNT_EVENTGEN downto 0) := (others => '0');
 
         signal sl_flop_eventgen_samplhz : std_logic := '0';
         signal sl_flop_eventgen_samplhz_p1 : std_logic := '0';
@@ -105,7 +105,7 @@
         begin
             if falling_edge(clk_read) then
 
-                for i in 1 to FLOPS_BEFORE_CROSSING_EVENTGEN loop
+                for i in 1 to INT_FLOPS_BEFORE_CROSSING_EVENTGEN loop
                     -- Signal changes infrequently (relative to the fast domain)
                     slv_eventgen_to_cross(i) <= slv_eventgen_to_cross(i-1);
                 end loop;
@@ -120,12 +120,12 @@
             if falling_edge(clk_write) then
 
                 -- Crossing
-                slv_bit_asyncff_eventgen(0) <= slv_eventgen_to_cross(FLOPS_BEFORE_CROSSING_EVENTGEN); -- set_false_path
-                for i in 1 to ASYNC_FLOPS_CNT_EVENTGEN loop
+                slv_bit_asyncff_eventgen(0) <= slv_eventgen_to_cross(INT_FLOPS_BEFORE_CROSSING_EVENTGEN); -- set_false_path
+                for i in 1 to INT_ASYNC_FLOPS_CNT_EVENTGEN loop
                     slv_bit_asyncff_eventgen(i) <= slv_bit_asyncff_eventgen(i-1);
                 end loop;
 
-                sl_flop_eventgen_samplhz <= slv_bit_asyncff_eventgen(ASYNC_FLOPS_CNT_EVENTGEN);
+                sl_flop_eventgen_samplhz <= slv_bit_asyncff_eventgen(INT_ASYNC_FLOPS_CNT_EVENTGEN);
                 sl_flop_eventgen_samplhz_p1 <= sl_flop_eventgen_samplhz;
 
             end if;
@@ -139,7 +139,7 @@
         begin
             if falling_edge(clk_write) then
 
-                for i in 1 to FLOPS_BEFORE_CROSSING_CNT loop
+                for i in 1 to INT_FLOPS_BEFORE_CROSSING_CNT loop
                     -- Synchronize data (changes infrequently)
                     slv_data_to_cross_2d(i) <= slv_data_to_cross_2d(i-1);
 
@@ -163,11 +163,11 @@
             if falling_edge(clk_read) then
 
                 -- Crossing
-                slv_data_asyncff_2d(0) <= slv_data_to_cross_2d(FLOPS_BEFORE_CROSSING_CNT);  -- set_false_path
-                slv_bit_asyncff(0) <= slv_bit_to_cross(FLOPS_BEFORE_CROSSING_CNT);          -- set_false_path
+                slv_data_asyncff_2d(0) <= slv_data_to_cross_2d(INT_FLOPS_BEFORE_CROSSING_CNT);  -- set_false_path
+                slv_bit_asyncff(0) <= slv_bit_to_cross(INT_FLOPS_BEFORE_CROSSING_CNT);          -- set_false_path
 
                 -- Async flops
-                for i in 1 to ASYNC_FLOPS_CNT loop
+                for i in 1 to INT_ASYNC_FLOPS_CNT loop
                     -- Synchronize data (changes infrequently)
                     slv_data_asyncff_2d(i) <= slv_data_asyncff_2d(i-1);
 
@@ -176,8 +176,8 @@
                 end loop;
 
                 -- Sync flop
-                slv_data_synchronized <= slv_data_asyncff_2d(ASYNC_FLOPS_CNT);
-                sl_bit_synchronized <= slv_bit_asyncff(ASYNC_FLOPS_CNT);
+                slv_data_synchronized <= slv_data_asyncff_2d(INT_ASYNC_FLOPS_CNT);
+                sl_bit_synchronized <= slv_bit_asyncff(INT_ASYNC_FLOPS_CNT);
 
             end if;
         end process;

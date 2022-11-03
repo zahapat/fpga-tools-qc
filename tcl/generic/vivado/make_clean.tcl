@@ -384,34 +384,34 @@ if {[llength $files_edn] != 0} {
 
 
 # # Remove all the following libraries and mappings
-if {[file exist "[file normalize ${origin_dir}]/modelsim/work"]} {
+if {[file exist "[file normalize ${origin_dir}]/simulator/work"]} {
     # vmap -del work
-    exec vdel -all -lib ${origin_dir}/modelsim/work
+    exec vdel -all -lib ${origin_dir}/simulator/work
     puts "TCL: Library 'work' deleted."
 }
-if {[file exist "[file normalize ${origin_dir}]/modelsim/$lib_src_vhdl"]} {
+if {[file exist "[file normalize ${origin_dir}]/simulator/$lib_src_vhdl"]} {
     # vmap -del $lib_src_vhdl
-    exec vdel -all -lib ${origin_dir}/modelsim/$lib_src_vhdl
+    exec vdel -all -lib ${origin_dir}/simulator/$lib_src_vhdl
     puts "TCL: Library '$lib_src_vhdl' deleted."
 }
-if {[file exist "[file normalize ${origin_dir}]/modelsim/$lib_sim_vhdl"]} {
+if {[file exist "[file normalize ${origin_dir}]/simulator/$lib_sim_vhdl"]} {
     # vmap -del $lib_sim_vhdl
-    exec vdel -all -lib ${origin_dir}/modelsim/$lib_sim_vhdl
+    exec vdel -all -lib ${origin_dir}/simulator/$lib_sim_vhdl
     puts "TCL: Library '$lib_sim_vhdl' deleted."
 }
 
-# Remove ModelSim project files, preserve modelsim.ini and transctipt
-set files_modelsim [glob -nocomplain -type f [file normalize ${origin_dir}]/modelsim/*]
-set required_rundo_file "[file normalize ${origin_dir}]/modelsim/run.do"
-set required_newdo_file "[file normalize ${origin_dir}]/modelsim/new.do"
-if {[llength $files_modelsim] == 0} {
-    puts "TCL: CRITICAL WARNING: Folder ./modelsim is empty -> file run.do is not present in the dir ${origin_dir}]/modelsim/ . Copy the file to this directory for correct operation of this project environment."
+# Remove simulator project files, preserve simulator.ini and transctipt
+set files_simulator [glob -nocomplain -type f [file normalize ${origin_dir}]/simulator/*]
+set required_rundo_file "[file normalize ${origin_dir}]/simulator/run.do"
+set required_newdo_file "[file normalize ${origin_dir}]/simulator/new.do"
+if {[llength $files_simulator] == 0} {
+    puts "TCL: CRITICAL WARNING: Folder ./simulator is empty -> file run.do is not present in the dir ${origin_dir}]/simulator/ . Copy the file to this directory for correct operation of this project environment."
 }
-if {[llength $files_modelsim] != 0} {
-    foreach del_file $files_modelsim {
+if {[llength $files_simulator] != 0} {
+    foreach del_file $files_simulator {
         if {$del_file ne "$required_rundo_file"} {
             if {$del_file ne "$required_newdo_file"} {
-                puts "TCL: Deleting file from the 'modelsim' folder: $del_file"
+                puts "TCL: Deleting file from the 'simulator' folder: $del_file"
                 file delete $del_file
             }
         }

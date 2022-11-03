@@ -45,8 +45,8 @@
 
     entity johnson_cnt is
         generic (
-            RST_VAL         : std_logic := '1';
-            JOHNS_CNT_WIDTH : natural := 3
+            SL_RST_VAL : std_logic := '1';
+            INT_JOHNS_CNT_WIDTH : natural := 3
         );
         port (
             clk : in  std_logic;
@@ -56,7 +56,7 @@
             out_valid : out std_logic;
 
             in_event : in std_logic;
-            out_data : out std_logic_vector(JOHNS_CNT_WIDTH-1 downto 0)
+            out_data : out std_logic_vector(INT_JOHNS_CNT_WIDTH-1 downto 0)
         );
     end johnson_cnt;
 
@@ -65,11 +65,11 @@
         -- Signals
         signal sl_channels_redge_event : std_logic := '0';
         signal sl_channels_redge_event_p1 : std_logic := '0';
-        signal slv_johnson_counter : std_logic_vector(JOHNS_CNT_WIDTH-1 downto 0) := (others => '0');
+        signal slv_johnson_counter : std_logic_vector(INT_JOHNS_CNT_WIDTH-1 downto 0) := (others => '0');
         signal sl_out_valid : std_logic := '0';
 
         -- Increment Johnson Counter
-        procedure incr_johnson_counter (signal johnson_counter : inout std_logic_vector(JOHNS_CNT_WIDTH-1 downto 0))
+        procedure incr_johnson_counter (signal johnson_counter : inout std_logic_vector(INT_JOHNS_CNT_WIDTH-1 downto 0))
         is
         begin
             johnson_counter(johnson_counter'high downto 0) <=
@@ -91,7 +91,7 @@
         proc_click_counter : process(clk)
         begin
             if rising_edge(clk) then
-                if rst = RST_VAL then
+                if rst = SL_RST_VAL then
                     sl_channels_redge_event_p1 <= '0';
                     sl_out_valid <= '0';
                     slv_johnson_counter <= (others => '0');
