@@ -35,63 +35,58 @@ if { $::argc == $args_cnt } {
     return 1
 }
 
+
+# Check if the file passed has correct suffix, add the correct suffix otherwise
+if { [string first "." $arg1] != -1} {
+    set arg1 [lindex [split $arg1 "."] 0]
+}
+set arg1 "${arg1}.tcl"
+
 # Open project
 close_project -quiet
 open_project "${origin_dir}/vivado/${_xil_proj_name_}.xpr"
- 
-
-# -------------------------------------------------------------------
-# - GET ALL .bd FILES FROM THE PROJECT AND EXPORT THEM AS TCL FILES -
-# -------------------------------------------------------------------
-# puts "TCL: GET ALL '.bd' FILES FROM THE PROJECT AND EXPORT THEM AS TCL FILES. "
-# set all_bd_designs [get_bd_designs -quiet -of_objects [current_project]]
-# if {$all_bd_designs eq ""} {
-#     puts "TCL: No board '.bd' files are present in the current project for TCL export."
-# } else {
-#     foreach b $all_bd_designs {
-#         set projBoardName [string range $b 0 end]
-#         puts "TCL: Exporting '.bd' file $projBoardName as a TCL script here: ./boards/"
-#         write_bd_tcl -bd_name $projBoardName -bd_folder "./boards/"
-#     }
-# }
 
 
-# -----------------------------------
-# - RE/ADD .bd FILES TO THE PROJECT -
-# -----------------------------------
-# puts "TCL: RE/ADD '.bd' FILES TO THE PROJECT. "
-# set foundBoards [glob -nocomplain -type f ./boards/*{.bd}]
-# if { [llength $foundBoards] == 0 } {
-#     puts "TCL: There are no '.bd' files in the folder ./boards/."
-# } else {
-#     foreach b $foundBoards {
-#         set boardPath [string range $b 0 end]
-#         set boardPath "[file normalize $boardPath]"
-#         set boardFullName [file tail $boardPath]
-#         set boardName [lindex [split $boardFullName "."] 0]
-#         puts "TCL: Adding .bd file $boardFullName: $boardPath"
-#         read_bd $boardPath
-#         # write_bd_tcl -force -bd_name $boardName -bd_folder "./boards/" $boardName
-#     }
-# }
-
-set foundBoards [glob -nocomplain -type f ./boards/${arg1}.tcl]
-if { [llength $foundBoards] == 0 } {
-    puts "TCL: There is no ${arg1}.tcl file in the folder ./boards"
+# Find the .tcl board file in the ./boards dir
+set foundBoards [glob -nocomplain -type f ./boards/${arg1} ./boards/*/${arg1}]
+set foundBoardsCnt [expr ([llength $foundBoards])]
+if { $foundBoardsCnt == 0 } {
+    puts "TCL ERROR: There is no file named '${arg1}' in the dir ./boards"
+    return 2
+} elseif { $foundBoardsCnt > 1 } {
+    puts "TCL ERROR: There are more files in the ./boards dir named ${arg1}: $foundBoards. Please select a unique name for your .tcl board file"
+    return 3
 } else {
     foreach b $foundBoards {
         set boardPath [string range $b 0 end]
+        puts "TCL DEBUG: boardPath = $boardPath"
         set boardPath "[file normalize $boardPath]"
+        puts "TCL DEBUG: boardPath = $boardPath"
         set boardFullName [file tail $boardPath]
         set boardName [lindex [split $boardFullName "."] 0]
         puts "TCL: Reading file: $boardPath"
 
-        # Remove previous folder with board files if exists
-        file delete -force "${orig_proj_dir}/boards/$boardName"
+        # Remove previous folder with output board files if exists
+        file delete -force "${orig_proj_dir}/boards/$boardName/$boardName"
         source $boardPath
     }
 }
 
+# Add .xdc file related to the board file.
+# Note: The .xdc file must have the same name as the board file and be located in the same dir. 
+#       I.e. ./boards/flow_ambiguity/flow_ambiguity.tcl -> ./boards/flow_ambiguity/flow_ambiguity.xdc
+set foundXdc [glob -nocomplain -type f ./boards/${boardName}/*{.xdc}]
+if {[llength $foundXdc] > 0} {
+    foreach file_path $foundXdc {
+        set vivado_added_scripts_report_path "${origin_dir}/vivado/0_report_added_xdc.rpt"
+        set vivado_added_scripts_report [open $vivado_added_scripts_report_path "a"]
+
+        add_files -norecurse -fileset "constrs_1" "$file_path"
+        puts -nonewline $vivado_added_scripts_report "$file_path\n"
+
+        close $vivado_added_scripts_report
+    }
+}
 
 # Close project, print success
 puts "TCL: Running $script_file for project $_xil_proj_name_ COMPLETED SUCCESSFULLY. "

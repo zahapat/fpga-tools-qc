@@ -9,8 +9,8 @@ if { [info exists ::origin_dir_loc] } {
     set origin_dir $::origin_dir_loc
 }
 
-set str_bd_folder [file normalize ${origin_dir}/boards]
-set str_bd_filepath ${str_bd_folder}/${design_name}/${design_name}.bd
+set str_bd_folder [file normalize ${origin_dir}/boards/$design_name]
+set str_bd_filepath ${str_bd_folder}/${design_name}.bd
 
 # Check if remote design exists on disk
 if { [file exists $str_bd_filepath ] == 1 } {
@@ -191,9 +191,9 @@ proc readd_found_file {abs_path_to_file} {
 
 create_root_design ""
 
-make_wrapper -files [get_files "[file normalize ./boards/${design_name}/${design_name}.bd]"] -top
+make_wrapper -files [get_files "[file normalize $str_bd_folder/${design_name}/${design_name}.bd]"] -top
 
-set boardWrapperFound [glob ./boards/${design_name}/hdl/*{_wrapper.}*]
+set boardWrapperFound [glob $str_bd_folder/${design_name}/hdl/*{_wrapper.}*]
 readd_found_file "[file normalize $boardWrapperFound]"
 
 set_property top ${design_name}_wrapper [current_fileset]

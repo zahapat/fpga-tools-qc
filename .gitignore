@@ -3,7 +3,6 @@ vitis/*
 .vscode
 .Xil
 doc
-!modelsim/*.do
 *.rpt
 *.bit
 *.xpr
@@ -76,11 +75,15 @@ packages/uvvm/*/*/*/*/sim
 
 
 
-modelsim/*
-!modelsim/*.do
-!modelsim/*.tcl
+simulator
+!simulator/*.do
+!simulator/*.tcl
 
 
 
-boards/*
+# Ignore all files in ./boards but allow .tcl and .xdc on multiple levels
+boards/*/*/*
 !boards/*.tcl
+!boards/*/*.tcl
+!boards/*.xdc
+!boards/*/*.xdc
