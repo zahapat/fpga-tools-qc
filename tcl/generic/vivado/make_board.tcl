@@ -35,12 +35,56 @@ if { $::argc == $args_cnt } {
     return 1
 }
 
-
 # Check if the file passed has correct suffix, add the correct suffix otherwise
-if { [string first "." $arg1] != -1} {
-    set arg1 [lindex [split $arg1 "."] 0]
+set bdname_no_suffix [lindex [split $arg1 "."] 0]
+set bdscript_with_suffix "${bdname_no_suffix}.tcl"
+set bdfilename_with_suffix "${bdname_no_suffix}.bd"
+
+# Before opening the project, remove all links to .xci files to avoid errors in case these files are missing
+set del_lines_start 0
+set del_lines_end 0
+set cnt 0
+set proj_xpr_file [open "${origin_dir}/vivado/${_xil_proj_name_}.xpr" r]
+set concat_lines ""
+set new_line ""
+while {-1 != [gets $proj_xpr_file line]} {
+    incr cnt 
+    if {$del_lines_start == 0} {
+        # Detect start where the .bd file is included in the .xpr file to delete links to these files
+        if { [string first $bdfilename_with_suffix $line] != -1} {
+            puts "TCL DEBUG: Detected match: $line"
+            set del_lines_start $cnt
+        } else {
+            # Pass valid lines
+            set new_line [string range $line 0 end]
+            set explicit_line "*$new_line"
+            set concat_lines [concat $concat_lines $explicit_line]
+        }
+    } else {
+        # Detect end to enable passing valid lines
+        
+        if { [string first "</File>" $line] != -1} {
+            set del_lines_end $cnt
+            incr del_lines_end
+            puts "TCL: Removing .bd file from the project ${_xil_proj_name_}.xpr file detected on lines $del_lines_start-$del_lines_end"
+            set del_lines_start 0
+        }
+    }
 }
-set arg1 "${arg1}.tcl"
+close $proj_xpr_file
+
+# Replace the old .xpr with the new lines
+set out_file_path "${origin_dir}/vivado/${_xil_proj_name_}.xpr"
+set xpr_file [open $out_file_path "w"]
+set line_part [lindex [split $concat_lines "*"] ]
+foreach l $line_part {
+    set ln [string range $l 0 end]
+    if {$ln != ""} {
+        puts -nonewline $xpr_file "$ln\n"
+        # puts "TCL: ln = $ln"
+    }
+}
+close $xpr_file
 
 # Open project
 close_project -quiet
@@ -48,13 +92,13 @@ open_project "${origin_dir}/vivado/${_xil_proj_name_}.xpr"
 
 
 # Find the .tcl board file in the ./boards dir
-set foundBoards [glob -nocomplain -type f ./boards/${arg1} ./boards/*/${arg1}]
+set foundBoards [glob -nocomplain -type f ./boards/${bdscript_with_suffix} ./boards/*/${bdscript_with_suffix}]
 set foundBoardsCnt [expr ([llength $foundBoards])]
 if { $foundBoardsCnt == 0 } {
-    puts "TCL ERROR: There is no file named '${arg1}' in the dir ./boards"
+    puts "TCL ERROR: There is no file named '${bdscript_with_suffix}' in the dir ./boards"
     return 2
 } elseif { $foundBoardsCnt > 1 } {
-    puts "TCL ERROR: There are more files in the ./boards dir named ${arg1}: $foundBoards. Please select a unique name for your .tcl board file"
+    puts "TCL ERROR: There are more files in the ./boards dir named ${bdscript_with_suffix}: $foundBoards. Please select a unique name for your .tcl board file"
     return 3
 } else {
     foreach b $foundBoards {
@@ -68,6 +112,7 @@ if { $foundBoardsCnt == 0 } {
 
         # Remove previous folder with output board files if exists
         file delete -force "${orig_proj_dir}/boards/$boardName/$boardName"
+        reset_project
         source $boardPath
     }
 }
