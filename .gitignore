@@ -81,9 +81,13 @@ simulator
 
 
 
-# Ignore all files in ./boards but allow .tcl and .xdc on multiple levels
+# Ignore all files in ./boards up to a certain level
+boards
+boards/*
+boards/*/*
 boards/*/*/*
-# boards/*/*/*.tcl
-# boards/*/*/*.xdc
-# !boards/*.tcl
-# !boards/*.xdc
+
+# Allow files on multiple levels below the max level of the ignored levels
+!boards
+!boards/*
+!boards/*/*
