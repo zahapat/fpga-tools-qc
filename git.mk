@@ -54,26 +54,6 @@ gacp:
 	make gp
 	git log --name-status HEAD^..HEAD
 
-# [Project repo]
-# Generic commit message: "doc: add comments" [push]
-gacp_comment:
-	make gacp MSG="doc: Add comment for readability"
-
-# [Project repo]
-# Generic commit message: "feat: refresh" [push]
-gacp_refactor:
-	make gacp MSG="refactor: Update code for readability"
-
-# [Project repo]
-# Generic commit message: "doc: add comments" [no push]
-gac_comment:
-	make gac MSG="doc: Add comment for readability"
-
-# [Project repo]
-# Generic commit message: "feat: refresh" [no push]
-gac_refactor:
-	make gac MSG="refactor: Update code for readability"
-
 
 # [Template repo]
 # Git Add all changes in "generic" folders -> Commit all changes -> Push
