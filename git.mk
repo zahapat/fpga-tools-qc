@@ -163,7 +163,7 @@ git_commit:
 git_change_commit_after_push:
 	rm -fr .git/REBASE_HEAD
 	git switch $(GIT_BRANCH)
-	git rebase -i --root
+	GIT_EDITOR=nano git rebase -i --root
 	git rebase --continue
 	git switch $(GIT_BRANCH)
 	make gp
