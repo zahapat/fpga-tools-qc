@@ -1,6 +1,5 @@
 @REM Make a new dir if does not exist in user root dir
-cd %userprofile%
-cd
+cd C:\
 mkdir Git
 cd Git
 RMDIR /S /Q %~n0
