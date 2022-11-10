@@ -64,10 +64,14 @@ gacpt:
 	git remote set-url origin $(GIT_TEMPLATE_HTTPS)
 	git switch main
 	git add -f \
-		./boards/*.tcl \
-		./*/generic/\* \
-		./Makefile \
-		./*.mk
+		    './boards/*' './boards/*/*' ':!./boards/*/*/*' \
+			./do/*
+			./*/generic/\* \
+			./Makefile \
+			./*.mk\
+		-except
+			
+
 	git commit -m "$(MSG)"
 	git push https://github.com/$(GIT_ACCOUNT)/$(GIT_TEMPLATE) -f
 	git log --name-status HEAD^..HEAD
