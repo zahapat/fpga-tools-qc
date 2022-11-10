@@ -68,6 +68,7 @@ gacpt:
 	git add -f \
 		    './boards/*' './boards/*/*' ':!./boards/*/*/*' \
 			./do/*
+			./scripts/*
 			./*/generic/\* \
 			./Makefile \
 			./*.mk\
