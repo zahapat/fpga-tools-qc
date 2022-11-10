@@ -49,6 +49,7 @@ gacp:
 	make git_new_remote_origin_https
 	git remote set-url origin $(GIT_PROJECT_HTTPS)
 	git switch $(GIT_BRANCH)
+	git reset
 	git add --all
 	git commit -m "$(MSG)"
 	make gp
@@ -63,6 +64,7 @@ gacpt:
 	make git_new_remote_origin_template_https
 	git remote set-url origin $(GIT_TEMPLATE_HTTPS)
 	git switch main
+	git reset
 	git add -f \
 		    './boards/*' './boards/*/*' ':!./boards/*/*/*' \
 			./do/*
