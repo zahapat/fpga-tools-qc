@@ -1,6 +1,7 @@
 # CHANGE DESIGN NAME HERE
 variable design_name
 set design_name [lindex [split [file tail [info script]] "."] 0]
+set fpgaPart [get_property PART [current_project]] 
 
 set origin_dir "."
 
@@ -9,7 +10,7 @@ if { [info exists ::origin_dir_loc] } {
     set origin_dir $::origin_dir_loc
 }
 
-set str_bd_folder [file normalize ${origin_dir}/boards/$design_name]
+set str_bd_folder [file normalize ${origin_dir}/boards/$fpgaPart/$design_name]
 set str_bd_filepath ${str_bd_folder}/${design_name}.bd
 
 # Check if remote design exists on disk
@@ -56,62 +57,70 @@ current_bd_design $design_name
 # procedure reusable. If parentCell is "", will use root.
 proc create_root_design { parentCell } {
 
-  variable script_folder
-  variable design_name
+    variable script_folder
+    variable design_name
 
-  if { $parentCell eq "" } {
-     set parentCell [get_bd_cells /]
-  }
+    if { $parentCell eq "" } {
+        set parentCell [get_bd_cells /]
+    }
 
-  # Get object for parentCell
-  set parentObj [get_bd_cells $parentCell]
-  if { $parentObj == "" } {
-     catch {common::send_gid_msg -ssname BD::TCL -id 2090 -severity "ERROR" "Unable to find parent cell <$parentCell>!"}
-     return
-  }
+    # Get object for parentCell
+    set parentObj [get_bd_cells $parentCell]
+    if { $parentObj == "" } {
+        catch {common::send_gid_msg -ssname BD::TCL -id 2090 -severity "ERROR" "Unable to find parent cell <$parentCell>!"}
+        return
+    }
 
-  # Make sure parentObj is hier blk
-  set parentType [get_property TYPE $parentObj]
-  if { $parentType ne "hier" } {
-     catch {common::send_gid_msg -ssname BD::TCL -id 2091 -severity "ERROR" "Parent <$parentObj> has TYPE = <$parentType>. Expected to be <hier>."}
-     return
-  }
+    # Make sure parentObj is hier blk
+    set parentType [get_property TYPE $parentObj]
+    if { $parentType ne "hier" } {
+        catch {common::send_gid_msg -ssname BD::TCL -id 2091 -severity "ERROR" "Parent <$parentObj> has TYPE = <$parentType>. Expected to be <hier>."}
+        return
+    }
 
-  # Save current instance; Restore later
-  set oldCurInst [current_bd_instance .]
+    # Save current instance; Restore later
+    set oldCurInst [current_bd_instance .]
 
-  # Set parent object as current
-  current_bd_instance $parentObj
-
-
-
-  # -------------------------------------------------------------
-  #  USER INPUT: Paste the core of the exported .tcl board
-  # -------------------------------------------------------------
-  # Create interface ports
-
-  # Create ports
-  set clk_in1_0 [ create_bd_port -dir I -type clk clk_in1_0 ]
-  set clk_out1_0 [ create_bd_port -dir O -type clk clk_out1_0 ]
-
-  # Create instance: clk_wiz_0, and set properties
-  set clk_wiz_0 [ create_bd_cell -type ip -vlnv xilinx.com:ip:clk_wiz:6.0 clk_wiz_0 ]
-
-  # Create port connections
-  connect_bd_net -net clk_in1_0_1 [get_bd_ports clk_in1_0] [get_bd_pins clk_wiz_0/clk_in1]
-  connect_bd_net -net clk_wiz_0_clk_out1 [get_bd_ports clk_out1_0] [get_bd_pins clk_wiz_0/clk_out1]
-
-  # Create address segments
+    # Set parent object as current
+    current_bd_instance $parentObj
 
 
-  # Restore current instance
-  current_bd_instance $oldCurInst
 
-  save_bd_design
+    # -------------------------------------------------------------
+    #  USER INPUT: Paste the core of the exported .tcl board
+    # -------------------------------------------------------------
+    # Create interface ports
 
-  # -------------------------------------------------------------
-  #  End of copying
-  # -------------------------------------------------------------
+    # Create ports
+
+    # Create instance: clk_wiz_0, and set properties
+    set clk_wiz_0 [ create_bd_cell -type ip -vlnv xilinx.com:ip:clk_wiz:6.0 clk_wiz_0 ]
+    startgroup
+    set_property -dict [list CONFIG.PRIM_IN_FREQ {75.95} CONFIG.CLKOUT2_USED {true} CONFIG.CLKOUT1_REQUESTED_OUT_FREQ {75.95} CONFIG.CLKOUT2_REQUESTED_OUT_FREQ {75.95} CONFIG.CLKOUT2_REQUESTED_PHASE {180.000} CONFIG.CLKIN1_JITTER_PS {131.66} CONFIG.MMCM_DIVCLK_DIVIDE {1} CONFIG.MMCM_CLKFBOUT_MULT_F {13.000} CONFIG.MMCM_CLKIN1_PERIOD {13.166} CONFIG.MMCM_CLKIN2_PERIOD {10.0} CONFIG.MMCM_CLKOUT0_DIVIDE_F {13.000} CONFIG.MMCM_CLKOUT1_DIVIDE {13} CONFIG.MMCM_CLKOUT1_PHASE {180.000} CONFIG.NUM_OUT_CLKS {2} CONFIG.CLKOUT1_JITTER {150.230} CONFIG.CLKOUT1_PHASE_ERROR {103.224} CONFIG.CLKOUT2_JITTER {150.230} CONFIG.CLKOUT2_PHASE_ERROR {103.224}] [get_bd_cells clk_wiz_0]
+    endgroup
+
+    # Create port connections
+    startgroup
+    make_bd_pins_external  [get_bd_pins clk_wiz_0/clk_in1]
+    endgroup
+    startgroup
+    make_bd_pins_external  [get_bd_pins clk_wiz_0/clk_out1]
+    endgroup
+    startgroup
+    make_bd_pins_external  [get_bd_pins clk_wiz_0/clk_out2]
+    endgroup
+
+    # Create address segments
+
+
+    # Restore current instance
+    current_bd_instance $oldCurInst
+
+    save_bd_design
+
+    # -------------------------------------------------------------
+    #  End of copying
+    # -------------------------------------------------------------
 }
 # End of create_root_design()
 

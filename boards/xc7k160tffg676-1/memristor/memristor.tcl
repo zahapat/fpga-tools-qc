@@ -1,6 +1,7 @@
 # CHANGE DESIGN NAME HERE
 variable design_name
 set design_name [lindex [split [file tail [info script]] "."] 0]
+set fpgaPart [get_property PART [current_project]] 
 
 set origin_dir "."
 
@@ -9,7 +10,7 @@ if { [info exists ::origin_dir_loc] } {
     set origin_dir $::origin_dir_loc
 }
 
-set str_bd_folder [file normalize ${origin_dir}/boards/$design_name]
+set str_bd_folder [file normalize ${origin_dir}/boards/$fpgaPart/$design_name]
 set str_bd_filepath ${str_bd_folder}/${design_name}.bd
 
 # Check if remote design exists on disk
