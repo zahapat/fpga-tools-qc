@@ -86,8 +86,10 @@ boards
 boards/*
 boards/*/*
 boards/*/*/*
+boards/*/*/*/*
 
 # Allow files on multiple levels below the max level of the ignored levels
 !boards
 !boards/*
 !boards/*/*
+!boards/*/*/*

@@ -91,14 +91,16 @@ close_project -quiet
 open_project "${origin_dir}/vivado/${_xil_proj_name_}.xpr"
 
 
+set fpgaPart [get_property PART [current_project]] 
+
 # Find the .tcl board file in the ./boards dir
-set foundBoards [glob -nocomplain -type f ./boards/${bdscript_with_suffix} ./boards/*/${bdscript_with_suffix}]
+set foundBoards [glob -nocomplain -type f ./boards/$fpgaPart/*/${bdscript_with_suffix}]
 set foundBoardsCnt [expr ([llength $foundBoards])]
 if { $foundBoardsCnt == 0 } {
-    puts "TCL ERROR: There is no file named '${bdscript_with_suffix}' in the dir ./boards"
+    puts "TCL ERROR: There is no file named '${bdscript_with_suffix}' in the dir ./boards/$fpgaPart"
     return 2
 } elseif { $foundBoardsCnt > 1 } {
-    puts "TCL ERROR: There are more files in the ./boards dir named ${bdscript_with_suffix}: $foundBoards. Please select a unique name for your .tcl board file"
+    puts "TCL ERROR: There are more files in the ./boards/$fpgaPart dir named ${bdscript_with_suffix}: $foundBoards. Please select a unique name for your .tcl board file"
     return 3
 } else {
     foreach b $foundBoards {
@@ -111,7 +113,7 @@ if { $foundBoardsCnt == 0 } {
         puts "TCL: Reading file: $boardPath"
 
         # Remove previous folder with output board files if exists
-        file delete -force "${orig_proj_dir}/boards/$boardName/$boardName"
+        file delete -force "${orig_proj_dir}/boards/$fpgaPart/$boardName/$boardName"
         reset_project
         source $boardPath
     }
@@ -120,7 +122,7 @@ if { $foundBoardsCnt == 0 } {
 # Add .xdc file related to the board file.
 # Note: The .xdc file must have the same name as the board file and be located in the same dir. 
 #       I.e. ./boards/flow_ambiguity/flow_ambiguity.tcl -> ./boards/flow_ambiguity/flow_ambiguity.xdc
-set foundXdc [glob -nocomplain -type f ./boards/${boardName}/*{.xdc}]
+set foundXdc [glob -nocomplain -type f ./boards/$fpgaPart/${boardName}/*{.xdc}]
 if {[llength $foundXdc] > 0} {
     foreach file_path $foundXdc {
         set vivado_added_scripts_report_path "${origin_dir}/vivado/0_report_added_xdc.rpt"

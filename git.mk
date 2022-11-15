@@ -66,7 +66,7 @@ gacpt:
 	git switch main
 	git reset
 	git add -f \
-		    './boards/*' './boards/*/*' ':!./boards/*/*/*' \
+		    './boards/*' './boards/*/*' './boards/*/*/*' ':!./boards/*/*/*/*' \
 			./do/*
 			./scripts/*
 			./*/generic/\* \

@@ -38,6 +38,7 @@ puts "TCL: Get TCL Command-line arguments"
 if { $::argc == 1 } {
     for {set i 0} {$i < $::argc} {incr i} {
         set target_FPGA_part [ string trim [lindex $::argv $i] ]
+        set target_FPGA_part [string tolower $target_FPGA_part]
         puts "$target_FPGA_part"
     }
 } else {
@@ -69,7 +70,7 @@ if { $::argc == 1 } {
 file delete -force "$origin_dir/vivado/{*}"
 # file mkdir "$origin_dir/vivado/"
 
-create_project -force ${_xil_proj_name_} -dir "$orig_proj_dir/vivado/" -part $target_FPGA_part
+create_project -force ${_xil_proj_name_} -dir "$orig_proj_dir/vivado/"
 
 # create_project -force ${_xil_proj_name_} -dir "$orig_proj_dir/vivado/" -part xc7z020clg400-1
 # ${_xil_proj_name_} -part xc7z020clg400-1
@@ -93,6 +94,30 @@ puts "TCL: list_property \[current project\]:"
 puts "TCL: [list_property $obj]"
 set_property source_mgmt_mode All [current_project]
 # set_property -name "board_part_repo_paths" -value "[file normalize "$origin_dir/../../../../../AppData/Roaming/Xilinx/Vivado/2020.2/xhub/board_store/xilinx_board_store"]" -objects $obj
+
+# List All Boards
+set all_board_parts [get_board_parts]
+
+# Parse Boards and find the correct vlnv for the desired board
+set idx 0
+set act_board_part_vlnv " "
+while {$act_board_part_vlnv ne ""} {
+    set act_board_part_vlnv [lindex [split $all_board_parts " "] $idx]
+    set act_board_part_name [lindex [split $act_board_part_vlnv ":"] 1]
+    incr idx
+    puts "TCL DEBUG: act_board_part_vlnv = $act_board_part_vlnv"
+    puts "TCL DEBUG: act_board_part_name = $act_board_part_name"
+    if {$act_board_part_name eq $target_FPGA_part} {
+        set_property -name "board_part" -value $act_board_part_vlnv -objects $obj
+        set_property -name "platform.board_id" -value $act_board_part_name -objects $obj
+        break;
+    }
+    if {$act_board_part_vlnv eq ""} {
+        puts "TCL: Inputted FPGA part number $target_FPGA_part is not an evaluation board."
+        set_property -name part -value $target_FPGA_part -objects $obj
+    }
+}
+
 
 # *** UNCOMMENT IF THE PART IS A BOARD OR NOT, THEN FILL IN THE CORRECT BOARD_PART ***
 # !!! This influences how the connection automation handles creating and interconnecting new instances !!!
