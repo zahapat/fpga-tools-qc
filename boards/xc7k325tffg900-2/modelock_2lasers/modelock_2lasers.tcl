@@ -101,32 +101,32 @@ proc create_root_design { parentCell } {
                             CONFIG.CLKOUT2_USED {true} \
                             CONFIG.CLKOUT3_USED {true} \
                             CONFIG.CLKOUT1_REQUESTED_OUT_FREQ {75.96} \
-                            CONFIG.CLKOUT1_REQUESTED_DUTY_CYCLE {6.7000} \
+                            CONFIG.CLKOUT1_REQUESTED_DUTY_CYCLE {5.9000} \
                             CONFIG.CLKOUT2_REQUESTED_OUT_FREQ {75.96} \
                             CONFIG.CLKOUT2_REQUESTED_PHASE {180.000} \
-                            CONFIG.CLKOUT2_REQUESTED_DUTY_CYCLE {6.7000} \
-                            CONFIG.CLKOUT3_REQUESTED_OUT_FREQ {9.99474} \
-                            CONFIG.CLKOUT3_REQUESTED_DUTY_CYCLE {43.9} \
+                            CONFIG.CLKOUT2_REQUESTED_DUTY_CYCLE {5.9000} \
+                            CONFIG.CLKOUT3_REQUESTED_OUT_FREQ {10.08844} \
+                            CONFIG.CLKOUT3_REQUESTED_DUTY_CYCLE {50.0} \
                             CONFIG.USE_LOCKED {false} \
                             CONFIG.USE_RESET {false} \
                             CONFIG.CLKIN1_JITTER_PS {131.64000000000001} \
-                            CONFIG.MMCM_CLKFBOUT_MULT_F {15.000} \
+                            CONFIG.MMCM_CLKFBOUT_MULT_F {17.000} \
                             CONFIG.MMCM_CLKIN1_PERIOD {13.165} \
                             CONFIG.MMCM_CLKIN2_PERIOD {10.0} \
-                            CONFIG.MMCM_CLKOUT0_DIVIDE_F {15.000} \
-                            CONFIG.MMCM_CLKOUT0_DUTY_CYCLE {0.067} \
-                            CONFIG.MMCM_CLKOUT1_DIVIDE {15} \
-                            CONFIG.MMCM_CLKOUT1_DUTY_CYCLE {0.067} \
+                            CONFIG.MMCM_CLKOUT0_DIVIDE_F {17.000} \
+                            CONFIG.MMCM_CLKOUT0_DUTY_CYCLE {0.059} \
+                            CONFIG.MMCM_CLKOUT1_DIVIDE {17} \
+                            CONFIG.MMCM_CLKOUT1_DUTY_CYCLE {0.059} \
                             CONFIG.MMCM_CLKOUT1_PHASE {180.000} \
-                            CONFIG.MMCM_CLKOUT2_DIVIDE {114} \
-                            CONFIG.MMCM_CLKOUT2_DUTY_CYCLE {0.439} \
+                            CONFIG.MMCM_CLKOUT2_DIVIDE {128} \
+                            CONFIG.MMCM_CLKOUT2_DUTY_CYCLE {0.500} \
                             CONFIG.NUM_OUT_CLKS {3} \
-                            CONFIG.CLKOUT1_JITTER {132.830} \
-                            CONFIG.CLKOUT1_PHASE_ERROR {96.095} \
-                            CONFIG.CLKOUT2_JITTER {132.830} \
-                            CONFIG.CLKOUT2_PHASE_ERROR {96.095} \
-                            CONFIG.CLKOUT3_JITTER {211.588} \
-                            CONFIG.CLKOUT3_PHASE_ERROR {96.095}] [get_bd_cells clk_wiz_0]
+                            CONFIG.CLKOUT1_JITTER {118.951} \
+                            CONFIG.CLKOUT1_PHASE_ERROR {104.761} \
+                            CONFIG.CLKOUT2_JITTER {118.951} \
+                            CONFIG.CLKOUT2_PHASE_ERROR {104.761} \
+                            CONFIG.CLKOUT3_JITTER {186.099} \
+                            CONFIG.CLKOUT3_PHASE_ERROR {104.761}] [get_bd_cells clk_wiz_0]
     set_property -dict [list CONFIG.CLKOUT1_DRIVES {BUFG} \
                             CONFIG.CLKOUT2_DRIVES {BUFG} \
                             CONFIG.CLKOUT3_DRIVES {BUFG} \
