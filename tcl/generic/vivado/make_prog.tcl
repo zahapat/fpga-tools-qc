@@ -55,27 +55,25 @@ refresh_hw_server
 # Find all targets
 set local_hw_targets [get_hw_targets *]
 puts "TCL: local_hw_targets: "
-puts "$local_hw_targets"
+puts "TCL: $local_hw_targets"
 current_hw_target $local_hw_targets
 open_hw_target
 
 # Search for up to 10 devices connected to the server
 puts "TCL: Select connected device for programming (list 10 devices max): "
 set target_prog_fabric [lindex [get_hw_devices $local_hw_targets]]
-puts "TCL: target_prog_fabric: "
-puts "$target_prog_fabric"
+puts "TCL: target_prog_fabric: $target_prog_fabric"
 
 # Check if valid target has been selected out of the local_hw_targets
 for {set i 0} {$i < 10} {incr i} {
     set line_part [lindex [split $target_prog_fabric " "] $i]
     # Number of occurrences of the string "xc7/arm"
-    if {[regexp -all {xc7} $line_part] == 1} {
+    if {[string first "xc7" $line_part] != -1} {
         puts "TCL: $i = $line_part (Programmable fabric of an 7-series Xilinx FPGA)"
-        puts "TCL: Valid device found."
         set valid_device_id $i
         break
-    } elseif {[regexp -all {arm} $line_part] == 1} {
-        puts "TCL: $i = $line_part (ARM Processor)"
+    } elseif {[string first "arm" $line_part] != -1} {
+        puts "TCL: Device no. $i: $line_part (ARM Processor)"
     } elseif {$line_part eq ""} {
         break
     } else {
@@ -89,9 +87,9 @@ set device_selected [lindex [split $target_prog_fabric " "] $valid_device_id]
 puts "TCL: Selected target device for programming: $device_selected"
 set device_to_prog [current_hw_device [lindex [get_hw_devices] $valid_device_id]]
 if {$device_selected eq $device_to_prog} {
-    puts "Devices match double-check OK. Continue."
+    puts "TCL: Devices match double-check OK. Continue."
 } else {
-    puts "Devices do not match. Quit."
+    puts "TCL: Devices do not match. Quit."
     puts "TCL: Running $script_file for project $_xil_proj_name_ FAILED. "
     return 1
 }
@@ -104,7 +102,7 @@ set_property PROGRAM.FILE $bitfile $device_to_prog
 # Program the FPGA
 #  - in case of "ERROR: [Labtools 27-3165] End of startup status: LOW"
 #    check that bitstream file is for target FPGA
-puts "Programming device $device_to_prog..."
+puts "TCL: Programming device $device_to_prog..."
 program_hw_devices $device_to_prog
 # if ila included: refresh_hw_device $device_to_prog
 

@@ -173,13 +173,13 @@ impl : ./vivado/1_checkpoint_post_synth.dcp $(PROJ_NAME).xpr
 
 
 # make outd: Run synthesis or/and implementation if out-of-date
-outd : ./vivado/2_checkpoint_post_route.dcp ./vivado/1_checkpoint_post_synth.dcp $(PROJ_NAME).xpr
+outd : ./vivado/2_checkpoint_post_route.dcp ./vivado/1_checkpoint_post_synth.dcp ./vivado/$(PROJ_NAME).xpr
 	$(info ----- RUN/RERUN OUTDATED STAGES: SYNTH, IMPL -----)
 	$(VIVADO_BINPATH)/vivado.bat -nolog -nojou -mode batch -source ./tcl/generic/vivado/run_outdated.tcl  -notrace
 
 
 # make bit: Run synthesis or/and implementation if out-of-date
-bit : ./vivado/2_checkpoint_post_route.dcp ./vivado/1_checkpoint_post_synth.dcp $(PROJ_NAME).xpr
+bit : ./vivado/2_checkpoint_post_route.dcp ./vivado/1_checkpoint_post_synth.dcp ./vivado/$(PROJ_NAME).xpr
 	$(info ----- RUN GENERATE BITSTREAM -----)
 	$(VIVADO_BINPATH)/vivado.bat -nolog -nojou -mode batch -source ./tcl/generic/vivado/run_bitstream.tcl  -notrace
 
@@ -189,7 +189,7 @@ xsa : ./vivado/$(PROJ_NAME).xpr
 	$(VIVADO_BINPATH)/vivado.bat -nolog -nojou -mode batch -source ./tcl/generic/vivado/make_run_hw_platform.tcl  -notrace
 
 # make prog: Use 3_bitstream_<PROJ_NAME> to program the target FPGA
-prog : ./vivado/2_checkpoint_post_route.dcp ./vivado/1_checkpoint_post_synth.dcp $(PROJ_NAME).xpr ./vivado/3_bitstream_$(PROJ_NAME).bit
+prog : ./vivado/2_checkpoint_post_route.dcp ./vivado/1_checkpoint_post_synth.dcp ./vivado/$(PROJ_NAME).xpr ./vivado/3_bitstream_$(PROJ_NAME).bit
 	$(info ----- PROGRAM FPGA -----)
 	$(VIVADO_BINPATH)/vivado.bat -nolog -nojou -mode batch -source ./tcl/generic/vivado/make_prog.tcl  -notrace
 
