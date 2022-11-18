@@ -184,13 +184,15 @@ proc create_root_design { parentCell } {
     # Rename automatically assigned names of external board ports
     startgroup
 
-    # clk_wiz_0
+    # clk_wiz_0 
+    # [IMPORTANT: Clock Synthesizers do not allow shifting phases by 180 deg on other output ports than the first one]
     set_property name clk_in1_0_LaserClk            [get_bd_ports clk_in1_0]
-    set_property name clk_out1_0_PassThrough_0deg   [get_bd_ports clk_out1_0]
-    set_property name clk_out2_0_PassThrough_180deg [get_bd_ports clk_out2_0]
+    set_property name clk_out1_0_PassThrough_180deg [get_bd_ports clk_out1_0]
+    set_property name clk_out2_0_PassThrough_0deg   [get_bd_ports clk_out2_0]
     set_property name clk_out3_0_10MHz              [get_bd_ports clk_out3_0]
 
-    # clk_wiz_1
+    # clk_wiz_1 
+    # [IMPORTANT: Clock Synthesizers do not allow shifting phases by 180 deg on other output ports than the first one]
     set_property name clk_in1_1_LaserClk            [get_bd_ports clk_in1_1]
     set_property name clk_out1_1_10MHz              [get_bd_ports clk_out1_1]
     set_property name clk_out2_1_PassThrough_0deg   [get_bd_ports clk_out2_1]

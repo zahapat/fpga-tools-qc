@@ -41,12 +41,12 @@ set_property PACKAGE_PIN F20 [get_ports clk_in1_1_LaserClk]
 
 # ---- clk_wiz_0 ----
 # clk_out1_0_PassThrough_0deg [FMCNAME: LA_03_P, FMCPIN: G9]
-set_property IOSTANDARD LVTTL [get_ports clk_out1_0_PassThrough_0deg]
-set_property PACKAGE_PIN E29 [get_ports clk_out1_0_PassThrough_0deg]
+set_property IOSTANDARD LVTTL [get_ports clk_out1_0_PassThrough_180deg]
+set_property PACKAGE_PIN E29 [get_ports clk_out1_0_PassThrough_180deg]
 
 # clk_out2_0_PassThrough_180deg [FMCNAME: LA_02_P, FMCPIN: H7]
-set_property IOSTANDARD LVTTL [get_ports clk_out2_0_PassThrough_180deg]
-set_property PACKAGE_PIN H30 [get_ports clk_out2_0_PassThrough_180deg]
+set_property IOSTANDARD LVTTL [get_ports clk_out2_0_PassThrough_0deg]
+set_property PACKAGE_PIN H30 [get_ports clk_out2_0_PassThrough_0deg]
 
 # clk_out3_0_10MHz [FMCNAME: LA_07_P, FMCPIN: H13]
 set_property IOSTANDARD LVTTL [get_ports clk_out3_0_10MHz]
