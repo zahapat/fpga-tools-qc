@@ -24,7 +24,6 @@
             -- Generics of 'shiftreg_redgedetect'
             INT_ASYNC_FLOPS_CNT : positive := 2;
             INT_ASYNC_FLOPS_CNT_EVENTGEN : positive := 2;
-            INT_DATA_WIDTH : natural := INT_JOHNS_CNT_WIDTH;
             INT_FLOPS_BEFORE_CROSSING_CNT : positive := 1;
             INT_FLOPS_BEFORE_CROSSING_EVENTGEN : positive := 1;
 
@@ -63,6 +62,7 @@
         signal slv_counter_val : std_logic_vector(INT_JOHNS_CNT_WIDTH-1 downto 0) := (others => '0');
 
         -- "nff_cdcc_fedge" signals
+        constant INT_DATA_WIDTH : natural := INT_JOHNS_CNT_WIDTH;
         signal sl_cdcc_valid_out : std_logic := '0';
         signal slv_cdcc_data_out : std_logic_vector(INT_DATA_WIDTH-1 downto 0) := (others => '0');
 
@@ -103,7 +103,7 @@
         port map (
             -- Inputs
             clk => sampl_clk,
-            rst => open,
+            rst => '0',
             in_event => sl_redgedetect_event,
 
             -- Outputs
@@ -156,7 +156,7 @@
             in_data => slv_cdcc_data_out,
 
             -- Outputs
-            out_pulses => sl_ctrl_pulse_out
+            out_pulse => sl_ctrl_pulse_out
         );
 
 

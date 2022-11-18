@@ -22,11 +22,11 @@ set_property CLOCK_DEDICATED_ROUTE ANY_CMT_COLUMN [get_nets memristor_i/top_memr
 ############################################################################
 ## System Clock
 ############################################################################
-set_property IOSTANDARD LVDS [get_ports CLK_IN1_D_0_clk_n]
-set_property IOSTANDARD LVDS [get_ports CLK_IN1_D_0_clk_n]
+# set_property IOSTANDARD LVDS [get_ports CLK_IN1_D_0_clk_p]
+# set_property IOSTANDARD LVDS [get_ports CLK_IN1_D_0_clk_n]
 
-set_property PACKAGE_PIN AC4 [get_ports CLK_IN1_D_0_clk_p]
-set_property PACKAGE_PIN AC3 [get_ports CLK_IN1_D_0_clk_n]
+# set_property PACKAGE_PIN AC4 [get_ports CLK_IN1_D_0_clk_p]
+# set_property PACKAGE_PIN AC3 [get_ports CLK_IN1_D_0_clk_n]
 
 # create_clock -name sys_clk -period 10 [get_ports SYS_CLK_P]
 
@@ -45,10 +45,10 @@ set_property PACKAGE_PIN AC3 [get_ports CLK_IN1_D_0_clk_n]
 ############################################################################
 
 # 01) A17: H35	LA_30_N	G9
-set_property IOSTANDARD LVTTL [get_ports PULSE_OUT_0]
+# set_property IOSTANDARD LVTTL [get_ports PULSE_OUT_0]
 # set_property PACKAGE_PIN G9 [get_ports PULSE_OUT_0]
-set_property PACKAGE_PIN D9 [get_ports PULSE_OUT_0]
-set_property SLEW FAST [get_ports {PULSE_OUT_0}]
+# set_property PACKAGE_PIN D9 [get_ports PULSE_OUT_0]
+# set_property SLEW FAST [get_ports {PULSE_OUT_0}]
 
 # 02) A16: H32	H32	LA_28_N	F12
 # set_property IOSTANDARD LVTTL [get_ports PHOTON_1V]
@@ -86,9 +86,9 @@ set_property SLEW FAST [get_ports {PULSE_OUT_0}]
 # set_property SLEW FAST [get_ports {PHOTON_4V}]
 
 # 09) A05: C11	LA_06_N	B19
-set_property IOSTANDARD LVTTL [get_ports pulse_in]
-set_property PACKAGE_PIN B19 [get_ports pulse_in]
-set_property SLEW FAST [get_ports {pulse_in}]
+# set_property IOSTANDARD LVTTL [get_ports pulse_in]
+# set_property PACKAGE_PIN B19 [get_ports pulse_in]
+# set_property SLEW FAST [get_ports {pulse_in}]
 
 # 10) A04: H11	LA_04_N	D20
 # set_property IOSTANDARD LVTTL [get_ports clk_out10_0]
@@ -99,12 +99,20 @@ set_property SLEW FAST [get_ports {pulse_in}]
 ############################################################################
 ## Set False Paths as Clock Domain Cross Boundaries with CDCC
 ############################################################################
-set_false_path -from [get_pins {memristor_i/top_memristor_0/inst_nff_cdcc_fedge_0/sl_flop_eventgen_for_samplhz_reg/C}] -to [get_pins {memristor_i/top_memristor_0/inst_nff_cdcc_fedge_0/sl_asyncflop_eventgen_samplhz_1_reg/D}]
+set_false_path -from [get_pins {}] -to [get_pins {}]
+# set_false_path -from [get_pins {memristor_i/top_memristor_0/inst_nff_cdcc_fedge_0/sl_flop_eventgen_for_samplhz_reg/C}] -to [get_pins {memristor_i/top_memristor_0/inst_nff_cdcc_fedge_0/sl_asyncflop_eventgen_samplhz_1_reg/D}]
+set_false_path -from [get_pins {memristor_i/top_memristor_0/U0/inst_nff_cdcc_fedge/slv_bit_to_cross_reg[1]/C}] -to [get_pins {memristor_i/top_memristor_0/U0/inst_nff_cdcc_fedge/slv_bit_asyncff_reg[0]/D}]
+                                
 
-set_false_path -from [get_pins {memristor_i/top_memristor_0/inst_nff_cdcc_fedge_0/slv_sampled_data_reg[0]/C}] -to [get_pins {memristor_i/top_memristor_0/inst_nff_cdcc_fedge_0/sl_asyncflop_data_syshz_1_reg[0]/D}]
-set_false_path -from [get_pins {memristor_i/top_memristor_0/inst_nff_cdcc_fedge_0/slv_sampled_data_reg[2]/C}] -to [get_pins {memristor_i/top_memristor_0/inst_nff_cdcc_fedge_0/sl_asyncflop_data_syshz_1_reg[2]/D}]
-set_false_path -from [get_pins {memristor_i/top_memristor_0/inst_nff_cdcc_fedge_0/slv_sampled_data_reg[1]/C}] -to [get_pins {memristor_i/top_memristor_0/inst_nff_cdcc_fedge_0/sl_asyncflop_data_syshz_1_reg[1]/D}]
-set_false_path -from [get_pins {memristor_i/top_memristor_0/inst_nff_cdcc_fedge_0/sl_wr_en_event_reg/C}] -to [get_pins {memristor_i/top_memristor_0/inst_nff_cdcc_fedge_0/sl_asyncflop_event_syshz_1_reg/D}]
+# set_false_path -from [get_pins {memristor_i/top_memristor_0/inst_nff_cdcc_fedge_0/slv_sampled_data_reg[0]/C}] -to [get_pins {memristor_i/top_memristor_0/inst_nff_cdcc_fedge_0/sl_asyncflop_data_syshz_1_reg[0]/D}]
+# set_false_path -from [get_pins {memristor_i/top_memristor_0/inst_nff_cdcc_fedge_0/slv_sampled_data_reg[2]/C}] -to [get_pins {memristor_i/top_memristor_0/inst_nff_cdcc_fedge_0/sl_asyncflop_data_syshz_1_reg[2]/D}]
+# set_false_path -from [get_pins {memristor_i/top_memristor_0/inst_nff_cdcc_fedge_0/slv_sampled_data_reg[1]/C}] -to [get_pins {memristor_i/top_memristor_0/inst_nff_cdcc_fedge_0/sl_asyncflop_data_syshz_1_reg[1]/D}]
+# set_false_path -from [get_pins {memristor_i/top_memristor_0/inst_nff_cdcc_fedge_0/sl_wr_en_event_reg/C}] -to [get_pins {memristor_i/top_memristor_0/inst_nff_cdcc_fedge_0/sl_asyncflop_event_syshz_1_reg/D}]
+
+set_false_path -from [get_pins {memristor_i/top_memristor_0/U0/inst_nff_cdcc_fedge/slv_data_to_cross_2d_reg[1][0]/C}] -to [get_pins {memristor_i/top_memristor_0/U0/inst_nff_cdcc_fedge/slv_data_asyncff_2d_reg[0][0]/D}]
+set_false_path -from [get_pins {memristor_i/top_memristor_0/U0/inst_nff_cdcc_fedge/slv_data_to_cross_2d_reg[1][1]/C}] -to [get_pins {memristor_i/top_memristor_0/U0/inst_nff_cdcc_fedge/slv_data_asyncff_2d_reg[0][1]/D}]
+set_false_path -from [get_pins {memristor_i/top_memristor_0/U0/inst_nff_cdcc_fedge/slv_data_to_cross_2d_reg[1][2]/C}] -to [get_pins {memristor_i/top_memristor_0/U0/inst_nff_cdcc_fedge/slv_data_asyncff_2d_reg[0][2]/D}]
+set_false_path -from [get_pins {memristor_i/top_memristor_0/U0/inst_nff_cdcc_fedge/slv_eventgen_to_cross_reg[1]/C}] -to [get_pins {memristor_i/top_memristor_0/U0/inst_nff_cdcc_fedge/slv_bit_asyncff_eventgen_reg[0]/D}]
 
 
 ############################################################################
