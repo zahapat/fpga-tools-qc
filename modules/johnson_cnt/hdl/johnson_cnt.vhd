@@ -53,7 +53,7 @@
             rst : in  std_logic;
 
             out_ready : out std_logic;
-            out_valid : out std_logic;
+            out_valid_pulsed : out std_logic;
 
             in_event : in std_logic;
             out_data : out std_logic_vector(INT_JOHNS_CNT_WIDTH-1 downto 0)
@@ -66,7 +66,7 @@
         signal sl_channels_redge_event : std_logic := '0';
         signal sl_channels_redge_event_p1 : std_logic := '0';
         signal slv_johnson_counter : std_logic_vector(INT_JOHNS_CNT_WIDTH-1 downto 0) := (others => '0');
-        signal sl_out_valid : std_logic := '0';
+        signal sl_out_valid_pulsed : std_logic := '0';
 
         -- Increment Johnson Counter
         procedure incr_johnson_counter (signal johnson_counter : inout std_logic_vector(INT_JOHNS_CNT_WIDTH-1 downto 0))
@@ -87,24 +87,24 @@
         -- Johnson counter increments on each signal change (both '1'->'0' and '0'->'1')
         sl_channels_redge_event <= in_event;
         out_data <= slv_johnson_counter;
-        out_valid <= sl_out_valid;
+        out_valid_pulsed <= sl_out_valid_pulsed;
         proc_click_counter : process(clk)
         begin
             if rising_edge(clk) then
                 if rst = SL_RST_VAL then
                     sl_channels_redge_event_p1 <= '0';
-                    sl_out_valid <= '0';
+                    sl_out_valid_pulsed <= '0';
                     slv_johnson_counter <= (others => '0');
 
                 else
                     -- Defaults
                     sl_channels_redge_event_p1 <= sl_channels_redge_event;
-                    sl_out_valid <= '0';
+                    sl_out_valid_pulsed <= '0';
 
                     -- If there is an event on "sl_channels_redge" signal
                     if sl_channels_redge_event /= sl_channels_redge_event_p1 then
                         incr_johnson_counter(slv_johnson_counter);
-                        sl_out_valid <= '1';
+                        sl_out_valid_pulsed <= '1';
                     end if;
                 end if;
             end if;

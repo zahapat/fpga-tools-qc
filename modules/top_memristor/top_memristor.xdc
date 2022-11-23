@@ -13,8 +13,8 @@
 # set_property BITSTREAM.GENERAL.COMPRESS True [current_design]
 
 
-set_property CLOCK_DEDICATED_ROUTE FALSE [get_nets memristor_i/clk_wiz_0/inst/clk_out5]
-set_property CLOCK_DEDICATED_ROUTE ANY_CMT_COLUMN [get_nets memristor_i/top_memristor_0/inst_nff_cdcc_fedge_0/slv_level_out_2]
+# set_property CLOCK_DEDICATED_ROUTE FALSE [get_nets memristor_i/clk_wiz_0/inst/clk_out5]
+# set_property CLOCK_DEDICATED_ROUTE ANY_CMT_COLUMN [get_nets memristor_i/top_memristor_0/inst_nff_cdcc_fedge_0/slv_level_out_2]
 # set_property CLOCK_DEDICATED_ROUTE ANY_CMT_COLUMN [get_nets memristor_i/top_memristor_0/inst_nff_cdcc_fedge_0/slv_level_out_4]
 
 
@@ -99,7 +99,7 @@ set_property CLOCK_DEDICATED_ROUTE ANY_CMT_COLUMN [get_nets memristor_i/top_memr
 ############################################################################
 ## Set False Paths as Clock Domain Cross Boundaries with CDCC
 ############################################################################
-set_false_path -from [get_pins {}] -to [get_pins {}]
+# set_false_path -from [get_pins {}] -to [get_pins {}]
 # set_false_path -from [get_pins {memristor_i/top_memristor_0/inst_nff_cdcc_fedge_0/sl_flop_eventgen_for_samplhz_reg/C}] -to [get_pins {memristor_i/top_memristor_0/inst_nff_cdcc_fedge_0/sl_asyncflop_eventgen_samplhz_1_reg/D}]
 set_false_path -from [get_pins {memristor_i/top_memristor_0/U0/inst_nff_cdcc_fedge/slv_bit_to_cross_reg[1]/C}] -to [get_pins {memristor_i/top_memristor_0/U0/inst_nff_cdcc_fedge/slv_bit_asyncff_reg[0]/D}]
                                 

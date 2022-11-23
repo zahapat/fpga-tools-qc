@@ -17,7 +17,7 @@
 
             -- Read ports (slower clock, rd_en_pulse at rate similar to A)
             clk_read : in  std_logic;
-            rd_valid : out std_logic;
+            rd_valid_pulsed : out std_logic;
             rd_data  : out std_logic_vector(INT_DATA_WIDTH-1 downto 0)
         );
     end nff_cdcc_fedge;
@@ -147,7 +147,7 @@
                     slv_bit_to_cross(i) <= slv_bit_to_cross(i-1);
                 end loop;
 
-                -- Sample data on each event, since they operate on fedge
+                -- Sample data for crossing on each event of the eventgen
                 if sl_flop_eventgen_samplhz_p1 /= sl_flop_eventgen_samplhz then
                     slv_data_to_cross_2d(0) <= wr_data;
                     slv_bit_to_cross(0) <= not slv_bit_to_cross(0);
@@ -195,11 +195,11 @@
                 rd_data <= slv_data_synchronized;
 
                 -- Valid pulldown
-                rd_valid <= '0';
+                rd_valid_pulsed <= '0';
 
                 -- Control (after): valid on data event
                 if sl_bit_synchronized_p1 /= sl_bit_synchronized then
-                    rd_valid <= '1';
+                    rd_valid_pulsed <= '1';
                 end if;
 
             end if;

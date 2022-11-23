@@ -8,9 +8,9 @@
     entity shiftreg_redgedetect is
         generic (
             -- Setup for 100 MHz sampling of 50 MHz pulses
-            INT_BUFFER_DEPTH   : positive := 5;
+            INT_BUFFER_WIDTH   : positive := 3;
             INT_PATTERN_WIDTH  : positive := 3;
-            INT_BUFFER_PATTERN : positive := 1
+            INT_DETECT_PATTERN : positive := 3
         );
         port (
             clk : in  std_logic;
@@ -31,7 +31,7 @@
         signal sl_flops_databuff_1 : std_logic := '0';
         signal sl_flops_databuff_2 : std_logic := '0';
 
-        signal slv_buff_data : std_logic_vector(INT_BUFFER_DEPTH-1 downto 0);
+        signal slv_buff_data : std_logic_vector(INT_BUFFER_WIDTH-1 downto 0);
 
         signal sl_out_valid : std_logic := '0';
 
@@ -61,13 +61,13 @@
         proc_channel_oversample : process(clk)
         begin
             if rising_edge(clk) then
-                slv_buff_data(INT_BUFFER_DEPTH-1 downto 0) <= slv_buff_data(INT_BUFFER_DEPTH-2 downto 0) & sl_flops_databuff_2;
+                slv_buff_data(INT_BUFFER_WIDTH-1 downto 0) <= slv_buff_data(INT_BUFFER_WIDTH-2 downto 0) & sl_flops_databuff_2;
             end if;
         end process;
 
 
 
-        -- Send an output (event / pulsed) if INT_BUFFER_PATTERN detected on a the input channel
+        -- Send an output (event / pulsed) if INT_DETECT_PATTERN detected on a the input channel
         out_event <= sl_channels_redge_event;
         out_pulsed <= sl_channels_redge_pulsed;
         out_valid <= sl_out_valid;
@@ -79,7 +79,7 @@
                 sl_channels_redge_pulsed <= '0';
                 sl_out_valid <= '0';
 
-                if slv_buff_data(INT_BUFFER_DEPTH-1 downto INT_BUFFER_DEPTH-INT_PATTERN_WIDTH) = std_logic_vector(to_unsigned(INT_BUFFER_PATTERN, INT_PATTERN_WIDTH)) then
+                if slv_buff_data(INT_BUFFER_WIDTH-1 downto INT_BUFFER_WIDTH-INT_PATTERN_WIDTH) = std_logic_vector(to_unsigned(INT_DETECT_PATTERN, INT_PATTERN_WIDTH)) then
                     sl_channels_redge_event <= not sl_channels_redge_event;
                     sl_channels_redge_pulsed <= '1';
                     sl_out_valid <= '1';

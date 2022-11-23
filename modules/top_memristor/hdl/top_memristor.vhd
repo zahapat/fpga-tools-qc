@@ -13,9 +13,9 @@
     entity top_memristor is
         generic(
             -- Generics of 'shiftreg_redgedetect'
-            INT_BUFFER_DEPTH   : positive := 5;
+            INT_BUFFER_WIDTH   : positive := 3;
             INT_PATTERN_WIDTH  : positive := 3;
-            INT_BUFFER_PATTERN : positive := 1;
+            INT_DETECT_PATTERN : positive := 1;
 
             -- Generics of 'johnson_cnt'
             SL_RST_VAL : std_logic := '1';
@@ -29,7 +29,8 @@
 
             -- Generics of 'memristor_ctrl'
             INT_CTRL_DATA_WIDTH : positive := 3;
-            INT_CLK_SYS_HZ : natural := 100e6
+            INT_CLK_SYS_HZ : natural := 85208333;
+            INT_LAP_DURATION_NS : natural := 1e3  -- 1000 ns -> 1 us lap time
 
         );
         port (
@@ -59,11 +60,11 @@
         signal sl_redgedetect_event : std_logic := '0';
 
         -- "johnson_cnt" signals
-        signal slv_counter_val : std_logic_vector(INT_JOHNS_CNT_WIDTH-1 downto 0) := (others => '0');
+        signal slv_johns_counter_val : std_logic_vector(INT_JOHNS_CNT_WIDTH-1 downto 0) := (others => '0');
 
         -- "nff_cdcc_fedge" signals
         constant INT_DATA_WIDTH : natural := INT_JOHNS_CNT_WIDTH;
-        signal sl_cdcc_valid_out : std_logic := '0';
+        signal sl_cdcc_valid_pulsed_out : std_logic := '0';
         signal slv_cdcc_data_out : std_logic_vector(INT_DATA_WIDTH-1 downto 0) := (others => '0');
 
         -- "memristor_ctrl" signals
@@ -77,9 +78,9 @@
         sl_pulse_in <= pulse_in;
         inst_shiftreg_redgedetect: entity lib_src.shiftreg_redgedetect(rtl)
         generic map (
-            INT_BUFFER_DEPTH => INT_BUFFER_DEPTH,
+            INT_BUFFER_WIDTH => INT_BUFFER_WIDTH,
             INT_PATTERN_WIDTH => INT_PATTERN_WIDTH,
-            INT_BUFFER_PATTERN => INT_BUFFER_PATTERN
+            INT_DETECT_PATTERN => INT_DETECT_PATTERN
         )
         port map (
             -- Inputs
@@ -108,8 +109,8 @@
 
             -- Outputs
             out_ready => open,
-            out_valid => open,
-            out_data => slv_counter_val
+            out_valid_pulsed => open,
+            out_data => slv_johns_counter_val
         );
 
 
@@ -125,11 +126,11 @@
         port map (
             -- Write ports (faster clock, wr_en at rate A)
             clk_write => sampl_clk,
-            wr_data => slv_counter_val,
+            wr_data => slv_johns_counter_val,
 
             -- Read ports (slower clock, sends event pulses to faster clk domain at rate A)
             clk_read => sys_clk,
-            rd_valid => sl_cdcc_valid_out,
+            rd_valid_pulsed => sl_cdcc_valid_pulsed_out,
             rd_data => slv_cdcc_data_out
         );
 
@@ -139,7 +140,8 @@
         inst_memristor_ctrl : entity lib_src.memristor_ctrl(rtl)
         generic map (
             INT_CTRL_DATA_WIDTH => INT_CTRL_DATA_WIDTH,
-            INT_CLK_SYS_HZ => INT_CLK_SYS_HZ
+            INT_CLK_SYS_HZ => INT_CLK_SYS_HZ,
+            INT_LAP_DURATION_NS => INT_LAP_DURATION_NS
         )
         port map (
             -- Clocks
@@ -152,7 +154,7 @@
             sys_clk => sys_clk,
 
             -- Inputs
-            in_valid => sl_cdcc_valid_out,
+            in_valid_pulsed => sl_cdcc_valid_pulsed_out,
             in_data => slv_cdcc_data_out,
 
             -- Outputs
