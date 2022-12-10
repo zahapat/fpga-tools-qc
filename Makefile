@@ -41,6 +41,38 @@ EXTRA ?= none
 TOP ?= top.vhd
 
 
+# [make generics] Set names and values for generic variables
+GEN1_NAME ?= EMULATE_INPUTS
+GEN1_VAL ?= true
+GEN2_NAME ?= PHOTON_2H_DELAY_NS
+GEN2_VAL ?= -2117.95
+GEN3_NAME ?= PHOTON_2V_DELAY_NS
+GEN3_VAL ?= -2125.35
+GEN4_NAME ?= PHOTON_3H_DELAY_NS
+GEN4_VAL ?= -1030.35
+GEN5_NAME ?= PHOTON_3V_DELAY_NS
+GEN5_VAL ?= -1034.45
+GEN6_NAME ?= PHOTON_4H_DELAY_NS
+GEN6_VAL ?= -3177.95
+GEN7_NAME ?= PHOTON_4V_DELAY_NS
+GEN7_VAL ?= -3181.05
+# GEN8_NAME ?= Generic_Name
+# GEN8_VAL ?= default_value
+# GEN9_NAME ?= Generic_Name
+# GEN9_VAL ?= default_value
+# GEN10_NAME ?= Generic_Name
+# GEN10_VAL ?= default_value
+# GEN11_NAME ?= Generic_Name
+# GEN11_VAL ?= default_value
+# GEN12_NAME ?= Generic_Name
+# GEN12_VAL ?= default_value
+# GEN13_NAME ?= Generic_Name
+# GEN13_VAL ?= default_value
+# GEN14_NAME ?= Generic_Name
+# GEN14_VAL ?= default_value
+# GEN15_NAME ?= Generic_Name
+# GEN15_VAL ?= default_value
+
 
 
 # -------------------------------------------------------------
@@ -54,20 +86,20 @@ TOP ?= top.vhd
 #  Default target
 # -------------------------------------------------------------
 default_target:
-	make build
+	make py_gui
 
 
 # -------------------------------------------------------------
 #  "project_specific.mk" targets
 # -------------------------------------------------------------
 init:
-	make -f $(PROJECT_SPECIFIC_MAKEFILE) $@
+	$(MAKE) -f $(PROJECT_SPECIFIC_MAKEFILE) $@
 build:
-	make -f $(PROJECT_SPECIFIC_MAKEFILE) $@
+	$(MAKE) -f $(PROJECT_SPECIFIC_MAKEFILE) $@
 distribute_bitfiles:
-	make -f $(PROJECT_SPECIFIC_MAKEFILE) $@
+	$(MAKE) -f $(PROJECT_SPECIFIC_MAKEFILE) $@
 cmd_timeout:
-	make -f $(PROJECT_SPECIFIC_MAKEFILE) $@
+	$(MAKE) -f $(PROJECT_SPECIFIC_MAKEFILE) $@
 
 
 
@@ -75,49 +107,64 @@ cmd_timeout:
 #  "vivado.mk" targets
 # -------------------------------------------------------------
 reset :
-	make -f $(VIVADO_MAKEFILE) $@
+	$(MAKE) -f $(VIVADO_MAKEFILE) $@
 new :
-	make -f $(VIVADO_MAKEFILE) $@
+	$(MAKE) -f $(VIVADO_MAKEFILE) $@
 new_module :
-	make -f $(VIVADO_MAKEFILE) $@
+	$(MAKE) -f $(VIVADO_MAKEFILE) $@
 src :
-	make -f $(VIVADO_MAKEFILE) $@
+	$(MAKE) -f $(VIVADO_MAKEFILE) $@
 board :
-	make -f $(VIVADO_MAKEFILE) $@
+	$(MAKE) -f $(VIVADO_MAKEFILE) $@
 declare :
-	make -f $(VIVADO_MAKEFILE) $@
+	$(MAKE) -f $(VIVADO_MAKEFILE) $@
 generics :
-	make -f $(VIVADO_MAKEFILE) $@
+	$(MAKE) -f $(VIVADO_MAKEFILE) $@ \
+		GEN1_NAME=$(GEN1_NAME)   GEN1_VAL=$(GEN1_VAL) \
+		GEN2_NAME=$(GEN2_NAME)   GEN2_VAL=$(GEN2_VAL) \
+		GEN3_NAME=$(GEN3_NAME)   GEN3_VAL=$(GEN3_VAL) \
+		GEN4_NAME=$(GEN4_NAME)   GEN4_VAL=$(GEN4_VAL) \
+		GEN5_NAME=$(GEN5_NAME)   GEN5_VAL=$(GEN5_VAL) \
+		GEN6_NAME=$(GEN6_NAME)   GEN6_VAL=$(GEN6_VAL) \
+		GEN7_NAME=$(GEN7_NAME)   GEN7_VAL=$(GEN7_VAL) \
+		GEN8_NAME=$(GEN8_NAME)   GEN8_VAL=$(GEN8_VAL) \
+		GEN9_NAME=$(GEN9_NAME)   GEN9_VAL=$(GEN9_VAL) \
+		GEN10_NAME=$(GEN10_NAME) GEN10_VAL=$(GEN10_VAL) \
+		GEN11_NAME=$(GEN11_NAME) GEN11_VAL=$(GEN11_VAL) \
+		GEN12_NAME=$(GEN12_NAME) GEN12_VAL=$(GEN12_VAL) \
+		GEN13_NAME=$(GEN13_NAME) GEN13_VAL=$(GEN13_VAL) \
+		GEN14_NAME=$(GEN14_NAME) GEN14_VAL=$(GEN14_VAL) \
+		GEN15_NAME=$(GEN15_NAME) GEN15_VAL=$(GEN15_VAL)
 ooc :
-	make -f $(VIVADO_MAKEFILE) $@
+	$(MAKE) -f $(VIVADO_MAKEFILE) $@
 synth :
-	make -f $(VIVADO_MAKEFILE) $@
+	$(MAKE) -f $(VIVADO_MAKEFILE) $@
 impl :
-	make -f $(VIVADO_MAKEFILE) $@
+	$(MAKE) -f $(VIVADO_MAKEFILE) $@
 outd :
-	make -f $(VIVADO_MAKEFILE) $@
+	$(MAKE) -f $(VIVADO_MAKEFILE) $@
 bit :
-	make -f $(VIVADO_MAKEFILE) $@
+	$(MAKE) -f $(VIVADO_MAKEFILE) $@
 xsa :
-	make -f $(VIVADO_MAKEFILE) $@
+	$(MAKE) -f $(VIVADO_MAKEFILE) $@
 prog :
-	make -f $(VIVADO_MAKEFILE) $@
+	$(MAKE) -f $(VIVADO_MAKEFILE) $@
 probes :
-	make -f $(VIVADO_MAKEFILE) $@
+	$(MAKE) -f $(VIVADO_MAKEFILE) $@
 ila :
-	make -f $(VIVADO_MAKEFILE) $@
+	$(MAKE) -f $(VIVADO_MAKEFILE) $@
 all :
-	make -f $(VIVADO_MAKEFILE) $@
+	$(MAKE) -f $(VIVADO_MAKEFILE) $@
 old :
-	make -f $(VIVADO_MAKEFILE) $@
+	$(MAKE) -f $(VIVADO_MAKEFILE) $@
 clean :
-	make -f $(VIVADO_MAKEFILE) $@
+	$(MAKE) -f $(VIVADO_MAKEFILE) $@
 gui :
-	make -f $(VIVADO_MAKEFILE) $@
+	$(MAKE) -f $(VIVADO_MAKEFILE) $@
 core :
-	make -f $(VIVADO_MAKEFILE) $@
+	$(MAKE) -f $(VIVADO_MAKEFILE) $@
 ip :
-	make -f $(VIVADO_MAKEFILE) $@
+	$(MAKE) -f $(VIVADO_MAKEFILE) $@
 
 
 
@@ -125,9 +172,9 @@ ip :
 #  "sim.mk" targets
 # -------------------------------------------------------------
 sim :
-	make -f $(SIM_MAKEFILE) $@
+	$(MAKE) -f $(SIM_MAKEFILE) $@
 sim_gui :
-	make -f $(SIM_MAKEFILE) $@
+	$(MAKE) -f $(SIM_MAKEFILE) $@
 
 
 # -------------------------------------------------------------
@@ -135,23 +182,23 @@ sim_gui :
 # -------------------------------------------------------------
 # Generic Vitis Targets
 remove_vitis :
-	make -f $(VITIS_MAKEFILE) $@
+	$(MAKE) -f $(VITIS_MAKEFILE) $@
 remove_ws_vitis :
-	make -f $(VITIS_MAKEFILE) $@
+	$(MAKE) -f $(VITIS_MAKEFILE) $@
 new_vitis :
-	make -f $(VITIS_MAKEFILE) $@
+	$(MAKE) -f $(VITIS_MAKEFILE) $@
 new_app_vitis :
-	make -f $(VITIS_MAKEFILE) $@
+	$(MAKE) -f $(VITIS_MAKEFILE) $@
 add_sources_vitis :
-	make -f $(VITIS_MAKEFILE) $@
+	$(MAKE) -f $(VITIS_MAKEFILE) $@
 gui_vitis :
-	make -f $(VITIS_MAKEFILE) $@
+	$(MAKE) -f $(VITIS_MAKEFILE) $@
 bsp_regen_vitis :
-	make -f $(VITIS_MAKEFILE) $@
+	$(MAKE) -f $(VITIS_MAKEFILE) $@
 reset_vitis :
-	make -f $(VITIS_MAKEFILE) $@
+	$(MAKE) -f $(VITIS_MAKEFILE) $@
 all_vitis :
-	make -f $(VITIS_MAKEFILE) $@
+	$(MAKE) -f $(VITIS_MAKEFILE) $@
 
 
 
@@ -159,39 +206,54 @@ all_vitis :
 #  "generic.mk" targets
 # -------------------------------------------------------------
 redis_start:
-	make -f $(GENERIC_MAKEFILE) $@
+	$(MAKE) -f $(GENERIC_MAKEFILE) $@
 redis_stop:
-	make -f $(GENERIC_MAKEFILE) $@
+	$(MAKE) -f $(GENERIC_MAKEFILE) $@
 sim_init :
-	make -f $(GENERIC_MAKEFILE) $@
+	$(MAKE) -f $(GENERIC_MAKEFILE) $@
 vvc_gen :
-	make -f $(GENERIC_MAKEFILE) $@
+	$(MAKE) -f $(GENERIC_MAKEFILE) $@
 py_gui_regen:
-	make -f $(GENERIC_MAKEFILE) $@
+	$(MAKE) -f $(GENERIC_MAKEFILE) $@
 py_gui:
-	make -f $(GENERIC_MAKEFILE) $@
+	$(MAKE) -f $(GENERIC_MAKEFILE) $@ \
+		GEN1_NAME=$(GEN1_NAME)   GEN1_VAL=$(GEN1_VAL) \
+		GEN2_NAME=$(GEN2_NAME)   GEN2_VAL=$(GEN2_VAL) \
+		GEN3_NAME=$(GEN3_NAME)   GEN3_VAL=$(GEN3_VAL) \
+		GEN4_NAME=$(GEN4_NAME)   GEN4_VAL=$(GEN4_VAL) \
+		GEN5_NAME=$(GEN5_NAME)   GEN5_VAL=$(GEN5_VAL) \
+		GEN6_NAME=$(GEN6_NAME)   GEN6_VAL=$(GEN6_VAL) \
+		GEN7_NAME=$(GEN7_NAME)   GEN7_VAL=$(GEN7_VAL) \
+		GEN8_NAME=$(GEN8_NAME)   GEN8_VAL=$(GEN8_VAL) \
+		GEN9_NAME=$(GEN9_NAME)   GEN9_VAL=$(GEN9_VAL) \
+		GEN10_NAME=$(GEN10_NAME) GEN10_VAL=$(GEN10_VAL) \
+		GEN11_NAME=$(GEN11_NAME) GEN11_VAL=$(GEN11_VAL) \
+		GEN12_NAME=$(GEN12_NAME) GEN12_VAL=$(GEN12_VAL) \
+		GEN13_NAME=$(GEN13_NAME) GEN13_VAL=$(GEN13_VAL) \
+		GEN14_NAME=$(GEN14_NAME) GEN14_VAL=$(GEN14_VAL) \
+		GEN15_NAME=$(GEN15_NAME) GEN15_VAL=$(GEN15_VAL)
 py_gui_pipinstall:
-	make -f $(GENERIC_MAKEFILE) $@
+	$(MAKE) -f $(GENERIC_MAKEFILE) $@
 py_gui_install:
-	make -f $(GENERIC_MAKEFILE) $@
+	$(MAKE) -f $(GENERIC_MAKEFILE) $@
 py_gui_exe: 
-	make -f $(GENERIC_MAKEFILE) $@
+	$(MAKE) -f $(GENERIC_MAKEFILE) $@
 crc:
-	make -f $(GENERIC_MAKEFILE) $@
+	$(MAKE) -f $(GENERIC_MAKEFILE) $@
 build_sim_gui_tx:
-	make -f $(GENERIC_MAKEFILE) $@
+	$(MAKE) -f $(GENERIC_MAKEFILE) $@
 build_sim_tx:
-	make -f $(GENERIC_MAKEFILE) $@
+	$(MAKE) -f $(GENERIC_MAKEFILE) $@
 build_sim_gui_rx:
-	make -f $(GENERIC_MAKEFILE) $@
+	$(MAKE) -f $(GENERIC_MAKEFILE) $@
 build_sim_rx:
-	make -f $(GENERIC_MAKEFILE) $@
+	$(MAKE) -f $(GENERIC_MAKEFILE) $@
 build_sim_txrx:
-	make -f $(GENERIC_MAKEFILE) $@
+	$(MAKE) -f $(GENERIC_MAKEFILE) $@
 build_sim_gui_crc:
-	make -f $(GENERIC_MAKEFILE) $@
+	$(MAKE) -f $(GENERIC_MAKEFILE) $@
 build_sim_crc:
-	make -f $(GENERIC_MAKEFILE) $@
+	$(MAKE) -f $(GENERIC_MAKEFILE) $@
 
 
 
@@ -199,105 +261,99 @@ build_sim_crc:
 #  git.mk targets
 # -------------------------------------------------------------
 gp:
-	make -f $(GIT_MAKEFILE) $@
+	$(MAKE) -f $(GIT_MAKEFILE) $@
 gac:
-	make -f $(GIT_MAKEFILE) $@
+	$(MAKE) -f $(GIT_MAKEFILE) $@
 gacp: 
-	make -f $(GIT_MAKEFILE) $@
-gacp_comment:
-	make -f $(GIT_MAKEFILE) $@
-gacp_refractor:
-	make -f $(GIT_MAKEFILE) $@
-gac_comment:
-	make -f $(GIT_MAKEFILE) $@
-gac_refractor:
-	make -f $(GIT_MAKEFILE) $@
+	$(MAKE) -f $(GIT_MAKEFILE) $@
 gacpt:
-	make -f $(GIT_MAKEFILE) $@
+	$(MAKE) -f $(GIT_MAKEFILE) $@
 glive:
-	make -f $(GIT_MAKEFILE) $@
+	$(MAKE) -f $(GIT_MAKEFILE) $@
 git_login_thisdir:
-	make -f $(GIT_MAKEFILE) $@
+	$(MAKE) -f $(GIT_MAKEFILE) $@
 git_login:
-	make -f $(GIT_MAKEFILE) $@
+	$(MAKE) -f $(GIT_MAKEFILE) $@
 git_cli_auth:
-	make -f $(GIT_MAKEFILE) $@
+	$(MAKE) -f $(GIT_MAKEFILE) $@
 git_config:
-	make -f $(GIT_MAKEFILE) $@
+	$(MAKE) -f $(GIT_MAKEFILE) $@
 git_init:
-	make -f $(GIT_MAKEFILE) $@
+	$(MAKE) -f $(GIT_MAKEFILE) $@
 git_branch:
-	make -f $(GIT_MAKEFILE) $@
+	$(MAKE) -f $(GIT_MAKEFILE) $@
 git_add_all:
-	make -f $(GIT_MAKEFILE) $@
+	$(MAKE) -f $(GIT_MAKEFILE) $@
 git_commit_all:
-	make -f $(GIT_MAKEFILE) $@
+	$(MAKE) -f $(GIT_MAKEFILE) $@
 git_commit:
-	make -f $(GIT_MAKEFILE) $@
+	$(MAKE) -f $(GIT_MAKEFILE) $@
 git_change_commit_after_push:
-	make -f $(GIT_MAKEFILE) $@
+	$(MAKE) -f $(GIT_MAKEFILE) $@
 git_change_last_commit_before_push:
-	make -f $(GIT_MAKEFILE) $@
+	$(MAKE) -f $(GIT_MAKEFILE) $@
 git_undo_last_commit_before_push:
-	make -f $(GIT_MAKEFILE) $@
+	$(MAKE) -f $(GIT_MAKEFILE) $@
 git_undo_last_commit_after_push:
-	make -f $(GIT_MAKEFILE) $@
+	$(MAKE) -f $(GIT_MAKEFILE) $@
 git_new_remote_origin_https:
-	make -f $(GIT_MAKEFILE) $@
+	$(MAKE) -f $(GIT_MAKEFILE) $@
 git_new_remote_origin_template_https:
-	make -f $(GIT_MAKEFILE) $@
+	$(MAKE) -f $(GIT_MAKEFILE) $@
 git_history:
-	make -f $(GIT_MAKEFILE) $@
+	$(MAKE) -f $(GIT_MAKEFILE) $@
 git_goto_commit:
-	make -f $(GIT_MAKEFILE) $@
+	$(MAKE) -f $(GIT_MAKEFILE) $@
 git_new_private_repo:
-	make -f $(GIT_MAKEFILE) $@
+	$(MAKE) -f $(GIT_MAKEFILE) $@
 git_new_public_repo:
-	make -f $(GIT_MAKEFILE) $@
+	$(MAKE) -f $(GIT_MAKEFILE) $@
 git_new_private_repo_from_template:
-	make -f $(GIT_MAKEFILE) $@
+	$(MAKE) -f $(GIT_MAKEFILE) $@
 git_new_public_repo_from_template:
-	make -f $(GIT_MAKEFILE) $@
+	$(MAKE) -f $(GIT_MAKEFILE) $@
 git_make_this_repo_template:
-	make -f $(GIT_MAKEFILE) $@
+	$(MAKE) -f $(GIT_MAKEFILE) $@
 git_clone_repo_https:
-	make -f $(GIT_MAKEFILE) $@
+	$(MAKE) -f $(GIT_MAKEFILE) $@
 git_connected_repos:
-	make -f $(GIT_MAKEFILE) $@
+	$(MAKE) -f $(GIT_MAKEFILE) $@
 git_list_branches:
-	make -f $(GIT_MAKEFILE) $@
+	$(MAKE) -f $(GIT_MAKEFILE) $@
 git_new_branch:
-	make -f $(GIT_MAKEFILE) $@
+	$(MAKE) -f $(GIT_MAKEFILE) $@
 git_switch_branch:
-	make -f $(GIT_MAKEFILE) $@
+	$(MAKE) -f $(GIT_MAKEFILE) $@
 git_compare_with_main_branch:
-	make -f $(GIT_MAKEFILE) $@
+	$(MAKE) -f $(GIT_MAKEFILE) $@
 git_merge_to_main_branch:
-	make -f $(GIT_MAKEFILE) $@
+	$(MAKE) -f $(GIT_MAKEFILE) $@
 git_update_changes_thisbranch_projrepo:
-	make -f $(GIT_MAKEFILE) $@
+	$(MAKE) -f $(GIT_MAKEFILE) $@
 git_update_changes_mainbranch_templrepo:
-	make -f $(GIT_MAKEFILE) $@
+	$(MAKE) -f $(GIT_MAKEFILE) $@
 
 
 # -------------------------------------------------------------
 #  "packages.mk" targets
 # -------------------------------------------------------------
+vcpkg_install:
+	$(MAKE) -f $(PACKAGES_MAKEFILE) $@
 pip_install:
-	make -f $(PACKAGES_MAKEFILE) $@
+	$(MAKE) -f $(PACKAGES_MAKEFILE) $@
 pip_upgrade:
-	make -f $(PACKAGES_MAKEFILE) $@
+	$(MAKE) -f $(PACKAGES_MAKEFILE) $@
 choco_install:
-	make -f $(PACKAGES_MAKEFILE) $@
+	$(MAKE) -f $(PACKAGES_MAKEFILE) $@
 choco_upgrade:
-	make -f $(PACKAGES_MAKEFILE) $@
+	$(MAKE) -f $(PACKAGES_MAKEFILE) $@
 winget_install:
-	make -f $(PACKAGES_MAKEFILE) $@
+	$(MAKE) -f $(PACKAGES_MAKEFILE) $@
 winget_upgrade:
-	make -f $(PACKAGES_MAKEFILE) $@
+	$(MAKE) -f $(PACKAGES_MAKEFILE) $@
 git_upgrade:
-	make -f $(PACKAGES_MAKEFILE) $@
+	$(MAKE) -f $(PACKAGES_MAKEFILE) $@
 install_all_pkg:
-	make -f $(PACKAGES_MAKEFILE) $@
+	$(MAKE) -f $(PACKAGES_MAKEFILE) $@
 upgrade_all_pkg:
-	make -f $(PACKAGES_MAKEFILE) $@
+	$(MAKE) -f $(PACKAGES_MAKEFILE) $@

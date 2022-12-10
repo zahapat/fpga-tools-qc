@@ -46,7 +46,12 @@ vvc_gen :
 	pwd
 
 
-# Generic Python GUI
+py_gui_regen:
+	make py_gui_pipinstall
+	make py_gui_install
+	make py_gui_exe
+
+# [make py_gui and below]
 PY_GUI_PATH = ./scripts/gui
 PY_GUI_MAINFILE = guiMain.py
 PY_GUI_INSTALLFILE = install.bat
@@ -66,13 +71,7 @@ PY_GUI_GENERIC_ARGS = 	--generic1_name=$(GEN1_NAME) --generic1_val=$(GEN1_VAL) \
 						--generic12_name=$(GEN12_NAME) --generic12_val=$(GEN12_VAL) \
 						--generic13_name=$(GEN13_NAME) --generic13_val=$(GEN13_VAL) \
 						--generic14_name=$(GEN14_NAME) --generic14_val=$(GEN14_VAL) \
-						--generic15_name=$(GEN15_NAME) --generic15_val=$(GEN15_VAL) \
-
-py_gui_regen:
-	make py_gui_pipinstall
-	make py_gui_install
-	make py_gui_exe
-
+						--generic15_name=$(GEN15_NAME) --generic15_val=$(GEN15_VAL)
 py_gui:
 	$(info ------- RUNNING PYTHON GUI FROM PYTHON SCRIPT -------)
 	py -3 $(PY_GUI_PATH)/$(PY_GUI_MAINFILE)\

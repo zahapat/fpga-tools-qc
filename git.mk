@@ -73,7 +73,7 @@ gacpt:
 			./Makefile \
 			./*.mk\
 		-except
-			
+
 
 	git commit -m "$(MSG)"
 	git push https://github.com/$(GIT_ACCOUNT)/$(GIT_TEMPLATE) -f

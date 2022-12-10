@@ -39,11 +39,14 @@ compile:
 clean:
 	rm -r ./build_$(ARCH)/
 
+# cp ./lib/okFrontPanel.dll ./build_$(ARCH)/Release/okFrontPanel.dll
 copy_okFrontPaneldll:
-	cp ./lib/okFrontPanel.dll ./build_$(ARCH)/Release/okFrontPanel.dll
+	cp ./lib/okFrontPanel.dll ./build_$(ARCH)/$(ARCH)/Release/okFrontPanel.dll
 
+# cmake -DCMAKE_SYSTEM_VERSION=10.0.17763.0
 rescan:
 	make clean
+	cmake -DCMAKE_SYSTEM_VERSION=10.0.17763.0
 	cmake -G "Visual Studio 17 2022" \
 		  -A $(ARCH) \
 		  -B "build_$(ARCH)"

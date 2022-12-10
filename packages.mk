@@ -12,6 +12,12 @@ PROJ_DIR = $(shell pwd)
 # -------------------------------------------------------------
 .ONESHELL:
 
+# Vcpkg C/C++ Libraries
+vcpkg_install:
+	vcpkg install hiredis:x64-windows
+	vcpkg install redis-plus-plus:x64-windows
+
+
 # Pip
 pip_install:
 	powershell -Command "Start-Process -FilePath 'cmd.exe' -ArgumentList ('/c py -3 -m pip install') -Verb RunAs"
@@ -67,6 +73,7 @@ install_all_pkg:
 	make winget_install
 	make pip_install
 	make choco_install
+	make vcpkg_install
 
 upgrade_all_pkg:
 	make winget_upgrade
