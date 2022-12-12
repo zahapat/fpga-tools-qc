@@ -86,11 +86,11 @@ set_property PACKAGE_PIN B19 [get_ports output_pads[0]]
 ## Set False Paths as Clock Domain Cross Boundaries
 ############################################################################
 # Fast -> Slow
-set_false_path -from [get_pins {gen_cdcc_to_sysclk[*].inst_cdcc_samplclk/slv_data_to_cross_2d_reg[1][*]/C}]\
-               -to   [get_pins {gen_cdcc_to_sysclk[*].inst_cdcc_samplclk/slv_data_asyncff_2d_reg[1][*]/D}]
+set_false_path -from [get_pins {gen_cdcc_to_sysclk[*].inst_nff_cdcc_samplclk/slv_data_to_cross_2d_reg[1][*]/C}]\
+               -to   [get_pins {gen_cdcc_to_sysclk[*].inst_nff_cdcc_samplclk/slv_data_asyncff_2d_reg[1][*]/D}]
 
-set_false_path -from [get_pins {gen_cdcc_to_sysclk[*].inst_cdcc_samplclk/slv_bit_to_cross_reg[1]/C}]\
-               -to   [get_pins {gen_cdcc_to_sysclk[*].inst_cdcc_samplclk/slv_bit_asyncff_reg[1]/D}]
+set_false_path -from [get_pins {gen_cdcc_to_sysclk[*].inst_nff_cdcc_samplclk/slv_bit_to_cross_reg[1]/C}]\
+               -to   [get_pins {gen_cdcc_to_sysclk[*].inst_nff_cdcc_samplclk/slv_bit_asyncff_reg[1]/D}]
 
 
 ############################################################################

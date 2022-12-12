@@ -35,7 +35,7 @@ find_package(hiredis CONFIG REQUIRED)
 
 
 # CMake did not find the path to __LIBNAME__-config.cmake
-set(redis++_DIR C:/dev/vcpkg/packages/redis-plus-plus_x64-windows/share/cmake/redis++)
+# set(redis++_DIR C:/dev/vcpkg/packages/redis-plus-plus_x64-windows/share/cmake/redis++)
 find_package(redis++ CONFIG REQUIRED)
 
 # CMake did not find the path to __LIBNAME__-config.cmake
@@ -43,22 +43,36 @@ find_package(redis++ CONFIG REQUIRED)
 # find_package(okFrontPanel CONFIG REQUIRED)
 
 # VS did not find the path to okFrontPanel libraries:
-link_directories(C:/Users/Patrik/gflow/gflow_ok_clean/py/gui/redis/lib)
+# link_directories(C:/Users/Patrik/gflow/gflow_ok_clean/py/gui/redis/lib)
+link_directories(lib)
 
 
-if(Boost_FOUND)
-    include_directories(${Boost_INCLUDE_DIRS})
+add_executable(
+    ${PROJECT_NAME}
+    ${SRCS}
+)
 
-    add_executable(
-        ${PROJECT_NAME}
-        ${SRCS}
-    )
+target_link_libraries(
+    ${PROJECT_NAME}
+    hiredis::hiredis
+    redis++::redis++
+    okFrontPanel.lib
+    okFrontPanel.dll
+)
 
-    target_link_libraries(
-        ${PROJECT_NAME}
-        hiredis::hiredis
-        redis++::redis++
-        okFrontPanel.lib
-        okFrontPanel.dll
-    )
-endif()
+# if()
+    # include_directories(${Boost_INCLUDE_DIRS})
+
+#     add_executable(
+#         ${PROJECT_NAME}
+#         ${SRCS}
+#     )
+
+#     target_link_libraries(
+#         ${PROJECT_NAME}
+#         hiredis::hiredis
+#         redis++::redis++
+#         okFrontPanel.lib
+#         okFrontPanel.dll
+#     )
+# endif()

@@ -8,11 +8,11 @@ GENERATOR = "Visual Studio 17 2022"
 ARCH = x64
 
 
-WINPATH_TO_DEBUG = .\build_$(ARCH)\Debug
-PATH_TO_DEBUG = ./build_$(ARCH)/Debug
+WINPATH_TO_DEBUG = .\build\Debug
+PATH_TO_DEBUG = ./build/Debug
 EXEFILE_PATH_DEBUG = $(PATH_TO_DEBUG)/$(PROJ_NAME).exe
-WINPATH_TO_RELEASE = .\build_$(ARCH)\Release
-PATH_TO_RELEASE = ./build_$(ARCH)/Release
+WINPATH_TO_RELEASE = .\build\Release
+PATH_TO_RELEASE = ./build/Release
 EXEFILE_PATH_RELEASE = $(PATH_TO_RELEASE)/$(PROJ_NAME).exe
 
 
@@ -37,25 +37,25 @@ compile:
 .PHONY: clean rescan build run launch_wsl redis_start redis_stop
 
 clean:
-	rm -r ./build_$(ARCH)/
+	rm -r ./build/
 
-# cp ./lib/okFrontPanel.dll ./build_$(ARCH)/Release/okFrontPanel.dll
+# cp ./lib/okFrontPanel.dll ./build/Release/okFrontPanel.dll
 copy_okFrontPaneldll:
-	cp ./lib/okFrontPanel.dll ./build_$(ARCH)/$(ARCH)/Release/okFrontPanel.dll
+	cp ./lib/okFrontPanel.dll $(WINPATH_TO_RELEASE)\okFrontPanel.dll
 
 # cmake -DCMAKE_SYSTEM_VERSION=10.0.17763.0
 rescan:
 	make clean
-	cmake -DCMAKE_SYSTEM_VERSION=10.0.17763.0
 	cmake -G "Visual Studio 17 2022" \
 		  -A $(ARCH) \
-		  -B "build_$(ARCH)"
-	cmake --build build_$(ARCH) \
+		  -B "build"
+	cmake --build build \
 	      --config Release
 	make copy_okFrontPaneldll
+	make build
 
 build:
-	$(WINPATH_TO_MSBUILD)\MSBuild.exe ./build_$(ARCH)/$(PROJ_NAME).sln
+	$(WINPATH_TO_MSBUILD)\MSBuild.exe ./build/$(PROJ_NAME).sln
 
 run: $(EXEFILE_PATH_DEBUG)
 	$(shell $(WINPATH_TO_DEBUG)\$(PROJ_NAME).exe)
@@ -69,9 +69,9 @@ run_release: $(EXEFILE_PATH_RELEASE)
 
 
 redis_start:
-	wsl.exe sudo service redis-server start
-	wsl.exe echo "Redis Server Started"
+	wsl sudo service redis-server start
+	wsl echo "Attempting Redis Server Start"
 
 redis_stop:
-	wsl.exe sudo service redis-server stop
-	wsl.exe echo "Redis Server Stopped"
+	wsl sudo service redis-server stop
+	wsl echo "Attempting Redis Server Stop"

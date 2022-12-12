@@ -35,6 +35,15 @@ CMAKE_SYSTEM_VERSION:UNINITIALIZED=10.0.17763.0
 //The CMake toolchain file
 CMAKE_TOOLCHAIN_FILE:FILEPATH=C:/dev/vcpkg/scripts/buildsystems/vcpkg.cmake
 
+//Value Computed by CMake
+Project_BINARY_DIR:STATIC=C:/Git/zahapat/flow-ambiguity/scripts/gui/redis
+
+//Value Computed by CMake
+Project_IS_TOP_LEVEL:STATIC=ON
+
+//Value Computed by CMake
+Project_SOURCE_DIR:STATIC=C:/Git/zahapat/flow-ambiguity/scripts/gui/redis
+
 //Automatically copy dependencies into the output directory for
 // executables.
 VCPKG_APPLOCAL_DEPS:BOOL=ON

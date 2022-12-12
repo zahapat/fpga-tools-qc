@@ -44,7 +44,8 @@ import threading
 from pyqtgraph.Qt import QtGui, QtCore
 import pyqtgraph as pg
 from random import randrange, uniform
-from PyQt6.QtWidgets import QMainWindow, QMessageBox
+# from PyQt6.QtWidgets import QMainWindow, QMessageBox, QApplication
+from PyQt6.QtWidgets import *
 
 
 def get_parameters_from_entryboxes():
@@ -76,9 +77,9 @@ def generate_hardware():
     makefile_arguments = get_parameters_from_entryboxes()
     print("makefile_arguments = ", makefile_arguments)
 
-    command_open_cmd = "start /wait cmd /c"
+    command_open_cmd = "start /wait cmd /k"
     command_make_1 = "make reset" # type make only once!
-    command_make_2 = "gen_ip_cores"
+    command_make_2 = "src"
     command_make_3 = "generics"+str(makefile_arguments)
     command_make_4 = "all"
     command_make_5 = "cmd_timeout"
@@ -107,7 +108,7 @@ def generate_hardware():
         )
 
     # If bitfile has been successfully generated, call make command to copy it to the respective folders
-    subprocess.Popen("make reset_bitfiles", cwd=".")
+    subprocess.Popen("make distribute_bitfiles", cwd=".")
 
 
 # Run C++ Script using coommand line to start writing to the stream
@@ -121,10 +122,12 @@ def run_stream_write():
 
 def start_redis_wait_until_valid_data(sleep_timeout_sec, sleep_timeout_counter_maxval):
     # Return where the stream ended
-    os.system('wsl.exe sudo service redis-server start')
+    # os.system('wsl.exe sudo service redis-server start')
     # os.system('wsl.exe sudo service redis-server stop')
+    subprocess.Popen("make redis_start", cwd="./scripts/gui/redis")
     try:
-        redis_db = Database()
+        redis_db = Database(host='localhost', port=6379, db=0)
+        # redis_db = Database()
         myStream = redis_db.Stream('myStreamKey')
     
         # Initialize timer
@@ -301,8 +304,10 @@ class ReadRedisStream():
                     del stream_items
                     break
 
-            self.myStream.trim(count=None, approximate=False, minid=stream_item[0], limit=None)
-            self.myStream.__delitem__(stream_item[0])
+                # self.myStream.trim(count=None, approximate=False, minid=stream_item[0], limit=None)
+                self.myStream.__delitem__(stream_item[0])
+            # self.myStream.trim(count=None, approximate=False, minid=stream_item[0], limit=None)
+            # self.myStream.__delitem__(stream_item[0])
 
         # If false, return form this method
         self.pipe_write.send([0, 0, False])
@@ -318,10 +323,13 @@ class RealtimeMonitor():
 
     def __init__(self, pipe):
         # Create the Qtgui App and make exit function functional
-        self.app = QtGui.QApplication([])            # you MUST do this once (initialize things)
+        # self.app = QtGui.QApplication(sys.argv)            # you MUST do this once (initialize things)
+        self.app = QApplication([])            # you MUST do this once (initialize things)
+
         # self.app.aboutToQuit.connect(self.closeEvent)
 
-        self.window = pg.GraphicsWindow(title="Streaming Data From the Redis Server") # creates a window
+        # self.window = pg.GraphicsWindow(title="Streaming Data From the Redis Server") # creates a window
+        self.window = pg.GraphicsLayoutWidget() # creates a window
 
         # setting vertical range
         # self.window.setYRange(0, 30)
@@ -370,6 +378,7 @@ class RealtimeMonitor():
 
         # Create an empty plot curve
         self.curve = self.plot.plot()
+        print("DEBUG: self.curve = ", self.curve)
 
 
         # Create the output of the pipe
@@ -382,6 +391,7 @@ class RealtimeMonitor():
         self.sleep_timeout_counter_maxval = 50
 
 
+        self.window.show()
         print("RealtimeMonitor is all set.")
 
 
@@ -525,7 +535,8 @@ class RealtimeMonitor():
 
             # Update the plot values, draw changes
             self.curve.setData(self.plot_data)
-            QtGui.QApplication.processEvents()
+            # QtGui.QApplication.processEvents()
+            QApplication.processEvents()
 
             # Wait and get a new item
             self.pipe_item = self.pipe_read.recv()

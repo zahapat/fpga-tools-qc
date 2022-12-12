@@ -104,7 +104,7 @@
         signal okEH  : std_logic_vector(64 downto 0) := (others => '0');
 
         -- Number of outgoing endpoints in your design (n*65-1 downto 0)
-        signal okEHx : std_logic_vector(OUT_ENDPTS_TOTAL_CNT*65-1 downto 0) := (others => '0');
+        signal okEHx : std_logic_vector(OUT_ENDPTS_TOTAL_CNT*65-1 downto 0);
 
         -- Endpoint: WireIn
         signal slv_win_ep00               : std_logic_vector(31 downto 0) := (others => '0');
@@ -125,16 +125,16 @@
         signal slv_blockstrobe_pipe_in : std_logic := '0';
 
         -- Endpoint: PipeOut
-        signal slv_pipe_out_endp_read_en : std_logic := '0';
-        signal slv_pipe_out_endp_ready   : std_logic := '0';
-        signal slv_pipe_out_endp_data    : std_logic_vector(31 downto 0) := (others => '0');
-        signal slv_blockstrobe_pipe_out : std_logic := '0';
+        signal slv_pipe_out_endp_read_en : std_logic;
+        signal slv_pipe_out_endp_ready   : std_logic;
+        signal slv_pipe_out_endp_data    : std_logic_vector(31 downto 0);
+        signal slv_blockstrobe_pipe_out : std_logic;
 
         signal slv_pattern_code : std_logic_vector(2 downto 0) := (others => '0');
 
         -- USB FIFO Control
         signal sl_led_fifo_full_latched : std_logic := '0';
-        signal slv_fifo_wr_valid_qubit_flags : std_logic_vector(QUBITS_CNT-1 downto 0) := (others => '0');
+        signal slv_fifo_wr_valid_qubit_flags : std_logic_vector(QUBITS_CNT-1 downto 0);
         signal sl_usb_fifo_empty : std_logic := '0';
         signal sl_usb_fifo_full : std_logic := '0';
         signal sl_usb_fifo_prog_empty : std_logic := '0';
@@ -241,12 +241,12 @@
         -- Signals --
         -------------
         -- Clock Wizard
-        signal sys_clk : std_logic := '0';
-        signal sampl_clk : std_logic := '0';
+        signal sys_clk : std_logic;
+        signal sampl_clk : std_logic;
         signal locked : std_logic;
 
         signal sl_rst : std_logic := '0';
-        signal sl_rst_sysclk : std_logic := '0';
+        signal sl_rst_sysclk : std_logic;
         signal sl_rst_samplclk : std_logic := '0';
 
         signal s_noisy_channels : std_logic_vector(CHANNELS_CNT-1 downto 0) := (others => '0');
@@ -275,7 +275,7 @@
         signal s_q4_sampler_full : std_logic := '0';
 
         signal sl_gflow_success_flag       : std_logic := '0';
-        signal sl_gflow_success_done       : std_logic := '0';
+        signal sl_gflow_success_done       : std_logic;
         signal slv_alpha_to_math           : std_logic_vector(1 downto 0) := (others => '0');
         signal slv_sx_sz_to_math            : std_logic_vector(1 downto 0) := (others => '0');
         signal sl_actual_qubit_valid       : std_logic := '0';
@@ -313,12 +313,12 @@
 
 
         -- Data buffers from G-Flow protocol module
-        signal slv_qubit_buffer_2d      : t_qubit_buffer_2d := (others => (others => '0'));
-        signal slv_time_stamp_buffer_2d : t_time_stamp_buffer_2d := (others => (others => '0'));
-        signal slv_time_stamp_buffer_overflows_2d : t_time_stamp_buffer_overflows_2d := (others => (others => '0'));
-        signal slv_alpha_buffer_2d      : t_alpha_buffer_2d := (others => (others => '0'));
-        signal slv_modulo_buffer_2d     : t_modulo_buffer_2d := (others => (others => '0'));
-        signal slv_random_buffer_2d     : t_random_buffer_2d := (others => '0');
+        signal slv_qubit_buffer_2d      : t_qubit_buffer_2d;
+        signal slv_time_stamp_buffer_2d : t_time_stamp_buffer_2d;
+        signal slv_time_stamp_buffer_overflows_2d : t_time_stamp_buffer_overflows_2d;
+        signal slv_alpha_buffer_2d      : t_alpha_buffer_2d;
+        signal slv_modulo_buffer_2d     : t_modulo_buffer_2d;
+        signal slv_random_buffer_2d     : t_random_buffer_2d;
 
 
         -- Keep the input logic at all cost
@@ -371,68 +371,68 @@
         -----------------------------------------
         -- Wire In (to FPGA)
         slv_pattern_code <= slv_win_ep00(4 downto 2);
-        inst_wire_in_addr_00 : entity lib_src.okWireIn
-        port map (
-            okHE       => okHE,
-            -- ep_addr    => std_logic_vector(to_unsigned(0, 8)),
-            ep_addr    => std_logic_vector(to_unsigned(16#00#, 8)),
-            ep_dataout => slv_win_ep00 -- slv_win_ep00 = reset + throttle_set
-        );
-        inst_wire_in_addr_01 : entity lib_src.okWireIn 
-        port map (
-            okHE       => okHE,
-            ep_addr    => std_logic_vector(to_unsigned(16#01#, 8)),
-            ep_dataout => slv_win_ep01_throttle_out
-        );
-        inst_wire_in_addr_02 : entity lib_src.okWireIn
-        port map (
-            okHE       => okHE,
-            ep_addr    => std_logic_vector(to_unsigned(16#02#, 8)),
-            ep_dataout => slv_win_ep02_throttle_in
-        );
-        inst_wire_in_addr_03 : entity lib_src.okWireIn
-        port map (
-            okHE       => okHE, 
-            ep_addr    => std_logic_vector(to_unsigned(16#03#, 8)),
-            ep_dataout => slv_win_ep03_fixed_pattern
-        );
+        -- inst_wire_in_addr_00 : entity lib_src.okWireIn
+        -- port map (
+        --     okHE       => okHE,
+        --     -- ep_addr    => std_logic_vector(to_unsigned(0, 8)),
+        --     ep_addr    => std_logic_vector(to_unsigned(16#00#, 8)),
+        --     ep_dataout => slv_win_ep00 -- slv_win_ep00 = reset + throttle_set
+        -- );
+        -- inst_wire_in_addr_01 : entity lib_src.okWireIn 
+        -- port map (
+        --     okHE       => okHE,
+        --     ep_addr    => std_logic_vector(to_unsigned(16#01#, 8)),
+        --     ep_dataout => slv_win_ep01_throttle_out
+        -- );
+        -- inst_wire_in_addr_02 : entity lib_src.okWireIn
+        -- port map (
+        --     okHE       => okHE,
+        --     ep_addr    => std_logic_vector(to_unsigned(16#02#, 8)),
+        --     ep_dataout => slv_win_ep02_throttle_in
+        -- );
+        -- inst_wire_in_addr_03 : entity lib_src.okWireIn
+        -- port map (
+        --     okHE       => okHE, 
+        --     ep_addr    => std_logic_vector(to_unsigned(16#03#, 8)),
+        --     ep_dataout => slv_win_ep03_fixed_pattern
+        -- );
 
         -- Wire Out (from FPGA)
         slv_wout_ep20 <= x"12345678";
-        inst_wire_out_addr_20 : entity lib_src.okWireOut
-        port map (
-            okHE      => okHE, 
-            okEH      => okEHx( 1*65-1 downto 0*65 ), -- Common output bus loc to be OR-ed
-            ep_addr   => std_logic_vector(to_unsigned(16#20#, 8)),
-            ep_datain => slv_wout_ep20
-        );
+        -- inst_wire_out_addr_20 : entity lib_src.okWireOut
+        -- port map (
+        --     okHE      => okHE, 
+        --     okEH      => okEHx( 1*65-1 downto 0*65 ), -- Common output bus loc to be OR-ed
+        --     ep_addr   => std_logic_vector(to_unsigned(16#20#, 8)),
+        --     ep_datain => slv_wout_ep20
+        -- );
 
-        -- led <= not slv_wout_ep21_rcv_errors(3 downto 0);
-        inst_wire_out_addr_21 : entity lib_src.okWireOut
-        port map (
-            okHE      => okHE,
-            okEH      => okEHx( 2*65-1 downto 1*65 ), -- Common output bus loc to be OR-ed
-            ep_addr   => std_logic_vector(to_unsigned(16#21#, 8)),
-            ep_datain => slv_wout_ep21_rcv_errors
-        );
+        -- -- led <= not slv_wout_ep21_rcv_errors(3 downto 0);
+        -- inst_wire_out_addr_21 : entity lib_src.okWireOut
+        -- port map (
+        --     okHE      => okHE,
+        --     okEH      => okEHx( 2*65-1 downto 1*65 ), -- Common output bus loc to be OR-ed
+        --     ep_addr   => std_logic_vector(to_unsigned(16#21#, 8)),
+        --     ep_datain => slv_wout_ep21_rcv_errors
+        -- );
 
-        slv_wout_ep3e <= CAPABILITY;
-        inst_wire_out_addr_3e : entity lib_src.okWireOut   
-        port map (
-            okHE      => okHE,
-            okEH      => okEHx( 3*65-1 downto 2*65 ), -- Common output bus loc to be OR-ed
-            ep_addr   => std_logic_vector(to_unsigned(16#3e#, 8)),
-            ep_datain => slv_wout_ep3e
-        );
+        -- slv_wout_ep3e <= CAPABILITY;
+        -- inst_wire_out_addr_3e : entity lib_src.okWireOut   
+        -- port map (
+        --     okHE      => okHE,
+        --     okEH      => okEHx( 3*65-1 downto 2*65 ), -- Common output bus loc to be OR-ed
+        --     ep_addr   => std_logic_vector(to_unsigned(16#3e#, 8)),
+        --     ep_datain => slv_wout_ep3e
+        -- );
 
-        slv_wout_ep3f <= x"beeff00d";
-        inst_wire_out_addr_3f : entity lib_src.okWireOut   
-        port map (
-            okHE      => okHE,
-            okEH      => okEHx( 4*65-1 downto 3*65 ), -- Common output bus loc to be OR-ed
-            ep_addr   => std_logic_vector(to_unsigned(16#3f#, 8)),
-            ep_datain => slv_wout_ep3f
-        );
+        -- slv_wout_ep3f <= x"beeff00d";
+        -- inst_wire_out_addr_3f : entity lib_src.okWireOut   
+        -- port map (
+        --     okHE      => okHE,
+        --     okEH      => okEHx( 4*65-1 downto 3*65 ), -- Common output bus loc to be OR-ed
+        --     ep_addr   => std_logic_vector(to_unsigned(16#3f#, 8)),
+        --     ep_datain => slv_wout_ep3f
+        -- );
 
 
         -----------------------------------------

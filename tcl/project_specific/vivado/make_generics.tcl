@@ -34,7 +34,7 @@
 
 
     set_property generic {\
-        EMULATE_INPUTS=false\
+        EMULATE_INPUTS=true\
         PHOTON_2H_DELAY_NS=-2117.95\
         PHOTON_2V_DELAY_NS=-2125.35\
         PHOTON_3H_DELAY_NS=-1030.35\

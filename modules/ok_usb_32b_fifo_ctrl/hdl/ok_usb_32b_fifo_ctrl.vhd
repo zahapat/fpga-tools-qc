@@ -109,7 +109,7 @@
         signal slv_random_buffer_2d     : t_random_buffer_2d := (others => '0');
 
 
-        constant COUNT_UNTIL_SECOND : real := 0.1; -- yes, but too fast
+        constant COUNT_UNTIL_SECOND : real := 0.01; -- yes, but too fasts
         -- constant COUNT_UNTIL_SECOND : real := 0.009; -- no data in buffer
         -- constant COUNT_UNTIL_SECOND : real := 0.010; -- no data in buffer
         -- constant COUNT_UNTIL_SECOND : real := 0.100; -- no data in buffer

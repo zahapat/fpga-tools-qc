@@ -38,7 +38,7 @@ EXTRA ?= none
 
 
 # [make src] Actual top module you are working with
-TOP ?= top.vhd
+TOP ?= top_gflow.vhd
 
 
 # [make generics] Set names and values for generic variables
@@ -56,14 +56,16 @@ GEN6_NAME ?= PHOTON_4H_DELAY_NS
 GEN6_VAL ?= -3177.95
 GEN7_NAME ?= PHOTON_4V_DELAY_NS
 GEN7_VAL ?= -3181.05
-# GEN8_NAME ?= Generic_Name
-# GEN8_VAL ?= default_value
-# GEN9_NAME ?= Generic_Name
-# GEN9_VAL ?= default_value
-# GEN10_NAME ?= Generic_Name
-# GEN10_VAL ?= default_value
-# GEN11_NAME ?= Generic_Name
-# GEN11_VAL ?= default_value
+
+# GEN8_NAME ?= PHOTON_5H_DELAY_NS
+# GEN8_VAL ?= -4177.95
+# GEN9_NAME ?= PHOTON_5V_DELAY_NS
+# GEN9_VAL ?= -4181.05
+# GEN10_NAME ?= PHOTON_6H_DELAY_NS
+# GEN10_VAL ?= -5177.95
+# GEN11_NAME ?= PHOTON_6V_DELAY_NS
+# GEN11_VAL ?= -5181.05
+
 # GEN12_NAME ?= Generic_Name
 # GEN12_VAL ?= default_value
 # GEN13_NAME ?= Generic_Name
@@ -113,7 +115,7 @@ new :
 new_module :
 	$(MAKE) -f $(VIVADO_MAKEFILE) $@
 src :
-	$(MAKE) -f $(VIVADO_MAKEFILE) $@
+	$(MAKE) -f $(VIVADO_MAKEFILE) $@ TOP=$(TOP)
 board :
 	$(MAKE) -f $(VIVADO_MAKEFILE) $@
 declare :
@@ -337,6 +339,8 @@ git_update_changes_mainbranch_templrepo:
 # -------------------------------------------------------------
 #  "packages.mk" targets
 # -------------------------------------------------------------
+config_wsl:
+	$(MAKE) -f $(PACKAGES_MAKEFILE) $@
 vcpkg_install:
 	$(MAKE) -f $(PACKAGES_MAKEFILE) $@
 pip_install:

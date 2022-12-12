@@ -68,6 +68,17 @@ winget_upgrade:
 git_update_win:
 	git update-git-for-windows
 
+
+# Linux Subsystem: Disable your Firewall in case issues arise
+config_wsl:
+	wsl sudo add-apt-repository universe
+	wsl sudo apt-get update
+	wsl sudo apt-get upgrade
+	wsl sudo apt-cache search redis-server
+	wsl sudo apt-get install redis-server
+	wsl redis-server --version
+
+
 # All
 install_all_pkg:
 	make winget_install
