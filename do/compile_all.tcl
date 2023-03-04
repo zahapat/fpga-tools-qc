@@ -96,10 +96,9 @@ for {set i 0} {$i < [llength $all_modules]} {incr i} {
                 # Compile
 	            vlog -work work $filepath
             }
-            else {
+        } else {
                 puts "TCL: ERROR: Invalid file suffix."
                 exit
-            }
         }
     }
 }
