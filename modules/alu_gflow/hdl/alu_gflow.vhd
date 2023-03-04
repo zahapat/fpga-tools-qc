@@ -65,7 +65,7 @@
 
     begin
 
-        
+
         -- Sample the random bit on signal valid and stor it to the respective buffer
         RANDOM_BUFFER <= slv_random_buffer_2d;
         proc_sample_random : process(CLK)
