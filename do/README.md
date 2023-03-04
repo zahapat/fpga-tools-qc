@@ -16,17 +16,33 @@ Example: PART = xc7k160tffg676-1
 Example 1: make reset
 Example 2: make reset PART=genesys2
 
-2. Add all HDL files under the top HDL module to the Vivado project by typing the following to the command line:
+2. Add all HDL file(s) under the top HDL module to the Vivado project by typing the following to the command line:
 Example: make src TOP=reset.vhd
 
 2. 1. Open Vivado in mode GUI to verify these modules were added to Vivado successfully:
 Example: make gui
 
-3. 
+2. 2. Check your modules.tcl file whether files were added correctly.
 
-3. 1. 
+3. To enable Questa simulator, make sure you ran "make sim_init" first. This generates modelsim.ini file necessary to use MoselSim/Questa simulator.
+
+3. 1. To re/run simulation in mode batch, run the following command:
+make sim
+
+3. 2. To re/run simulation in mode GUI, run the following command:
+make sim_gui
+
+3. 2. 1. If you wish to rerun the simulation and recompile modules, type the following to the vsim console in Questa/ModelSim:
+do run.do
+
+3. 2. 1. If you wish to rerun the simulation, reset the wave window and recompile all modules, type the following to the vsim console in Questa/ModelSim:
+do new.do
 
 
 ## TODO
 
 Adapt to Questa from ModelSim since free version of Modelsim is not available anymore.
+
+Write documentation about setting up Questa.
+
+Currently, the Intel's license fixed to a single MAC ID limits the use of Questa in such a way that is not possible to use it while not connected to LAN network (at least on my Laptop: ROG Zephyrus G14). Network drivers that are unused will become hidden in the Device Manager.
