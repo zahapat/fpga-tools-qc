@@ -23,33 +23,14 @@
  ./packages/proj_specific_sim/const_pack_tb.vhd
  ./packages/proj_specific_sim/types_pack_tb.vhd
  ./packages/proj_specific_sim/signals_pack_tb.vhd
- ./modules/top_gflow/hdl/top_gflow.vhd
- ./modules/top_gflow/sim/top_gflow_tb.vhd
- ./modules/ok_usb_32b_fifo_ctrl/hdl/ok_usb_32b_fifo_ctrl.vhd
- ./modules/lfsr_inemul/hdl/lfsr_inemul.vhd
- ./modules/lfsr_inemul/sim/pack/const_lfsr_inemul_pack_tb.vhd
- ./modules/lfsr_inemul/sim/pack/types_lfsr_inemul_pack_tb.vhd
- ./modules/lfsr_inemul/sim/pack/signals_lfsr_inemul_pack_tb.vhd
- ./modules/lfsr_inemul/sim/pack/triggers_lfsr_inemul_pack_tb.vhd
- ./modules/lfsr_inemul/sim/harness_lfsr_inemul_tb.vhd
- ./modules/lfsr_inemul/sim/executors_lfsr_inemul_tb.vhd
- ./modules/lfsr_inemul/sim/monitors_lfsr_inemul_tb.vhd
- ./modules/lfsr_inemul/sim/checkers_lfsr_inemul_tb.vhd
- ./modules/lfsr_inemul/sim/lfsr_inemul_tb.vhd
- ./modules/reset/hdl/reset.vhd
- ./modules/reset/hdl/reset_tb.vhd
- ./modules/qubit_deskew/hdl/qubit_deskew.vhd
- ./modules/qubit_deskew/sim/qubit_deskew_tb.vhd
- ./modules/fsm_gflow/hdl/fsm_gflow.vhd
- ./modules/fsm_gflow/sim/fsm_gflow_tb.vhd
- ./modules/lfsr_bitgen/hdl/lfsr_bitgen.vhd
- ./modules/lfsr_bitgen/sim/lfsr_bitgen_tb.vhd
- ./modules/alu_gflow/hdl/alu_gflow.vhd
- ./modules/alu_gflow/sim/alu_gflow_tb.vhd
- ./modules/pulse_gen/hdl/pulse_gen.vhd
- ./modules/pulse_gen/sim/output_pulse_gen_tb.vhd
- ./modules/xilinx_obufs/hdl/xilinx_obufs.vhd
- ./modules/nff_cdcc/hdl/nff_cdcc.vhd
- ./modules/nff_cdcc/sim/nff_cdcc_tb.vhd
- ./modules/xilinx_ibufs/hdl/xilinx_ibufs.vhd
- ./modules/top_gflow/hdl/top_gflow.vhd
+ ./modules/top_memristor/hdl/top_memristor.vhd
+ ./modules/top_memristor/sim/top_memristor_tb.vhd
+ ./modules/shiftreg_redgedetect/hdl/shiftreg_redgedetect.vhd
+ ./modules/shiftreg_redgedetect/sim/shiftreg_redgedetect_tb.vhd
+ ./modules/johnson_cnt/hdl/johnson_cnt.vhd
+ ./modules/johnson_cnt/sim/johnson_cnt_tb.vhd
+ ./modules/nff_cdcc_fedge/hdl/nff_cdcc_fedge.vhd
+ ./modules/nff_cdcc_fedge/sim/nff_cdcc_fedge_tb.vhd
+ ./modules/memristor_ctrl/hdl/memristor_ctrl.vhd
+ ./modules/memristor_ctrl/sim/memristor_ctrl_tb.vhd
+ ./modules/top_memristor/hdl/top_memristor.vhd
