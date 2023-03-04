@@ -1,14 +1,3 @@
- ./packages/ok/frontpanel_xem7350_k160t/hdl/okCoreHarness.v
- ./packages/ok/frontpanel_xem7350_k160t/hdl/okTriggerOut.v
- ./packages/ok/frontpanel_xem7350_k160t/hdl/okWireIn.v
- ./packages/ok/frontpanel_xem7350_k160t/hdl/okBTPipeOut.v
- ./packages/ok/frontpanel_xem7350_k160t/hdl/okRegisterBridge.v
- ./packages/ok/frontpanel_xem7350_k160t/hdl/okLibrary.vhd
- ./packages/ok/frontpanel_xem7350_k160t/hdl/okWireOut.v
- ./packages/ok/frontpanel_xem7350_k160t/hdl/okPipeOut.v
- ./packages/ok/frontpanel_xem7350_k160t/hdl/okBTPipeIn.v
- ./packages/ok/frontpanel_xem7350_k160t/hdl/okPipeIn.v
- ./packages/ok/frontpanel_xem7350_k160t/hdl/okTriggerIn.v
  ./packages/sim_tools/clk_pack_tb.vhd
  ./packages/sim_tools/export_pack_tb.vhd
  ./packages/sim_tools/fifo_pack_tb.vhd
@@ -23,14 +12,6 @@
  ./packages/proj_specific_sim/const_pack_tb.vhd
  ./packages/proj_specific_sim/types_pack_tb.vhd
  ./packages/proj_specific_sim/signals_pack_tb.vhd
- ./modules/top_memristor/hdl/top_memristor.vhd
- ./modules/top_memristor/sim/top_memristor_tb.vhd
- ./modules/shiftreg_redgedetect/hdl/shiftreg_redgedetect.vhd
- ./modules/shiftreg_redgedetect/sim/shiftreg_redgedetect_tb.vhd
- ./modules/johnson_cnt/hdl/johnson_cnt.vhd
- ./modules/johnson_cnt/sim/johnson_cnt_tb.vhd
- ./modules/nff_cdcc_fedge/hdl/nff_cdcc_fedge.vhd
- ./modules/nff_cdcc_fedge/sim/nff_cdcc_fedge_tb.vhd
- ./modules/memristor_ctrl/hdl/memristor_ctrl.vhd
- ./modules/memristor_ctrl/sim/memristor_ctrl_tb.vhd
- ./modules/top_memristor/hdl/top_memristor.vhd
+ ./modules/reset/hdl/reset.vhd
+ ./modules/reset/sim/reset_tb.vhd
+ ./modules/reset/sim/reset_tb.vhd
