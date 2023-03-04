@@ -59,18 +59,19 @@ update_compile_order -fileset "sources_1"
 
 #    * ModelSim
 #      USER INPUT
-puts -nonewline $simulator_comporder "\
-    ./packages/ok/frontpanel_xem7350_k160t/hdl/okCoreHarness.v\n\
-    ./packages/ok/frontpanel_xem7350_k160t/hdl/okTriggerOut.v\n\
-    ./packages/ok/frontpanel_xem7350_k160t/hdl/okWireIn.v\n\
-    ./packages/ok/frontpanel_xem7350_k160t/hdl/okBTPipeOut.v\n\
-    ./packages/ok/frontpanel_xem7350_k160t/hdl/okRegisterBridge.v\n\
-    ./packages/ok/frontpanel_xem7350_k160t/hdl/okLibrary.vhd\n\
-    ./packages/ok/frontpanel_xem7350_k160t/hdl/okWireOut.v\n\
-    ./packages/ok/frontpanel_xem7350_k160t/hdl/okPipeOut.v\n\
-    ./packages/ok/frontpanel_xem7350_k160t/hdl/okBTPipeIn.v\n\
-    ./packages/ok/frontpanel_xem7350_k160t/hdl/okPipeIn.v\n\
-    ./packages/ok/frontpanel_xem7350_k160t/hdl/okTriggerIn.v\n"
+#          - DO NOT ADD THESE TO MODULES.TCL DUE TO "syntax error in protected region"
+# puts -nonewline $simulator_comporder "\
+    # ./packages/ok/frontpanel_xem7350_k160t/hdl/okCoreHarness.v\n\
+    # ./packages/ok/frontpanel_xem7350_k160t/hdl/okTriggerOut.v\n\
+    # ./packages/ok/frontpanel_xem7350_k160t/hdl/okWireIn.v\n\
+    # ./packages/ok/frontpanel_xem7350_k160t/hdl/okBTPipeOut.v\n\
+    # ./packages/ok/frontpanel_xem7350_k160t/hdl/okRegisterBridge.v\n\
+    # ./packages/ok/frontpanel_xem7350_k160t/hdl/okLibrary.vhd\n\
+    # ./packages/ok/frontpanel_xem7350_k160t/hdl/okWireOut.v\n\
+    # ./packages/ok/frontpanel_xem7350_k160t/hdl/okPipeOut.v\n\
+    # ./packages/ok/frontpanel_xem7350_k160t/hdl/okBTPipeIn.v\n\
+    # ./packages/ok/frontpanel_xem7350_k160t/hdl/okPipeIn.v\n\
+    # ./packages/ok/frontpanel_xem7350_k160t/hdl/okTriggerIn.v\n"
 
 
 # -------------------------------------------------------

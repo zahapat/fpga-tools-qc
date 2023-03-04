@@ -26,14 +26,14 @@ use uvvm_vvc_framework.ti_vvc_framework_support_pkg.all;
 
 use work.td_cmd_queue_pkg.all;
 use work.td_result_queue_pkg.all;
--- use work.vvc_cmd_pkg.all;
--- use work.vvc_methods_pkg.all;
+use work.vvc_cmd_pkg.all;
+use work.vvc_methods_pkg.all;
 use work.td_vvc_framework_common_methods_pkg.all;
 use work.td_target_support_pkg.all;
 
-library vip_crc_enc;
-use vip_crc_enc.vvc_cmd_pkg.all;
-use vip_crc_enc.vvc_methods_pkg.all;
+-- library vip_crc_enc;
+-- use vip_crc_enc.vvc_cmd_pkg.all;
+-- use vip_crc_enc.vvc_methods_pkg.all;
 
 --=================================================================================================
 --=================================================================================================

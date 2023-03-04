@@ -5,7 +5,9 @@
 PROJ_NAME = $(shell basename $(CURDIR))
 PROJ_DIR = $(shell pwd)
 
-
+# Libraries for HDL sources and testbenches
+LIB_SRC ?= lib_src
+LIB_SIM ?= lib_sim
 
 # -------------------------------------------------------------
 #                     MAKEFILE TARGETS

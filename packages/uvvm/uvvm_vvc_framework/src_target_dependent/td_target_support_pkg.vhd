@@ -27,11 +27,11 @@ context uvvm_util.uvvm_util_context;
 library uvvm_vvc_framework;
 use uvvm_vvc_framework.ti_vvc_framework_support_pkg.all;
 
--- use work.vvc_cmd_pkg.all;
+use work.vvc_cmd_pkg.all;
 
 -- You must add all your user VVCs here
-library vip_crc_enc;
-use vip_crc_enc.vvc_cmd_pkg.all;
+-- library vip_crc_enc;
+-- use vip_crc_enc.vvc_cmd_pkg.all;
 
 
 package td_target_support_pkg is

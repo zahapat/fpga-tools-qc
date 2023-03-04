@@ -45,7 +45,7 @@ puts -nonewline $simulator_comporder "\
 # -------------------------------------------------------
 #    * ModelSim
 puts -nonewline $simulator_comporder "\
-    ./modules/reset/hdl/reset_tb.vhd\n"
+    ./modules/reset/sim/reset_tb.vhd\n"
 
 
 # -------------------------------------------------------

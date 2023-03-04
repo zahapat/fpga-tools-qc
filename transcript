@@ -1,0 +1,320 @@
+# do ./do/make_sim.tcl lib_src,lib_sim
+# C:/Git/zahapat/flow-ambiguity
+# C:/Git/zahapat/flow-ambiguity
+# C:/Git/zahapat/flow-ambiguity/do/modules.tcl
+# 1
+# 2
+# do ./do/make_sim.tcl lib_src,lib_sim
+# lib_src,lib_sim
+# ,
+# lib_src lib_sim
+# 2
+# 2
+# all_modules {}
+# filedb68200
+# Questa Intel Starter FPGA Edition-64 vcom 2022.1 Compiler 2022.01 Jan 29 2022
+# Start time: 16:12:33 on Mar 04,2023
+# vcom -2008 -work lib_sim C:/Git/zahapat/flow-ambiguity/packages/sim_tools/clk_pack_tb.vhd 
+# -- Loading package STANDARD
+# -- Loading package TEXTIO
+# -- Loading package std_logic_1164
+# -- Loading package NUMERIC_STD
+# -- Compiling package clk_pack_tb
+# -- Compiling package body clk_pack_tb
+# -- Loading package clk_pack_tb
+# End time: 16:12:33 on Mar 04,2023, Elapsed time: 0:00:00
+# Errors: 0, Warnings: 0
+# Questa Intel Starter FPGA Edition-64 vcom 2022.1 Compiler 2022.01 Jan 29 2022
+# Start time: 16:12:33 on Mar 04,2023
+# vcom -2008 -work lib_sim C:/Git/zahapat/flow-ambiguity/packages/sim_tools/export_pack_tb.vhd 
+# -- Loading package STANDARD
+# -- Loading package TEXTIO
+# -- Loading package std_logic_1164
+# -- Loading package NUMERIC_STD
+# -- Loading package std_logic_textio
+# -- Compiling package export_pack_tb
+# -- Compiling package body export_pack_tb
+# -- Loading package export_pack_tb
+# End time: 16:12:33 on Mar 04,2023, Elapsed time: 0:00:00
+# Errors: 0, Warnings: 0
+# Questa Intel Starter FPGA Edition-64 vcom 2022.1 Compiler 2022.01 Jan 29 2022
+# Start time: 16:12:33 on Mar 04,2023
+# vcom -2008 -work lib_sim C:/Git/zahapat/flow-ambiguity/packages/sim_tools/fifo_pack_tb.vhd 
+# -- Loading package STANDARD
+# -- Compiling package fifo_pack_tb
+# -- Compiling package body fifo_pack_tb
+# -- Loading package fifo_pack_tb
+# End time: 16:12:33 on Mar 04,2023, Elapsed time: 0:00:00
+# Errors: 0, Warnings: 0
+# Questa Intel Starter FPGA Edition-64 vcom 2022.1 Compiler 2022.01 Jan 29 2022
+# Start time: 16:12:33 on Mar 04,2023
+# vcom -2008 -work lib_sim C:/Git/zahapat/flow-ambiguity/packages/sim_tools/list_pack_tb.vhd 
+# -- Loading package STANDARD
+# -- Loading package TEXTIO
+# -- Compiling package list_pack_tb
+# -- Compiling package body list_pack_tb
+# -- Loading package list_pack_tb
+# End time: 16:12:34 on Mar 04,2023, Elapsed time: 0:00:01
+# Errors: 0, Warnings: 0
+# Questa Intel Starter FPGA Edition-64 vcom 2022.1 Compiler 2022.01 Jan 29 2022
+# Start time: 16:12:34 on Mar 04,2023
+# vcom -2008 -work lib_sim C:/Git/zahapat/flow-ambiguity/packages/sim_tools/list_string_pack_tb.vhd 
+# -- Loading package STANDARD
+# -- Compiling package instance list_string_pack_tb
+# -- Loading package TEXTIO
+# -- Loading package list_pack_tb
+# -- Loading package body list_pack_tb
+# End time: 16:12:34 on Mar 04,2023, Elapsed time: 0:00:00
+# Errors: 0, Warnings: 0
+# Questa Intel Starter FPGA Edition-64 vcom 2022.1 Compiler 2022.01 Jan 29 2022
+# Start time: 16:12:34 on Mar 04,2023
+# vcom -2008 -work lib_sim C:/Git/zahapat/flow-ambiguity/packages/sim_tools/print_list_pack_tb.vhd 
+# -- Loading package STANDARD
+# -- Loading package TEXTIO
+# -- Loading package std_logic_1164
+# -- Loading package NUMERIC_STD
+# -- Loading package std_logic_textio
+# -- Loading package instance list_string_pack_tb
+# -- Loading package list_pack_tb
+# -- Loading package body list_pack_tb
+# -- Compiling package print_list_pack_tb
+# -- Compiling package body print_list_pack_tb
+# -- Loading package print_list_pack_tb
+# End time: 16:12:34 on Mar 04,2023, Elapsed time: 0:00:00
+# Errors: 0, Warnings: 0
+# Questa Intel Starter FPGA Edition-64 vcom 2022.1 Compiler 2022.01 Jan 29 2022
+# Start time: 16:12:34 on Mar 04,2023
+# vcom -2008 -work lib_sim C:/Git/zahapat/flow-ambiguity/packages/sim_tools/print_pack_tb.vhd 
+# -- Loading package STANDARD
+# -- Loading package TEXTIO
+# -- Loading package std_logic_1164
+# -- Loading package NUMERIC_STD
+# -- Compiling package print_pack_tb
+# -- Compiling package body print_pack_tb
+# -- Loading package print_pack_tb
+# End time: 16:12:34 on Mar 04,2023, Elapsed time: 0:00:00
+# Errors: 0, Warnings: 0
+# Questa Intel Starter FPGA Edition-64 vcom 2022.1 Compiler 2022.01 Jan 29 2022
+# Start time: 16:12:34 on Mar 04,2023
+# vcom -2008 -work lib_sim C:/Git/zahapat/flow-ambiguity/packages/sim_tools/random_pack_tb.vhd 
+# -- Loading package STANDARD
+# -- Loading package TEXTIO
+# -- Loading package std_logic_1164
+# -- Loading package NUMERIC_STD
+# -- Loading package MATH_REAL
+# -- Loading package NamePkg
+# -- Loading package OsvvmGlobalPkg
+# -- Loading package TranscriptPkg
+# -- Loading package TextUtilPkg
+# -- Loading package AlertLogPkg
+# -- Loading package std_logic_textio
+# -- Loading package SortListPkg_int
+# -- Loading package RandomBasePkg
+# -- Loading package NUMERIC_STD_UNSIGNED
+# -- Loading package RandomPkg
+# -- Compiling package random_pack_tb
+# -- Compiling package body random_pack_tb
+# -- Loading package random_pack_tb
+# End time: 16:12:34 on Mar 04,2023, Elapsed time: 0:00:00
+# Errors: 0, Warnings: 0
+# Questa Intel Starter FPGA Edition-64 vcom 2022.1 Compiler 2022.01 Jan 29 2022
+# Start time: 16:12:34 on Mar 04,2023
+# vcom -work lib_src C:/Git/zahapat/flow-ambiguity/packages/proj_specific_src/const_pack.vhd 
+# -- Loading package STANDARD
+# -- Loading package TEXTIO
+# -- Loading package std_logic_1164
+# -- Loading package NUMERIC_STD
+# -- Loading package MATH_REAL
+# -- Compiling package const_pack
+# -- Compiling package body const_pack
+# -- Loading package const_pack
+# End time: 16:12:35 on Mar 04,2023, Elapsed time: 0:00:01
+# Errors: 0, Warnings: 0
+# Questa Intel Starter FPGA Edition-64 vcom 2022.1 Compiler 2022.01 Jan 29 2022
+# Start time: 16:12:35 on Mar 04,2023
+# vcom -work lib_src C:/Git/zahapat/flow-ambiguity/packages/proj_specific_src/types_pack.vhd 
+# -- Loading package STANDARD
+# -- Loading package TEXTIO
+# -- Loading package std_logic_1164
+# -- Loading package NUMERIC_STD
+# -- Loading package MATH_REAL
+# -- Loading package const_pack
+# -- Compiling package types_pack
+# -- Compiling package body types_pack
+# -- Loading package types_pack
+# End time: 16:12:35 on Mar 04,2023, Elapsed time: 0:00:00
+# Errors: 0, Warnings: 0
+# Questa Intel Starter FPGA Edition-64 vcom 2022.1 Compiler 2022.01 Jan 29 2022
+# Start time: 16:12:35 on Mar 04,2023
+# vcom -work lib_src C:/Git/zahapat/flow-ambiguity/packages/proj_specific_src/signals_pack.vhd 
+# -- Loading package STANDARD
+# -- Loading package TEXTIO
+# -- Loading package std_logic_1164
+# -- Loading package NUMERIC_STD
+# -- Loading package MATH_REAL
+# -- Loading package const_pack
+# -- Loading package types_pack
+# -- Compiling package signals_pack
+# -- Compiling package body signals_pack
+# -- Loading package signals_pack
+# End time: 16:12:35 on Mar 04,2023, Elapsed time: 0:00:00
+# Errors: 0, Warnings: 0
+# Questa Intel Starter FPGA Edition-64 vcom 2022.1 Compiler 2022.01 Jan 29 2022
+# Start time: 16:12:35 on Mar 04,2023
+# vcom -2008 -work lib_sim C:/Git/zahapat/flow-ambiguity/packages/proj_specific_sim/const_pack_tb.vhd 
+# -- Loading package STANDARD
+# -- Loading package TEXTIO
+# -- Loading package std_logic_1164
+# -- Loading package NUMERIC_STD
+# -- Loading package MATH_REAL
+# -- Loading context declaration uvvm_util_context
+# -- Loading package types_pkg
+# -- Loading package adaptations_pkg
+# -- Loading package string_methods_pkg
+# -- Loading package protected_types_pkg
+# -- Loading package global_signals_and_shared_variables_pkg
+# -- Loading package hierarchy_linked_list_pkg
+# -- Loading package license_pkg
+# -- Loading package ENV
+# -- Loading package alert_hierarchy_pkg
+# -- Loading package methods_pkg
+# -- Loading package bfm_common_pkg
+# -- Loading package rand_pkg
+# -- Loading package func_cov_pkg
+# -- Loading context declaration uvvm_util_context
+# -- Loading context declaration uvvm_util_context
+# -- Loading package ti_protected_types_pkg
+# -- Loading package ti_vvc_framework_support_pkg
+# -- Compiling package const_pack_tb
+# -- Compiling package body const_pack_tb
+# -- Loading context declaration uvvm_util_context
+# -- Loading package const_pack_tb
+# End time: 16:12:35 on Mar 04,2023, Elapsed time: 0:00:00
+# Errors: 0, Warnings: 0
+# Questa Intel Starter FPGA Edition-64 vcom 2022.1 Compiler 2022.01 Jan 29 2022
+# Start time: 16:12:35 on Mar 04,2023
+# vcom -2008 -work lib_sim C:/Git/zahapat/flow-ambiguity/packages/proj_specific_sim/types_pack_tb.vhd 
+# -- Loading package STANDARD
+# -- Loading package TEXTIO
+# -- Loading package std_logic_1164
+# -- Loading package NUMERIC_STD
+# -- Loading package MATH_REAL
+# -- Loading package const_pack
+# -- Loading package types_pack
+# -- Loading package signals_pack
+# -- Loading context declaration uvvm_util_context
+# -- Loading package types_pkg
+# -- Loading package adaptations_pkg
+# -- Loading package string_methods_pkg
+# -- Loading package protected_types_pkg
+# -- Loading package global_signals_and_shared_variables_pkg
+# -- Loading package hierarchy_linked_list_pkg
+# -- Loading package license_pkg
+# -- Loading package ENV
+# -- Loading package alert_hierarchy_pkg
+# -- Loading package methods_pkg
+# -- Loading package bfm_common_pkg
+# -- Loading package rand_pkg
+# -- Loading package func_cov_pkg
+# -- Loading context declaration uvvm_util_context
+# -- Loading context declaration uvvm_util_context
+# -- Loading package ti_protected_types_pkg
+# -- Loading package ti_vvc_framework_support_pkg
+# -- Loading package const_pack_tb
+# -- Loading package instance list_string_pack_tb
+# -- Loading package list_pack_tb
+# -- Loading package body list_pack_tb
+# -- Loading package std_logic_textio
+# -- Loading package print_list_pack_tb
+# -- Compiling package types_pack_tb
+# -- Compiling package body types_pack_tb
+# -- Loading package types_pack_tb
+# End time: 16:12:35 on Mar 04,2023, Elapsed time: 0:00:00
+# Errors: 0, Warnings: 0
+# Questa Intel Starter FPGA Edition-64 vcom 2022.1 Compiler 2022.01 Jan 29 2022
+# Start time: 16:12:35 on Mar 04,2023
+# vcom -2008 -work lib_sim C:/Git/zahapat/flow-ambiguity/packages/proj_specific_sim/signals_pack_tb.vhd 
+# -- Loading package STANDARD
+# -- Loading package TEXTIO
+# -- Loading package std_logic_1164
+# -- Loading package NUMERIC_STD
+# -- Loading package MATH_REAL
+# -- Loading context declaration uvvm_util_context
+# -- Loading package types_pkg
+# -- Loading package adaptations_pkg
+# -- Loading package string_methods_pkg
+# -- Loading package protected_types_pkg
+# -- Loading package global_signals_and_shared_variables_pkg
+# -- Loading package hierarchy_linked_list_pkg
+# -- Loading package license_pkg
+# -- Loading package ENV
+# -- Loading package alert_hierarchy_pkg
+# -- Loading package methods_pkg
+# -- Loading package bfm_common_pkg
+# -- Loading package rand_pkg
+# -- Loading package func_cov_pkg
+# -- Loading context declaration uvvm_util_context
+# -- Loading context declaration uvvm_util_context
+# -- Loading package ti_protected_types_pkg
+# -- Loading package ti_vvc_framework_support_pkg
+# -- Loading package const_pack_tb
+# -- Loading package const_pack
+# -- Loading package types_pack
+# -- Loading package signals_pack
+# -- Loading package instance list_string_pack_tb
+# -- Loading package list_pack_tb
+# -- Loading package body list_pack_tb
+# -- Loading package std_logic_textio
+# -- Loading package print_list_pack_tb
+# -- Loading package types_pack_tb
+# -- Compiling package signals_pack_tb
+# -- Compiling package body signals_pack_tb
+# -- Loading package signals_pack_tb
+# End time: 16:12:35 on Mar 04,2023, Elapsed time: 0:00:00
+# Errors: 0, Warnings: 0
+# Questa Intel Starter FPGA Edition-64 vcom 2022.1 Compiler 2022.01 Jan 29 2022
+# Start time: 16:12:36 on Mar 04,2023
+# vcom -work lib_src C:/Git/zahapat/flow-ambiguity/modules/reset/hdl/reset.vhd 
+# -- Loading package STANDARD
+# -- Loading package TEXTIO
+# -- Loading package std_logic_1164
+# -- Loading package NUMERIC_STD
+# -- Compiling entity reset
+# -- Compiling architecture rtl of reset
+# End time: 16:12:36 on Mar 04,2023, Elapsed time: 0:00:00
+# Errors: 0, Warnings: 0
+# Questa Intel Starter FPGA Edition-64 vcom 2022.1 Compiler 2022.01 Jan 29 2022
+# Start time: 16:12:36 on Mar 04,2023
+# vcom -2008 -work lib_sim C:/Git/zahapat/flow-ambiguity/modules/reset/sim/reset_tb.vhd 
+# -- Loading package STANDARD
+# -- Loading package TEXTIO
+# -- Loading package std_logic_1164
+# -- Loading package NUMERIC_STD
+# -- Loading package ENV
+# -- Compiling entity reset_tb
+# -- Compiling architecture sim of reset_tb
+# -- Loading entity reset
+# End time: 16:12:36 on Mar 04,2023, Elapsed time: 0:00:00
+# Errors: 0, Warnings: 0
+# Questa Intel Starter FPGA Edition-64 vcom 2022.1 Compiler 2022.01 Jan 29 2022
+# Start time: 16:12:36 on Mar 04,2023
+# vcom -2008 -work lib_sim C:/Git/zahapat/flow-ambiguity/modules/reset/sim/reset_tb.vhd 
+# -- Loading package STANDARD
+# -- Loading package TEXTIO
+# -- Loading package std_logic_1164
+# -- Loading package NUMERIC_STD
+# -- Loading package ENV
+# -- Compiling entity reset_tb
+# -- Compiling architecture sim of reset_tb
+# -- Loading entity reset
+# End time: 16:12:36 on Mar 04,2023, Elapsed time: 0:00:00
+# Errors: 0, Warnings: 0
+# vsim -onfinish stop lib_sim.reset_tb 
+# Start time: 16:12:36 on Mar 04,2023
+# ** Note: (vsim-3812) Design is being optimized...
+# ** License Issue: License request for intelqsimstarter feature failed
+# ** License Issue: Invalid host. (C:\intelFPGA_pro\LR-099086_License.dat)
+# ** Error: Failure to obtain a VHDL simulation license. Unable to checkout 'intelqsimstarter' license.
+# Error loading design
+# End time: 16:12:37 on Mar 04,2023, Elapsed time: 0:00:01
+# Errors: 0, Warnings: 0

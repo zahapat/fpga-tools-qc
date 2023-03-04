@@ -22,11 +22,11 @@
 library uvvm_util;
 use uvvm_util.generic_queue_pkg;
 
--- use work.vvc_cmd_pkg.all;
+use work.vvc_cmd_pkg.all;
 
 -- You must add all your user VVCs here
-library vip_crc_enc;
-use vip_crc_enc.vvc_cmd_pkg.all;
+-- library vip_crc_enc;
+-- use vip_crc_enc.vvc_cmd_pkg.all;
 
 package td_cmd_queue_pkg is new uvvm_util.generic_queue_pkg
   generic map (t_generic_element => t_vvc_cmd_record);
