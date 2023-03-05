@@ -4,8 +4,7 @@ Welcome to the FPGA Tools for Quantum Computing template repository.
 
 This repository is primarily designed for use with the Xilinx Vivado Design Suite (HLx Edition build 2020.2) on Windows platforms.
 
-
-# Documentation
+It contains analog simulation files, PCB layouts, software and VLSI components of high speed data acquisition, classical quantum control systems and other laboratory instruments.
 
 ## Desctiption
 
@@ -17,16 +16,16 @@ The main content and functions of the repository are as follows:
 
 The project environment enables to run make commands to interact with Xilinx software, HDL simulators (Modelsim), Git, run generic python GUIs, and much more.
 
-2. Tcl scripts
+2. Tcl Scripts Directory
 
 Tcl scripts interact with software supporting a Tcl console. They are designed for automized re/building projects as well as running simulations using CLI (command-line interface).
 
-3. modules
+3. Modules Directory
 
 The environment consists of a subdirectory named modules, which serves as a collection of HDL modules created throughout the development of various projects in the past.
 These modules consist of hardware description files and Tcl scripts for adding files to Vivado Design Suite and Modelsim in correct compile order.
 
-4. packages
+4. Packages Directory
 
 Subdirectory "packages" contains header package files for HDL development and simulations.
 
@@ -46,7 +45,7 @@ Run the following make command to upgrade all packages:
 $ make upgrade_all_pkg
 ```
 
-## Git: Create A New Repository
+## Git: Create a New Repository
 
 Update the `GIT_EMAIL` variable in `git.mk`. Use your email address to link Git with your Git account.
 Run the following command to create a new private repo:
@@ -62,7 +61,7 @@ $ make git_new_public_repo
 ```
 
 
-## Git: Make The Current Repository Available As A Template
+## Git: Make the Current Repository Available as a Template
 
 Run the following command to change the status accordingly:
 
