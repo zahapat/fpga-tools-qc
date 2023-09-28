@@ -12,6 +12,5 @@
  ./packages/proj_specific_sim/const_pack_tb.vhd
  ./packages/proj_specific_sim/types_pack_tb.vhd
  ./packages/proj_specific_sim/signals_pack_tb.vhd
- ./modules/reset/hdl/reset.vhd
- ./modules/reset/sim/reset_tb.vhd
- ./modules/reset/sim/reset_tb.vhd
+ ./modules/fsm_gflow/hdl/fsm_gflow.vhd
+ ./modules/fsm_gflow/sim/fsm_gflow_tb.vhd
