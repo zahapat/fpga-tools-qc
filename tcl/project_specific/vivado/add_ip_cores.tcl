@@ -68,8 +68,8 @@
     # update_compile_order -fileset sources_1
 
 
-    #      * Add Opal Kelly Frontpanel IP
-    source "./packages/ok/frontpanel_xem7350_k160t/compile_order.tcl"
+    #      * Add Opal Kelly Frontpanel IP - is tied to the top_gflow file
+    # source "./packages/ok/frontpanel_xem7350_k160t/compile_order.tcl"
 
 
     # 4)   * Add Xilinx IP Cores

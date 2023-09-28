@@ -12,6 +12,8 @@ set vivado_added_scripts_report [open $vivado_added_scripts_report_path "a"]
 # 1.0) Add SRC Package Files
 # -------------------------------------------------------
 #    * Vivado
+source "${origin_dir}/packages/ok/frontpanel_xem7350_k160t/compile_order.tcl"
+
 #    * ModelSim
 
 

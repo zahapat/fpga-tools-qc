@@ -58,7 +58,7 @@ if {$lib_sim_vhdl ne "work"} {
                 if {$file_lang eq "vhd"} {
                     # VHDL
                     if { [string first "_tb." ${file_fullname}] != -1} {
-                        if { [file exist "$proj_root_dir/modelsim/$lib_sim_vhdl"] } {
+                        if { [file exist "$proj_root_dir/simulator/$lib_sim_vhdl"] } {
                             # Compile
                             puts "TCL: Compiling source '$file_fullname' to existing library '$lib_sim_vhdl'."
                             vcom -2008 -work $lib_sim_vhdl $filepath
@@ -66,15 +66,15 @@ if {$lib_sim_vhdl ne "work"} {
                         } else {
                             # Create the library, remap
                             puts "TCL: * Create a new library '$lib_sim_vhdl' and compile source '$file_fullname' to this library."
-                            vlib $proj_root_dir/modelsim/$lib_sim_vhdl
-                            vmap $lib_sim_vhdl $proj_root_dir/modelsim/$lib_sim_vhdl
+                            vlib $proj_root_dir/simulator/$lib_sim_vhdl
+                            vmap $lib_sim_vhdl $proj_root_dir/simulator/$lib_sim_vhdl
 
                             # Compile
                             vcom -2008 -work $lib_sim_vhdl $filepath
                             # vcom -2008 -work work $filepath
                         }
                     } else {
-                        if { [file exist "$proj_root_dir/modelsim/$lib_src_vhdl"] } {
+                        if { [file exist "$proj_root_dir/simulator/$lib_src_vhdl"] } {
                             # Compile
                             puts "TCL: Compiling source '$file_fullname' to existing library '$lib_src_vhdl'."
                             vcom -work $lib_src_vhdl $filepath
@@ -82,8 +82,8 @@ if {$lib_sim_vhdl ne "work"} {
                         } else {
                             # Create the library, remap
                             puts "TCL: * Create a new library '$lib_src_vhdl' and compile source '$file_fullname' to this library."
-                            vlib $proj_root_dir/modelsim/$lib_src_vhdl
-                            vmap $lib_src_vhdl $proj_root_dir/modelsim/$lib_src_vhdl
+                            vlib $proj_root_dir/simulator/$lib_src_vhdl
+                            vmap $lib_src_vhdl $proj_root_dir/simuulator/$lib_src_vhdl
 
                             # Compile
                             vcom -work $lib_src_vhdl $filepath
@@ -92,25 +92,25 @@ if {$lib_sim_vhdl ne "work"} {
                     }
                 } elseif {$file_lang eq "sv"} {
                     #  SystemVerilog
-                    if { [file exist "$proj_root_dir/modelsim/work"] } {
+                    if { [file exist "$proj_root_dir/simulator/work"] } {
                         # Compile
                         vlog -sv -work work $filepath
                     } else {
                         # Create the library, remap
-                        vlib $proj_root_dir/modelsim/work
-                        vmap work $proj_root_dir/modelsim/work
+                        vlib $proj_root_dir/simulator/work
+                        vmap work $proj_root_dir/simulator/work
                         # Compile
                         vlog -sv -work work $filepath
                     }
                 } elseif {$file_lang eq "v"} {
                     # Verilog
-                    if { [file exist "$proj_root_dir/modelsim/work"] } {
+                    if { [file exist "$proj_root_dir/simulator/work"] } {
                         # Compile
                         vlog -work work $filepath
                     } else {
                         # Recreate the library, remap
-                        vlib $proj_root_dir/modelsim/work
-                        vmap work $proj_root_dir/modelsim/work
+                        vlib $proj_root_dir/simulator/work
+                        vmap work $proj_root_dir/simulator/work
 
                         # Compile
                         vlog -work work $filepath

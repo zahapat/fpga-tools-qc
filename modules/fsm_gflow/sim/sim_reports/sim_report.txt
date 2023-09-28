@@ -1,0 +1,71 @@
+
+SIMULATION REPORT          Generated on Thu Sep 28 15:35:37 2023
+
+
+Design simulated: C:/Git/zahapat/fpga-tools-qc/simulator/lib_sim.fsm_gflow_tb(sim)
+Number of signals/nets in design: 1133
+Number of processes in design: 12
+Number of instances from user libraries in design: 6
+Number of executable statements in design: 968
+
+Simulator Parameters:
+
+    Current directory: C:/Git/zahapat/fpga-tools-qc/simulator
+    Project file: C:/Git/zahapat/fpga-tools-qc/simulator/project.mpf
+    Project root directory: .
+    Simulation time resolution: 1ps
+
+List of Design units used:
+
+    Package Body: types_pack
+    Library: C:/Git/zahapat/fpga-tools-qc/simulator/lib_src
+    Source File: C:/Git/zahapat/fpga-tools-qc/packages/proj_specific_src/types_pack.vhd
+    Occurrences: 1
+
+    Package Body: const_pack
+    Library: C:/Git/zahapat/fpga-tools-qc/simulator/lib_src
+    Source File: C:/Git/zahapat/fpga-tools-qc/packages/proj_specific_src/const_pack.vhd
+    Occurrences: 1
+
+    Package Body: env
+    Library: C:/intelFPGA/20.1/modelsim_ase/std
+    Source File: C:/intelFPGA/20.1/modelsim_ase/win32aloem/../vhdl_src/std/env.vhd
+    Occurrences: 1
+
+    Package Body: math_real
+    Library: C:/intelFPGA/20.1/modelsim_ase/ieee
+    Source File: C:/intelFPGA/20.1/modelsim_ase/win32aloem/../vhdl_src/ieee/1076-2code.vhd
+    Occurrences: 1
+
+    Package Body: numeric_std
+    Library: C:/intelFPGA/20.1/modelsim_ase/ieee
+    Source File: C:/intelFPGA/20.1/modelsim_ase/win32aloem/../vhdl_src/ieee/mti_numeric_std.vhd
+    Occurrences: 1
+
+    Package Body: std_logic_1164
+    Library: C:/intelFPGA/20.1/modelsim_ase/ieee
+    Source File: C:/intelFPGA/20.1/modelsim_ase/win32aloem/../vhdl_src/ieee/stdlogic.vhd
+    Occurrences: 1
+
+    Package Body: textio
+    Library: C:/intelFPGA/20.1/modelsim_ase/std
+    Source File: C:/intelFPGA/20.1/modelsim_ase/win32aloem/../vhdl_src/std/textio.vhd
+    Occurrences: 1
+
+    Package: standard
+    Library: C:/intelFPGA/20.1/modelsim_ase/std
+    Source File: C:/intelFPGA/20.1/modelsim_ase/win32aloem/../vhdl_src/std/standard.vhd
+    Occurrences: 1
+
+    Entity: fsm_gflow_tb , acc : <novopt>
+    Architecture: sim
+    Library: C:/Git/zahapat/fpga-tools-qc/simulator/lib_sim
+    Source File: C:/Git/zahapat/fpga-tools-qc/modules/fsm_gflow/sim/fsm_gflow_tb.vhd
+    Occurrences: 1
+
+    Entity: fsm_gflow , acc : <novopt>
+    Architecture: rtl
+    Library: C:/Git/zahapat/fpga-tools-qc/simulator/lib_src
+    Source File: C:/Git/zahapat/fpga-tools-qc/modules/fsm_gflow/hdl/fsm_gflow.vhd
+    Occurrences: 1
+

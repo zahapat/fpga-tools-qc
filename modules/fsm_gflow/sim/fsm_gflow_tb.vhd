@@ -17,9 +17,13 @@
         -- Generics
         constant RST_VAL                 : std_logic := '1';
         constant PCD_DELAY_US            : natural := 1;           -- Duration of the pulse from PC in usec
+
         constant QUBITS_CNT              : natural := 4;
-        constant TOTAL_DELAY_FPGA_BEFORE : natural := 5;           -- delay before this module + delay after this module
-        constant TOTAL_DELAY_FPGA_AFTER  : natural := 5;           -- delay before + delay after
+        -- constant QUBITS_CNT              : natural := 6;
+        -- constant QUBITS_CNT              : natural := 8;
+
+        constant TOTAL_DELAY_FPGA_BEFORE : natural := 0;           -- delay before this module + delay after this module
+        constant TOTAL_DELAY_FPGA_AFTER  : natural := 0;           -- delay before + delay after
         constant PHOTON_1H_DELAY_NS      : real := 75.65;
         constant PHOTON_1V_DELAY_NS      : real := 75.01;       -- no delay
         constant PHOTON_2H_DELAY_NS      : real := -2117.95;    -- negative number = delay
@@ -28,9 +32,18 @@
         constant PHOTON_3V_DELAY_NS      : real := -1034.45;
         constant PHOTON_4H_DELAY_NS      : real := -3177.95;
         constant PHOTON_4V_DELAY_NS      : real := -3181.05;
+        constant PHOTON_5H_DELAY_NS      : real := -3177.95;
+        constant PHOTON_5V_DELAY_NS      : real := -3181.05;
+        constant PHOTON_6H_DELAY_NS      : real := -3177.95;
+        constant PHOTON_6V_DELAY_NS      : real := -3181.05;
+        constant PHOTON_7H_DELAY_NS      : real := -3177.95;
+        constant PHOTON_7V_DELAY_NS      : real := -3181.05;
+        constant PHOTON_8H_DELAY_NS      : real := -3177.95;
+        constant PHOTON_8V_DELAY_NS      : real := -3181.05;
+        
 
         -- CLK of the FPGA
-        constant CLK_HZ                : natural := 80e6;
+        constant CLK_HZ                : natural := 100e6;
         constant CLK_PERIOD            : time := 1 sec / CLK_HZ;
 
         -- Emulation of the Qubit refresh rate on input
@@ -39,30 +52,24 @@
         signal CLK_NEW_QUBIT           : std_logic := '1';
 
         -- Signals
-
-        -- signal Q1_SAMPLER_EMPTY   : std_logic := '0';
-        -- signal Q1_SAMPLER_RD_EN   : std_logic;
-        signal Q1_SAMPLER_RD_VALID : std_logic := '0';
-        -- signal Q2_SAMPLER_EMPTY   : std_logic := '0';
-        -- signal Q2_SAMPLER_RD_EN   : std_logic;
-        signal Q2_SAMPLER_RD_VALID : std_logic := '0';
-        -- signal Q3_SAMPLER_EMPTY   : std_logic := '0';
-        -- signal Q3_SAMPLER_RD_EN   : std_logic;
-        signal Q3_SAMPLER_RD_VALID : std_logic := '0';
-        -- signal Q4_SAMPLER_EMPTY   : std_logic := '0';
-        -- signal Q4_SAMPLER_RD_EN   : std_logic;
-        signal Q4_SAMPLER_RD_VALID : std_logic := '0';
-        signal FEEDBACK_MOD_VALID : std_logic := '0';
-        signal FEEDBACK_MOD       : std_logic_vector(1 downto 0) := (others => '0');
-        signal QUBIT_DETECTED     : std_logic_vector(1 downto 0) := (others => '0');
-
-        signal CLK                : std_logic := '1';
-        signal RST                : std_logic := RST_VAL;
-        signal QUBITS_SAMPLED          : std_logic_vector((QUBITS_CNT*2)-1 downto 0) := (others => '0');
-        signal GFLOW_SUCCESS_FLAG : std_logic;
-        signal EN_SAMPL_FLAG      : std_logic;
-        signal TO_MATH_ALPHA      : std_logic_vector(1 downto 0);
-        signal TO_MATH_DATA       : std_logic_vector(1 downto 0);
+        signal clk : std_logic := '0';
+        signal rst : std_logic := '0';
+        signal qubits_sampled_valid : std_logic_vector(QUBITS_CNT-1 downto 0) := (others => '0');
+        signal qubits_sampled : std_logic_vector((QUBITS_CNT*2)-1 downto 0) := (others => '0');
+        signal feedback_mod_valid : std_logic := '0';
+        signal feedback_mod : std_logic_vector(1 downto 0) := (others => '0');
+        signal gflow_success_flag : std_logic := '0';
+        signal gflow_success_done : std_logic := '0';
+        signal qubit_buffer : t_qubit_buffer_2d := (others => (others => '0'));
+        signal time_stamp_buffer : t_time_stamp_buffer_2d := (others => (others => '0'));
+        signal time_stamp_buffer_overflows : t_time_stamp_buffer_overflows_2d := (others => (others => '0'));
+        signal alpha_buffer : t_alpha_buffer_2d := (others => (others => '0'));
+        signal to_math_alpha : std_logic_vector(1 downto 0) := (others => '0');
+        signal to_math_sx_xz : std_logic_vector(1 downto 0) := (others => '0');
+        signal actual_qubit_valid : std_logic := '0';
+        signal actual_qubit : std_logic_vector(1 downto 0) := (others => '0');
+        signal actual_qubit_time_stamp : std_logic_vector(st_transaction_data_max_width);
+        signal time_stamp_counter_overflow : std_logic := '0';
 
         -- Number od random inputs INST_B
         constant MAX_RANDOM_NUMBS : natural := 300;
@@ -71,7 +78,7 @@
         constant RST_DURATION : time := 10 * CLK_PERIOD;
 
         -- Repetitions
-        constant REPETITIONS : natural := 2000;
+        constant REPETITIONS : natural := 20000;
         
 
         -- Print to console "TEST OK."
@@ -82,13 +89,38 @@
             writeline(output, str);
         end procedure;
 
+
+        -- Function to compare which bit arrives the second (is expected to be slower)
+        impure function get_slowest_photon_delay (
+            constant REAL_DELAY_HORIZ_NS : real;
+            constant REAL_DELAY_VERTI_NS : real
+        ) return real is
+        begin
+            -- Pick the one with the largest delay
+            if abs(REAL_DELAY_HORIZ_NS) < abs(REAL_DELAY_VERTI_NS) then
+                return abs(REAL_DELAY_VERTI_NS);
+            else
+                return abs(REAL_DELAY_HORIZ_NS);
+            end if;
+        end function;
+
+        type t_periods_q_2d is array (8-1 downto 0) of real; 
+        -- indices: 3, 2, 1, 0
+        constant MAX_PERIODS_Q : t_periods_q_2d := (
+            get_slowest_photon_delay(PHOTON_8H_DELAY_NS, PHOTON_8V_DELAY_NS), -- i7
+            get_slowest_photon_delay(PHOTON_7H_DELAY_NS, PHOTON_7V_DELAY_NS), -- i6
+            get_slowest_photon_delay(PHOTON_6H_DELAY_NS, PHOTON_6V_DELAY_NS), -- i5
+            get_slowest_photon_delay(PHOTON_5H_DELAY_NS, PHOTON_5V_DELAY_NS), -- i4
+            get_slowest_photon_delay(PHOTON_4H_DELAY_NS, PHOTON_4V_DELAY_NS), -- i3
+            get_slowest_photon_delay(PHOTON_3H_DELAY_NS, PHOTON_3V_DELAY_NS), -- i2
+            get_slowest_photon_delay(PHOTON_2H_DELAY_NS, PHOTON_2V_DELAY_NS), -- i1
+            get_slowest_photon_delay(PHOTON_1H_DELAY_NS, PHOTON_1V_DELAY_NS)  -- i0 (never used)
+        );
+
     begin
 
-        -- 1 delta delay
-
-
         -- Clk generator
-        CLK <= not CLK after CLK_PERIOD / 2;
+        clk <= not clk after CLK_PERIOD / 2;
         CLK_NEW_QUBIT <= not CLK_NEW_QUBIT after CLK_NEW_QUBIT_PERIOD / 2;
 
         -- DUT instance
@@ -107,114 +139,49 @@
             PHOTON_3H_DELAY_NS      => PHOTON_3H_DELAY_NS,
             PHOTON_3V_DELAY_NS      => PHOTON_3V_DELAY_NS,
             PHOTON_4H_DELAY_NS      => PHOTON_4H_DELAY_NS,
-            PHOTON_4V_DELAY_NS      => PHOTON_4V_DELAY_NS
+            PHOTON_4V_DELAY_NS      => PHOTON_4V_DELAY_NS,
+            PHOTON_5H_DELAY_NS      => PHOTON_5H_DELAY_NS,
+            PHOTON_5V_DELAY_NS      => PHOTON_5V_DELAY_NS,
+            PHOTON_6H_DELAY_NS      => PHOTON_6H_DELAY_NS,
+            PHOTON_6V_DELAY_NS      => PHOTON_6V_DELAY_NS,
+            PHOTON_7V_DELAY_NS      => PHOTON_7V_DELAY_NS,
+            PHOTON_8V_DELAY_NS      => PHOTON_8V_DELAY_NS
         )
         port map (
-            CLK                => CLK,
-            RST                => RST,
+            clk => clk,
+            rst => rst,
 
-            -- Q1_SAMPLER_EMPTY => Q1_SAMPLER_EMPTY,
-            -- Q1_SAMPLER_RD_EN => Q1_SAMPLER_RD_EN,
-            Q1_SAMPLER_RD_VALID => Q1_SAMPLER_RD_VALID,
-            -- Q2_SAMPLER_EMPTY => Q2_SAMPLER_EMPTY,
-            -- Q2_SAMPLER_RD_EN => Q2_SAMPLER_RD_EN,
-            Q2_SAMPLER_RD_VALID => Q2_SAMPLER_RD_VALID,
-            -- Q3_SAMPLER_EMPTY => Q3_SAMPLER_EMPTY,
-            -- Q3_SAMPLER_RD_EN => Q3_SAMPLER_RD_EN,
-            Q3_SAMPLER_RD_VALID => Q3_SAMPLER_RD_VALID,
-            -- Q4_SAMPLER_EMPTY => Q4_SAMPLER_EMPTY,
-            -- Q4_SAMPLER_RD_EN => Q4_SAMPLER_RD_EN,
-            Q4_SAMPLER_RD_VALID => Q4_SAMPLER_RD_VALID,
-            QUBITS_SAMPLED     => QUBITS_SAMPLED,
+            qubits_sampled_valid => qubits_sampled_valid,
+            qubits_sampled => qubits_sampled,
 
-            FEEDBACK_MOD_VALID => FEEDBACK_MOD_VALID,
-            FEEDBACK_MOD       => FEEDBACK_MOD,
+            feedback_mod_valid => feedback_mod_valid,
+            feedback_mod => feedback_mod,
 
-            EN_SAMPL_FLAG      => EN_SAMPL_FLAG,
-            GFLOW_SUCCESS_FLAG => GFLOW_SUCCESS_FLAG,
-            TO_MATH_ALPHA      => TO_MATH_ALPHA,
-            TO_MATH_DATA       => TO_MATH_DATA,
-            QUBIT_DETECTED     => QUBIT_DETECTED
+            gflow_success_flag => gflow_success_flag,
+            gflow_success_done => gflow_success_done,
+            qubit_buffer => qubit_buffer,
+            time_stamp_buffer => time_stamp_buffer,
+            time_stamp_buffer_overflows => time_stamp_buffer_overflows,
+            alpha_buffer => alpha_buffer,
 
-            CLK                       : in  std_logic;
-            RST                       : in  std_logic;
+            to_math_alpha => to_math_alpha,
+            to_math_sx_xz => to_math_sx_xz,
+            actual_qubit_valid => actual_qubit_valid,
+            actual_qubit => actual_qubit,
+            actual_qubit_time_stamp => actual_qubit_time_stamp,
 
-            QUBITS_SAMPLED_VALID      : in  std_logic_vector(QUBITS_CNT-1 downto 0);
-            QUBITS_SAMPLED            : in  std_logic_vector((QUBITS_CNT*2)-1 downto 0);
-
-            FEEDBACK_MOD_VALID        : in  std_logic;
-            FEEDBACK_MOD              : in  std_logic_vector(1 downto 0);
-
-            GFLOW_SUCCESS_FLAG          : out std_logic;
-            GFLOW_SUCCESS_DONE          : out std_logic;
-            QUBIT_BUFFER                : out t_qubit_buffer_2d;
-            TIME_STAMP_BUFFER           : out t_time_stamp_buffer_2d;
-            TIME_STAMP_BUFFER_OVERFLOWS : out t_time_stamp_buffer_overflows_2d;
-            ALPHA_BUFFER                : out t_alpha_buffer_2d;
-
-            TO_MATH_ALPHA           : out std_logic_vector(1 downto 0);
-            TO_MATH_SX_SZ           : out std_logic_vector(1 downto 0);
-            ACTUAL_QUBIT_VALID      : out std_logic;
-            ACTUAL_QUBIT            : out std_logic_vector(1 downto 0);
-            ACTUAL_QUBIT_TIME_STAMP : out std_logic_vector(st_transaction_data_max_width);
-
-            TIME_STAMP_COUNTER_OVERFLOW : out std_logic
+            time_stamp_counter_overflow => time_stamp_counter_overflow
         );
-
-
-        -- Send random data
-        -- proc_rand_input : process
-
-        --     variable v_random_number      : std_logic_vector(QUBITS_SAMPLED'range);
-        --     -- variable v_keep_time_pulse_p1 : time;
-
-        --     -- Required for uniform randomization procedure
-        --     variable seed_1, seed_2 : integer := MAX_RANDOM_NUMBS;
-
-        --     -- Random SLV generator
-        --     impure function rand_slv (
-        --         constant length : integer
-        --     ) return std_logic_vector is
-        --         variable r   : real;
-        --         variable slv : std_logic_vector(length-1 downto 0);
-        --     begin
-        --         for i in slv'range loop
-        --             uniform(seed_1, seed_2, r);
-        --             slv(i) := '1' when r > 0.5 else '0';
-        --         end loop;
-        --         return slv;
-        --     end function;
-
-        --     procedure transmit (
-        --         constant data_1 : std_logic_vector(QUBITS_SAMPLED'range)
-        --     ) is begin
-        --         -- Send data to the DUT
-        --         QUBITS_SAMPLED <= data_1;
-        --         -- Print what has been sent, in ModelSim (unsigned data)
-        --         -- report "Transmitted: " & integer'image(to_integer(unsigned(data_1)));
-        --     end procedure;
-
-        -- begin
-
-        --     for i in 0 to REPETITIONS-1 loop
-        --         v_random_number := rand_slv(v_random_number'length);
-        --         transmit(v_random_number);
-        --         wait until rising_edge(CLK);
-        --     end loop;
-
-        -- end process;
 
 
         -- Sequencer
         proc_sequencer : process
 
-            -- variable v_keep_time_pulse_p1 : time;
-
             -- Required for uniform randomization procedure
             variable seed_1, seed_2 : integer := MAX_RANDOM_NUMBS;
 
             -- Random SLV generator
-            variable v_random_number : std_logic_vector(QUBITS_SAMPLED'range);
+            variable v_random_number : std_logic_vector(qubits_sampled_valid'range);
             impure function rand_slv (
                 constant length : integer
             ) return std_logic_vector is
@@ -238,10 +205,10 @@
             end procedure;
 
             procedure transmit (
-                constant data_1 : std_logic_vector(QUBITS_SAMPLED'range)
+                constant data_1 : std_logic_vector(qubits_sampled'range)
             ) is begin
                 -- Send data to the DUT
-                QUBITS_SAMPLED <= data_1;
+                qubits_sampled <= data_1;
                 -- Print what has been sent, in ModelSim (unsigned data)
                 -- report "Transmitted: " & integer'image(to_integer(unsigned(data_1)));
             end procedure;
@@ -258,58 +225,130 @@
             -- TEST #1
             report "TEST #1: Stay at State 1";
             -- Keep the FSM in state 1
-            wait_cycles(90);
+            qubits_sampled <= (others => '0');
+            qubits_sampled_valid <= (others => '0');
+            wait until rising_edge(clk);
+            wait_cycles(300);
 
 
             -- TEST #2
             report "TEST #2: States 1 -> 2 -> 3 -> 4 -> 1";
-            QUBITS_SAMPLED <= "11111111";
             -- FSM in state 1 -> 2
-            wait until rising_edge(CLK);
+            qubits_sampled(7 downto 6) <= (others => '1');
+            qubits_sampled_valid(3) <= '1';
+            wait until rising_edge(clk);
+            qubits_sampled <= (others => '0');
+            qubits_sampled_valid <= (others => '0');
+            wait for 0 ns;
 
             -- FSM in state 2 -> 3
-            wait for (2.125)*1 us;
+            wait for (MAX_PERIODS_Q(1))*1 ns;
+            if (TOTAL_DELAY_FPGA_AFTER+TOTAL_DELAY_FPGA_BEFORE /= 0) then
+                for i in 0 to TOTAL_DELAY_FPGA_AFTER+TOTAL_DELAY_FPGA_BEFORE-1 loop
+                    wait until rising_edge(clk);
+                end loop;
+            end if;
+            qubits_sampled(5 downto 4) <= (others => '1');
+            qubits_sampled_valid(2) <= '1';
+            wait until rising_edge(clk);
+            qubits_sampled <= (others => '0');
+            qubits_sampled_valid <= (others => '0');
+            wait for 0 ns;
 
             -- FSM in state 3 -> 4
-            wait for (1.034)*1 us;
+            wait for (MAX_PERIODS_Q(2))*1 ns;
+            for i in 0 to TOTAL_DELAY_FPGA_AFTER+TOTAL_DELAY_FPGA_BEFORE-1 loop
+                wait until rising_edge(clk);
+            end loop;
+            qubits_sampled(3 downto 2) <= (others => '1');
+            qubits_sampled_valid(1) <= '1';
+            wait until rising_edge(clk);
+            qubits_sampled <= (others => '0');
+            qubits_sampled_valid <= (others => '0');
+            wait for 0 ns;
 
             -- FSM in state 4 -> 1
-            wait for (3.181)*1 us;
-            QUBITS_SAMPLED <= "00000000";
+            wait for (MAX_PERIODS_Q(3))*1 ns;
+            if (TOTAL_DELAY_FPGA_AFTER+TOTAL_DELAY_FPGA_BEFORE /= 0) then
+                for i in 0 to TOTAL_DELAY_FPGA_AFTER+TOTAL_DELAY_FPGA_BEFORE-1 loop
+                    wait until rising_edge(clk);
+                end loop;
+            end if;
+            qubits_sampled(1 downto 0) <= (others => '1');
+            qubits_sampled_valid(0) <= '1';
+            wait until rising_edge(clk);
+            qubits_sampled <= (others => '0');
+            qubits_sampled_valid <= (others => '0');
+            wait for 0 ns;
 
 
             -- TEST #3
+            wait_cycles(90);
             report "TEST #3: States 1 -> 2 -> 3 -> 1";
-            QUBITS_SAMPLED <= "11110000";
             -- FSM in state 1 -> 2
-            wait until rising_edge(CLK);
+            qubits_sampled(7 downto 6) <= (others => '1');
+            qubits_sampled_valid(3) <= '1';
+            wait until rising_edge(clk);
+            qubits_sampled <= (others => '0');
+            qubits_sampled_valid <= (others => '0');
+            wait for 0 ns;
 
             -- FSM in state 2 -> 3
-            wait for (2.125)*1 us;
+            wait for (MAX_PERIODS_Q(1))*1 ns;
+            if (TOTAL_DELAY_FPGA_AFTER+TOTAL_DELAY_FPGA_BEFORE /= 0) then
+                for i in 0 to TOTAL_DELAY_FPGA_AFTER+TOTAL_DELAY_FPGA_BEFORE-1 loop
+                    wait until rising_edge(clk);
+                end loop;
+            end if;
+            qubits_sampled(5 downto 4) <= (others => '1');
+            qubits_sampled_valid(2) <= '1';
+            wait until rising_edge(clk);
+            qubits_sampled <= (others => '0');
+            qubits_sampled_valid <= (others => '0');
+            wait for 0 ns;
 
             -- FSM in state 3 -> 1
-            wait for (1.034)*1 us;
-            QUBITS_SAMPLED <= "00000000";
+            wait for (MAX_PERIODS_Q(2))*1 ns;
+            if (TOTAL_DELAY_FPGA_AFTER+TOTAL_DELAY_FPGA_BEFORE /= 0) then
+                for i in 0 to TOTAL_DELAY_FPGA_AFTER+TOTAL_DELAY_FPGA_BEFORE-1 loop
+                    wait until rising_edge(clk);
+                end loop;
+            end if;
+            qubits_sampled <= (others => '0');
+            qubits_sampled_valid <= (others => '0');
+            wait for 0 ns;
 
 
             -- TEST #4
+            wait_cycles(90);
             report "TEST #4: States 1 -> 2 -> 1";
             -- FSM in state 1 -> 2
-            QUBITS_SAMPLED <= "11110000";
-            -- FSM in state 1 -> 2
-            wait until rising_edge(CLK);
+            qubits_sampled(7 downto 6) <= (others => '1');
+            qubits_sampled_valid(3) <= '1';
+            wait until rising_edge(clk);
+            qubits_sampled <= (others => '0');
+            qubits_sampled_valid <= (others => '0');
+            wait for 0 ns;
 
             -- FSM in state 2 -> 1
-            wait for (2.125)*1 us;
-            QUBITS_SAMPLED <= "00000000";
+            wait for (MAX_PERIODS_Q(1))*1 ns;
+            qubits_sampled <= (others => '0');
+            qubits_sampled_valid <= (others => '0');
+            wait for 0 ns;
 
 
             -- Random input test
+            wait_cycles(90);
             report "Test with random input bits";
             for i in 0 to REPETITIONS-1 loop
                 v_random_number := rand_slv(v_random_number'length);
-                transmit(v_random_number);
-                wait until rising_edge(CLK);
+                qubits_sampled <= (others => '1');
+                qubits_sampled_valid <= v_random_number;
+                wait until rising_edge(clk);
+                qubits_sampled <= (others => '0');
+                qubits_sampled_valid <= (others => '0');
+                wait until rising_edge(clk);
+                wait for 0 ns;
             end loop;
 
             -- Wait in state 1

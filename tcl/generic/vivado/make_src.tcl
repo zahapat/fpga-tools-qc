@@ -300,22 +300,22 @@ source "./packages/proj_specific_sim/compile_order.tcl"
 # Add Top File
 puts "TCL: Searching for module: $topFile"
 set topFile_noposix [lindex [split $topFile "."] 0]
-set foundSrcs [glob -nocomplain -type f modules/*/{${topFile}}* modules/${topFile_noposix}/*/{${topFile}}* modules/${topFile_noposix}/*/*/{${topFile}}* modules/${topFile_noposix}/*/*/*/{${topFile}}*]
+set foundTopSrc [glob -nocomplain -type f modules/*/{${topFile}}* modules/${topFile_noposix}/*/{${topFile}}* modules/${topFile_noposix}/*/*/{${topFile}}* modules/${topFile_noposix}/*/*/*/{${topFile}}*]
 
-if { [llength $foundSrcs] == 1 } {
-    set srcPathFound [string range $foundSrcs 0 end]
-    set abs_path_to_filedir [file dirname "[file normalize ${origin_dir}/$srcPathFound]"]
-    puts "TCL: abs_path_to_filedir = $abs_path_to_filedir"
+if { [llength $foundTopSrc] == 1 } {
+    set srcPathFound [string range $foundTopSrc 0 end]
+    set abs_path_to_topFile [file dirname "[file normalize ${origin_dir}/$srcPathFound]"]
+    puts "TCL: abs_path_to_topFile = $abs_path_to_topFile"
 
     # Add all existing files from the current module directory (COUNT 1)
-    source "$abs_path_to_filedir/../compile_order.tcl"
+    source "$abs_path_to_topFile/../compile_order.tcl"
 } else {
     puts "TCL: ERROR: There are multiple files with the name $topFile. Ensure there is only one in all searched project directories."
     quit
 }
 # lappend ModelSim_SrcsComporder $topFileFound_normalized
 # set_property TOP $topFile [current_fileset]
-set topFileFound_path $foundSrcs
+set topFileFound_path $foundTopSrc
 set topFileFound_normalized "[file normalize $topFileFound_path]"
 set path_to_topfile "[string trimright $topFileFound_normalized $topFile]"
 puts "TCL: path_to_topfile = $path_to_topfile"
@@ -563,20 +563,20 @@ for {set i 0} {$i < $hier_levels} {incr i} {
 
             # Top=VHD/SV/V, Looking for VHDL
             if {$file_type eq "vhd"} {
-                set moduleVHD "$line_missing_module_name.vhd"
+                set moduleVHD "${line_missing_module_name}.vhd"
                 set moduleVHDpack "${line_missing_module_name}_pack.vhd"
                 set moduleVHDsim "${line_missing_module_name}_tb.vhd"
                 set moduleVHDsimpack "${line_missing_module_name}_pack_tb.vhd"
             } elseif {$file_type eq "sv"} {
-                set moduleVHD "$line_missing_module_name_verilog.vhd"
-                set moduleVHDpack "${line_missing_module_name_verilog}_pack.vhd"
-                set moduleVHDsim "${line_missing_module_name_verilog}_tb.vhd"
-                set moduleVHDsimpack "${line_missing_module_name_verilog}_pack_tb.vhd"
+                set moduleVHD "${line_missing_module_name}.vhd"
+                set moduleVHDpack "${line_missing_module_name}_pack.vhd"
+                set moduleVHDsim "${line_missing_module_name}_tb.vhd"
+                set moduleVHDsimpack "${line_missing_module_name}_pack_tb.vhd"
             } elseif {$file_type eq "v"} {
-                set moduleVHD "$line_missing_module_name_verilog.vhd"
-                set moduleVHDpack "${line_missing_module_name_verilog}_pack.vhd"
-                set moduleVHDsim "${line_missing_module_name_verilog}_tb.vhd"
-                set moduleVHDsimpack "${line_missing_module_name_verilog}_pack_tb.vhd"
+                set moduleVHD "${line_missing_module_name}.vhd"
+                set moduleVHDpack "${line_missing_module_name}_pack.vhd"
+                set moduleVHDsim "${line_missing_module_name}_tb.vhd"
+                set moduleVHDsimpack "${line_missing_module_name}_pack_tb.vhd"
             } else {
                 puts "TCL: ERROR: Invalid file type '$file_type' of the specified TOP file. Quit."
                 quit
@@ -584,20 +584,20 @@ for {set i 0} {$i < $hier_levels} {incr i} {
 
             # Top=VHD/SV/V, Looking for SystemVerilog
             if {$file_type eq "vhd"} {
-                set moduleSV "$line_missing_module_name.sv"
+                set moduleSV "${line_missing_module_name}.sv"
                 set moduleSVpack "${line_missing_module_name}_pack.sv"
                 set moduleSVsim "${line_missing_module_name}_tb.sv"
                 set moduleSVsimpack "${line_missing_module_name}_pack_tb.sv"
             } elseif {$file_type eq "sv"} {
-                set moduleSV "$line_missing_module_name_verilog.sv"
-                set moduleSVpack "${line_missing_module_name_verilog}_pack.sv"
-                set moduleSVsim "${line_missing_module_name_verilog}_tb.sv"
-                set moduleSVsimpack "${line_missing_module_name_verilog}_pack_tb.sv"
+                set moduleSV "${line_missing_module_name}.sv"
+                set moduleSVpack "${line_missing_module_name}_pack.sv"
+                set moduleSVsim "${line_missing_module_name}_tb.sv"
+                set moduleSVsimpack "${line_missing_module_name}_pack_tb.sv"
             } elseif {$file_type eq "v"} {
-                set moduleSV "$line_missing_module_name_verilog.sv"
-                set moduleSVpack "${line_missing_module_name_verilog}_pack.sv"
-                set moduleSVsim "${line_missing_module_name_verilog}_tb.sv"
-                set moduleSVsimpack "${line_missing_module_name_verilog}_pack_tb.sv"
+                set moduleSV "${line_missing_module_name}.sv"
+                set moduleSVpack "${line_missing_module_name}_pack.sv"
+                set moduleSVsim "${line_missing_module_name}_tb.sv"
+                set moduleSVsimpack "${line_missing_module_name}_pack_tb.sv"
             } else {
                 puts "TCL: ERROR: Invalid file type '$file_type' of the specified TOP file. Quit."
                 quit
@@ -605,20 +605,20 @@ for {set i 0} {$i < $hier_levels} {incr i} {
 
             # Top=VHD/SV/V, Looking for Verilog
             if {$file_type eq "vhd"} {
-                set moduleV "$line_missing_module_name.v"
+                set moduleV "${line_missing_module_name}.v"
                 set moduleVpack "${line_missing_module_name}_pack.v"
                 set moduleVsim "${line_missing_module_name}_tb.v"
                 set moduleVsimpack "${line_missing_module_name}_pack_tb.v"
             } elseif {$file_type eq "sv"} {
-                set moduleV "$line_missing_module_name_verilog.v"
-                set moduleVpack "${line_missing_module_name_verilog}_pack.v"
-                set moduleVsim "${line_missing_module_name_verilog}_tb.v"
-                set moduleVsimpack "${line_missing_module_name_verilog}_pack_tb.v"
+                set moduleV "${line_missing_module_name}.v"
+                set moduleVpack "${line_missing_module_name}_pack.v"
+                set moduleVsim "${line_missing_module_name}_tb.v"
+                set moduleVsimpack "${line_missing_module_name}_pack_tb.v"
             } elseif {$file_type eq "v"} {
-                set moduleV "$line_missing_module_name_verilog.v"
-                set moduleVpack "${line_missing_module_name_verilog}_pack.v"
-                set moduleVsim "${line_missing_module_name_verilog}_tb.v"
-                set moduleVsimpack "${line_missing_module_name_verilog}_pack_tb.v"
+                set moduleV "${line_missing_module_name}.v"
+                set moduleVpack "${line_missing_module_name}_pack.v"
+                set moduleVsim "${line_missing_module_name}_tb.v"
+                set moduleVsimpack "${line_missing_module_name}_pack_tb.v"
             } else {
                 puts "TCL: ERROR: Invalid file type '$file_type' of the specified TOP file. Quit."
                 quit
@@ -724,7 +724,7 @@ for {set i 0} {$i < $hier_levels} {incr i} {
     # Break if lost in infinite loop
     incr act_break_level
     if {$act_break_level == $break_level} {
-        puts "TCL: ERROR: Modules can not be found. Design hierarchy is incomplete. Quit."
+        puts "TCL: ERROR: Modules could not be found. Design hierarchy is incomplete. Quit."
         quit
     }
 
@@ -743,13 +743,17 @@ for {set i 0} {$i < $hier_levels} {incr i} {
 puts -nonewline $all_modules_added_vivado "./$topFileFound_path"
 close $all_modules_added_vivado
 
-if {${find_tb_file} == 1} {
-    puts -nonewline $all_modules "\
-        ./$topFileTbFound_path"
-} else {
-    puts -nonewline $all_modules "\
-        ./$topFileFound_path"
-}
+
+# Set the new top module after all required sources have been added
+set_property TOP $topFile [current_fileset]
+
+# if {${find_tb_file} == 1} {
+#     puts -nonewline $all_modules "\
+#         ./$topFileTbFound_path"
+# } else {
+#     puts -nonewline $all_modules "\
+#         ./$topFileFound_path"
+# }
 close $all_modules
 
 
@@ -916,7 +920,9 @@ close $all_modules
 # puts "TCL: Compile order (PRE re-add and sort):"
 # puts "TCL: $compileOrder"
 # report_compile_order -file "${origin_dir}/vivado/0_report_compile_order.rpt"
-
+puts "TCL: Let vivado choose the correct TOP module"
+set_property source_mgmt_mode All [current_project]
+update_compile_order
 
 # -----------------------------------
 # - Print missing simulation files --

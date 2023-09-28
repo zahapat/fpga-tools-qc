@@ -140,7 +140,7 @@ generics : ./vivado/$(PROJ_NAME).xpr
 	$(VIVADO_BINPATH)/vivado.bat -nolog -nojou -mode batch -source ./tcl/project_specific/vivado/make_generics.tcl -notrace
 
 # make ooc TOP=<module>: Run Synthesis in Out-of-context mode
-ooc : ./vivado/$(PROJ_NAME).xpr 0_report_added_modules.rpt
+ooc : ./vivado/$(PROJ_NAME).xpr ./vivado/0_report_added_modules.rpt
 	$(info ----- RUN SYNTHESIS IN OUT-OF-CONTEXT MODE -----)
 	$(VIVADO_BINPATH)/vivado.bat -nolog -nojou -mode batch -source ./tcl/generic/vivado/make_ooc.tcl -notrace -tclargs $(TOP)
 
@@ -224,6 +224,6 @@ core : ./vivado/$(PROJ_NAME).xpr ./vivado/0_report_added_modules.rpt ./vivado/0_
 
 
 # make ip: Generate IP output files (xci, xco)
-ip : $(PROJ_NAME).xpr 0_report_added_modules.rpt ./vivado/0_report_added_xdc.rpt ./vivado/1_netlist_post_synth.edf
+ip : $(PROJ_NAME).xpr ./vivado/0_report_added_modules.rpt ./vivado/0_report_added_xdc.rpt ./vivado/1_netlist_post_synth.edf
 	$(info ----- CREATE IP CORE OUTPUT FILES OF AN EXISTING USER IP CORE -----)
 	$(VIVADO_BINPATH)/vivado.bat -nolog -nojou -mode batch -source ./tcl/generic/vivado/make_ip.tcl -notrace -tclargs $(NAME_IP_PACK)

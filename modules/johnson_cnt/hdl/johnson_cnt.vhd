@@ -10,32 +10,6 @@
     --                                  If the pattern shown above has been found, a pulse lasting CNT_ONEHOT_WIDTH
     --                                  will be sent to the output, for each channel respecitvely.
 
-    -- Timing Closure Techniques: 
-    -- https://www.physicaldesign4u.com/2020/05/time-stealing-and-difference-between.html
-    --      Time Borrowing
-    --              - get extra time for evaluation by taking it from the previous cycle
-    --              - uses leftovers from previous cycles
-    --              - using LATCHES & FLIP-FLOPS
-    --              - Better for high-perforance designs, offer better flexibility than edge-triggered circuits
-    --                because no clock requirements are needed from latches
-    --              - Ideal for static logic in a two-phase clocking system latches
-    --              - Traditionally used to reduce clock jitter and skew on maximal frequencies
-    --              - method: adjusting clock arrival time by widening the active clock time
-    --                        (using asymmetric duty cycle) for the capture Flip-Flop
-    --                              -> shifting rising_edge earlier
-    --                              -> shifting falling_edge later
-    --      Time Stealing
-    --              - get extra time for evaluation by taking it from the next cycle
-    --              - next clock cycle thus must have positive slack!
-    --              - can not use leftovers from previous cycles like in time borrowing
-    --              - when dealing with SETUP violations
-    --              - using FLIP-FLOPS (1x Positive-edge and Negative-edge)
-    --              - also used to reduce leakage power
-    --              - method: adjusting clock arrival time by widening the active clock time
-    --                        (using asymmetric duty cycle) for the capture Flip-Flop
-    --                              -> shifting rising_edge earlier
-    --                              -> shifting falling_edge later
-
     library ieee;
     use ieee.std_logic_1164.all;
     use ieee.numeric_std.all;

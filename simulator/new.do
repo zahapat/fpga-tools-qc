@@ -7,7 +7,7 @@ variable run_time "-all"
 # Open project
 if {$lib_sim_vhdl eq "work"} {
     if {$lib_src_vhdl eq "work"} {
-        project open $proj_root_dir/modelsim/project.mpf
+        project open $proj_root_dir/simulator/project.mpf
         project compileall
     }
 }
@@ -92,4 +92,4 @@ if {[file exists "$tb_top_dir_abspath/wave.do"]} {
 #     # add wave sim:/signals_pack_tb/*
 # }
 
-source "$proj_root_dir/modelsim/run.do"
+source "$proj_root_dir/simulator/run.do"
