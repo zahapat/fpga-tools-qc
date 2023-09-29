@@ -777,7 +777,7 @@
 
         -- n-FF CDCC (Cross Domain Crossing Circuit)
         gen_nff_cdcc_sysclk : for i in 0 to QUBITS_CNT-1 generate
-            inst_nff_cdcc_samplclk : entity lib_src.nff_cdcc(rtl)
+            inst_nff_cdcc_cntcross_samplclk : entity lib_src.nff_cdcc(rtl)
             generic map (
                 ASYNC_FLOPS_CNT => 2,
                 DATA_WIDTH => 2,
@@ -813,7 +813,15 @@
             PHOTON_3H_DELAY_NS      => PHOTON_3H_DELAY_NS,
             PHOTON_3V_DELAY_NS      => PHOTON_3V_DELAY_NS,
             PHOTON_4H_DELAY_NS      => PHOTON_4H_DELAY_NS,
-            PHOTON_4V_DELAY_NS      => PHOTON_4V_DELAY_NS
+            PHOTON_4V_DELAY_NS      => PHOTON_4V_DELAY_NS,
+            PHOTON_5H_DELAY_NS      => PHOTON_5H_DELAY_NS,
+            PHOTON_5V_DELAY_NS      => PHOTON_5V_DELAY_NS,
+            PHOTON_6H_DELAY_NS      => PHOTON_6H_DELAY_NS,
+            PHOTON_6V_DELAY_NS      => PHOTON_6V_DELAY_NS,
+            PHOTON_7H_DELAY_NS      => PHOTON_7H_DELAY_NS,
+            PHOTON_7V_DELAY_NS      => PHOTON_7V_DELAY_NS,
+            PHOTON_8H_DELAY_NS      => PHOTON_8H_DELAY_NS,
+            PHOTON_8V_DELAY_NS      => PHOTON_8V_DELAY_NS
         )
         port map (
             clk                       => sys_clk,

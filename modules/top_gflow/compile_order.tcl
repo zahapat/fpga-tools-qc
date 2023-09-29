@@ -12,8 +12,6 @@ set vivado_added_scripts_report [open $vivado_added_scripts_report_path "a"]
 # 1.0) Add SRC Package Files
 # -------------------------------------------------------
 #    * Vivado
-source "${origin_dir}/packages/ok/frontpanel_xem7350_k160t/compile_order.tcl"
-
 #    * ModelSim
 
 
@@ -88,3 +86,10 @@ if {[llength $foundFiles] > 0} {
 close $simulator_comporder
 close $vivado_added_hdl_report
 close $vivado_added_scripts_report
+
+
+# -------------------------------------------------------
+# Add accociated compile_order.tcl sumbodule scripts
+# -------------------------------------------------------
+# This is necessary to add required submodules to successfully compile and implement this module
+source "${origin_dir}/packages/ok/frontpanel_xem7350_k160t/compile_order.tcl"
