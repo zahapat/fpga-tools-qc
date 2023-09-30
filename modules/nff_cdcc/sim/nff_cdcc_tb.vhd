@@ -32,12 +32,14 @@
         constant ASYNC_FLOPS_CNT : positive := 2;
         constant DATA_WIDTH : natural := 2;
         constant FLOPS_BEFORE_CROSSING_CNT : positive := 1;
+        constant WR_READY_DEASSERTED_CYCLES : positive := 3;
 
         -- DUT signals
         signal rst_write : std_logic := '1';
         signal clk_write : std_logic := '1';
         signal wr_en : std_logic := '0';
         signal wr_data : std_logic_vector(DATA_WIDTH-1 downto 0) := (others => '0');
+        signal wr_ready : std_logic;
 
         signal rst_read : std_logic := '1';
         signal clk_read : std_logic := '1';
@@ -59,13 +61,15 @@
         generic map (
             ASYNC_FLOPS_CNT => ASYNC_FLOPS_CNT,
             DATA_WIDTH => DATA_WIDTH,
-            FLOPS_BEFORE_CROSSING_CNT => FLOPS_BEFORE_CROSSING_CNT
+            FLOPS_BEFORE_CROSSING_CNT => FLOPS_BEFORE_CROSSING_CNT,
+            WR_READY_DEASSERTED_CYCLES => WR_READY_DEASSERTED_CYCLES
         )
         port map (
 
             clk_write => clk_write,
             wr_en => wr_en,
             wr_data => wr_data,
+            wr_ready => wr_ready,
 
             clk_read => clk_read,
             rd_valid => rd_valid,

@@ -1,36 +1,9 @@
--- set_property AUTO_INCREMENTAL_CHECKPOINT 1 [get_runs synth_1]
--- set_property AUTO_INCREMENTAL_CHECKPOINT.DIRECTORY C:/Users/Patrik/gflow/gflow_ok_clean/vivado/gflow_ok_clean.srcs/utils_1/imports/synth_1 [get_runs synth_1]
--- set_property AUTO_INCREMENTAL_CHECKPOINT 1 [get_runs impl_1]
--- set_property AUTO_INCREMENTAL_CHECKPOINT.DIRECTORY C:/Users/Patrik/gflow/gflow_ok_clean/vivado/gflow_ok_clean.srcs/utils_1/imports/impl_1 [get_runs impl_1]
-
-
--- Read https://docs.xilinx.com/r/2021.2-English/ug949-vivado-design-methodology/Incremental-Synthesis
--- synth_design -incremental_mode <value> command:
-
--- off
--- Incremental synthesis is not run.
--- quick
--- Fastest results but no cross boundary optimizations. This mode limits logic performance.
--- default
--- Most logic optimizations enabled, including cross-boundary optimization. Compile time is significantly reduced from non-incremental synthesis.
--- aggressive
--- All optimizations are enabled. Compile time is significantly reduced from non-incremental synthesis.
-
-
-
--- set_property strategy Flow_AlternateRoutability [get_runs synth_1]
--- set_property STEPS.SYNTH_DESIGN.ARGS.RETIMING true [get_runs synth_1]
-
--- set_property strategy Performance_Retiming [get_runs impl_1]
-
     -- top.vhd: Architecture of the FPGA part of the G-Flow protocol
 
     library ieee;
     use ieee.std_logic_1164.all;
     use ieee.numeric_std.all;
 
-    -- library work;
-    
     library UNISIM;
     use UNISIM.VComponents.all;
     
@@ -64,6 +37,14 @@
             PHOTON_3V_DELAY_NS     : real := -1034.45;
             PHOTON_4H_DELAY_NS     : real := -3177.95;
             PHOTON_4V_DELAY_NS     : real := -3181.05;
+            PHOTON_5H_DELAY_NS     : real := -3177.95;
+            PHOTON_5V_DELAY_NS     : real := -3181.05;
+            PHOTON_6H_DELAY_NS     : real := -3177.95;
+            PHOTON_6V_DELAY_NS     : real := -3181.05;
+            PHOTON_7H_DELAY_NS     : real := -3177.95;
+            PHOTON_7V_DELAY_NS     : real := -3181.05;
+            PHOTON_8H_DELAY_NS     : real := -3177.95;
+            PHOTON_8V_DELAY_NS     : real := -3181.05;
 
             WRITE_ON_VALID         : boolean := true
         );
@@ -163,7 +144,7 @@
         constant SYSTEMCLK_EMUL_FREQ_HZ : real := real(CLK_SAMPL_HZ);
 
         -- Noisy rising edge detection & keep input
-        constant CHANNELS_CNT                     : positive := 8;
+        constant CHANNELS_CNT                     : positive := INPUT_PADS_CNT;
         constant BUFFER_DEPTH                     : positive := 6;
         constant PATTERN_WIDTH                    : positive := 2;
         constant BUFFER_PATTERN                   : positive := 1;
@@ -183,7 +164,7 @@
         constant RST_STROBE_CNTR_WIDTH_SYSCLK : positive := 28; -- 10*10^(-9) sec * 2^28 / 2 = 1.3 sec
         constant RST_STROBE_CNTR_WIDTH_SAMPLCLK : positive := 2;
 
-            -- Pseudorandom bit generator
+        -- Pseudorandom bit generator
         constant PRIM_POL_INT_VAL  : positive := 19;
         constant SYMBOL_WIDTH      : positive := 4;
         constant GF_SEED           : positive := 1;
@@ -249,68 +230,29 @@
         signal sl_rst_sysclk : std_logic;
         signal sl_rst_samplclk : std_logic := '0';
 
-        signal s_noisy_channels : std_logic_vector(CHANNELS_CNT-1 downto 0) := (others => '0');
-        signal s_stable_channels_to_cdcc : std_logic_vector(CHANNELS_CNT-1 downto 0) := (others => '0');
-        signal s_valid_qubits_stable_to_cdcc : std_logic_vector(CHANNELS_CNT/2-1 downto 0) := (others => '0');
+        -- Dimensioned for 8 qubits max
+        signal s_noisy_channels : std_logic_vector(16-1 downto 0) := (others => '0');
+        signal s_stable_channels_to_cdcc : std_logic_vector(16-1 downto 0) := (others => '0');
+        signal s_valid_qubits_stable_to_cdcc : std_logic_vector(16/2-1 downto 0) := (others => '0');
 
-        signal sl_inemul_ready : std_logic := '0';
         signal sl_inemul_valid : std_logic := '0';
-
-        signal s_q1_valid_to_sampler : std_logic := '0';
-        signal s_q2_valid_to_sampler : std_logic := '0';
-        signal s_q3_valid_to_sampler : std_logic := '0';
-        signal s_q4_valid_to_sampler : std_logic := '0';
-        signal slv_qubits_valid_to_cdcc : std_logic_vector(QUBITS_CNT-1 downto 0) := (others => '0');
 
         signal slv_cdcc_rd_valid_to_fsm : std_logic_vector(QUBITS_CNT-1 downto 0) := (others => '0');
         signal slv_cdcc_rd_qubits_to_fsm : std_logic_vector(CHANNELS_CNT-1 downto 0) := (others => '0');
 
-        signal s_q1_sampler_empty : std_logic := '0';
-        signal s_q2_sampler_empty : std_logic := '0';
-        signal s_q3_sampler_empty : std_logic := '0';
-        signal s_q4_sampler_empty : std_logic := '0';
-        signal s_q1_sampler_full : std_logic := '0';
-        signal s_q2_sampler_full : std_logic := '0';
-        signal s_q3_sampler_full : std_logic := '0';
-        signal s_q4_sampler_full : std_logic := '0';
-
         signal sl_gflow_success_flag       : std_logic := '0';
         signal sl_gflow_success_done       : std_logic;
         signal slv_alpha_to_math           : std_logic_vector(1 downto 0) := (others => '0');
-        signal slv_sx_sz_to_math            : std_logic_vector(1 downto 0) := (others => '0');
+        signal slv_sx_sz_to_math           : std_logic_vector(1 downto 0) := (others => '0');
         signal sl_actual_qubit_valid       : std_logic := '0';
         signal slv_actual_qubit            : std_logic_vector(1 downto 0) := (others => '0');
         signal slv_actual_qubit_time_stamp : std_logic_vector(st_transaction_data_max_width) := (others => '0');
 
         signal sl_pseudorandom_to_math  : std_logic := '0';
-        signal slv_math_data_modulo            : std_logic_vector(1 downto 0) := (others => '0');
+        signal slv_math_data_modulo     : std_logic_vector(1 downto 0) := (others => '0');
         signal sl_math_data_valid       : std_logic := '0';
 
-        signal slv_modulo_to_sampl      : std_logic_vector(1 downto 0) := (others => '0');
-        signal sl_delay_pulse_trigger   : std_logic := '0';
-        signal s_valid_flags_uart_tx    : std_logic_vector(DELAY_GFLOW_TO_SAMPL_MOD-1 downto 0) := (others => '0');
-        signal s_1MHz_pulse             : std_logic := '0';
-
-        signal s_sampl_to_outl          : std_logic_vector(OUTPUT_PULSES_CNT-1 downto 0) := (others => '0');
-        signal slv_out_1MHz_pulses      : std_logic_vector(1 downto 0) := (others => '0');
-
-
-        -- Input_emulator
-        signal EMUL_PHOTON_1H : std_logic := '0';
-        signal EMUL_PHOTON_1V : std_logic := '0';
-        signal EMUL_PHOTON_2H : std_logic := '0';
-        signal EMUL_PHOTON_2V : std_logic := '0';
-        signal EMUL_PHOTON_3H : std_logic := '0';
-        signal EMUL_PHOTON_3V : std_logic := '0';
-        signal EMUL_PHOTON_4H : std_logic := '0';
-        signal EMUL_PHOTON_4V : std_logic := '0';
-
-
-        -- To probe from uart_control
-        signal sl_valid_pckt           : std_logic := '0';
-        signal sl_uart_send_flag       : std_logic := '0';
-        signal slv_probe_s_cnt_periods : std_logic_vector(9 downto 0) := (others => '0');
-
+        signal slv_out_1MHz_pulses      : std_logic_vector(1 downto 0) := (others => '0');       
 
         -- Data buffers from G-Flow protocol module
         signal slv_qubit_buffer_2d      : t_qubit_buffer_2d;
@@ -580,6 +522,7 @@
         ---------------------
         -- If inputs not emulated: Assign collapsed photons to separate channels:
 
+        -- OLD:
         -- s_noisy_channels(7) = PHOTON 1H;
         -- s_noisy_channels(6) = PHOTON 1V;
         -- s_noisy_channels(5) = PHOTON 2H;
@@ -589,30 +532,44 @@
         -- s_noisy_channels(1) = PHOTON 4H;
         -- s_noisy_channels(0) = PHOTON 4V;
 
+        -- NEW:
+        -- s_noisy_channels(0) = PHOTON 1V;
+        -- s_noisy_channels(1) = PHOTON 1H;
+        -- s_noisy_channels(2) = PHOTON 2V;
+        -- s_noisy_channels(3) = PHOTON 2H;
+        -- s_noisy_channels(4) = PHOTON 3V;
+        -- s_noisy_channels(5) = PHOTON 3H;
+        -- s_noisy_channels(6) = PHOTON 4V;
+        -- s_noisy_channels(7) = PHOTON 4H;
+        -- s_noisy_channels(8) = PHOTON 5V;
+        -- s_noisy_channels(9) = PHOTON 5H;
+        -- s_noisy_channels(10) = PHOTON 6V;
+        -- s_noisy_channels(11) = PHOTON 6H;
+        -- s_noisy_channels(12) = PHOTON 7V;
+        -- s_noisy_channels(13) = PHOTON 7H;
+        -- s_noisy_channels(14) = PHOTON 8V;
+        -- s_noisy_channels(15) = PHOTON 8H;
+
         -- Input Buffers
         gen_emul_false : if EMULATE_INPUTS = false generate
             inst_xilinx_ibufs : entity lib_src.xilinx_ibufs(rtl)
             generic map (
-                PINS_CNT => 8
+                PINS_CNT => INPUT_PADS_CNT
             )
             port map (
                 clk => sampl_clk,
                 data_in => input_pads,
-                data_out => s_noisy_channels
+                data_out => s_noisy_channels(CHANNELS_CNT-1 downto 0)
             );
         end generate;
 
 
         -- If Necessary, uncomment this input emulator for evaluation
         gen_emul_true : if EMULATE_INPUTS = true generate 
-            inst_lfsr_inemul : entity lib_src.lfsr_inemul(rtl)
+            inst_lfsr_inemul_q1_to_q4 : entity lib_src.lfsr_inemul(rtl)
             generic map (
-                -- RST_VAL           => RST_VAL,
-                -- SYMBOL_WIDTH      => CHANNELS_CNT,
-                -- REQUESTED_FREQ_HZ => REQUESTED_EMUL_FREQ_HZ,
-                -- SYSTEMCLK_FREQ_HZ => SYSTEMCLK_EMUL_FREQ_HZ
                 RST_VAL               => RST_VAL,
-                SYMBOL_WIDTH          => CHANNELS_CNT,
+                SYMBOL_WIDTH          => 8,
                 PRIM_POL_INT_VAL      => 501,
                 GF_SEED               => 1,
                 DATA_PULLDOWN_ENABLE  => true,
@@ -622,9 +579,25 @@
                 clk => sys_clk,
                 rst => sl_rst_sysclk,
         
-                ready => sl_inemul_ready,
-                data_out => s_noisy_channels,
-                valid_out => sl_inemul_valid
+                data_out => s_noisy_channels(16-1 downto 8),
+                valid_out => open
+            );
+
+            inst_lfsr_inemul_q5_to_q8 : entity lib_src.lfsr_inemul(rtl)
+            generic map (
+                RST_VAL               => RST_VAL,
+                SYMBOL_WIDTH          => 8,
+                PRIM_POL_INT_VAL      => 501,
+                GF_SEED               => 1,
+                DATA_PULLDOWN_ENABLE  => true,
+                PULLDOWN_CYCLES       => 2 -- min 2
+            )
+            port map (
+                clk => sys_clk,
+                rst => sl_rst_sysclk,
+        
+                data_out => s_noisy_channels(8-1 downto 0),
+                valid_out => open
             );
         end generate;
 
@@ -640,17 +613,6 @@
             IN_RST  => sl_rst,  -- Pullup
             OUT_RST => sl_rst_sysclk
         );
-
-        -- Reset: sampl_clk domain
-        -- inst_pullup_reset_samplclk : entity lib_src.pullup_reset(rtl)
-        -- generic map (
-        --     RST_STROBE_COUNTER_WIDTH => RST_STROBE_CNTR_WIDTH_SAMPLCLK
-        -- )
-        -- port map (
-        --     CLK     => sampl_clk,
-        --     IN_RST  => sl_rst,  -- Pullup
-        --     OUT_RST => sl_rst_samplclk
-        -- );
 
         -- Input metastability filter and qubit deskew
         -- QUBIT 1
@@ -677,10 +639,10 @@
         port map (
             clk => sampl_clk,
             rst => sl_rst_samplclk,
-            noisy_channels_in => s_noisy_channels(7 downto 6),
-
-            qubit_valid_250MHz => s_valid_qubits_stable_to_cdcc(3),
-            qubit_250MHz => s_stable_channels_to_cdcc(7 downto 6)
+            noisy_channels_in => s_noisy_channels(1 downto 0),
+            
+            qubit_valid_250MHz => s_valid_qubits_stable_to_cdcc(0),
+            qubit_250MHz => s_stable_channels_to_cdcc(1 downto 0)
         );
 
         -- QUBIT 2
@@ -707,10 +669,10 @@
         port map (
             clk => sampl_clk,
             rst => sl_rst_samplclk,
-            noisy_channels_in => s_noisy_channels(5 downto 4),
+            noisy_channels_in => s_noisy_channels(3 downto 2),
 
-            qubit_valid_250MHz => s_valid_qubits_stable_to_cdcc(2),
-            qubit_250MHz => s_stable_channels_to_cdcc(5 downto 4)
+            qubit_valid_250MHz => s_valid_qubits_stable_to_cdcc(1),
+            qubit_250MHz => s_stable_channels_to_cdcc(3 downto 2)
         );
 
         -- QUBIT 3
@@ -737,12 +699,11 @@
         port map (
             clk => sampl_clk,
             rst => sl_rst_samplclk,
-            noisy_channels_in => s_noisy_channels(3 downto 2),
+            noisy_channels_in => s_noisy_channels(5 downto 4),
 
-            qubit_valid_250MHz => s_valid_qubits_stable_to_cdcc(1),
-            qubit_250MHz => s_stable_channels_to_cdcc(3 downto 2)
+            qubit_valid_250MHz => s_valid_qubits_stable_to_cdcc(2),
+            qubit_250MHz => s_stable_channels_to_cdcc(5 downto 4)
         );
-
 
         -- QUBIT 4
         inst_qubit4_deskew : entity lib_src.qubit_deskew(rtl)
@@ -768,31 +729,174 @@
         port map (
             clk => sampl_clk,
             rst => sl_rst_samplclk,
-            noisy_channels_in => s_noisy_channels(1 downto 0),
+            noisy_channels_in => s_noisy_channels(7 downto 6),
 
-            qubit_valid_250MHz => s_valid_qubits_stable_to_cdcc(0),
-            qubit_250MHz => s_stable_channels_to_cdcc(1 downto 0)
+            qubit_valid_250MHz => s_valid_qubits_stable_to_cdcc(3),
+            qubit_250MHz => s_stable_channels_to_cdcc(7 downto 6)
+        );
+
+        -- QUBIT 5
+        inst_qubit5_deskew : entity lib_src.qubit_deskew(rtl)
+        generic map (
+            RST_VAL                   => RST_VAL,
+            BUFFER_DEPTH              => BUFFER_DEPTH,
+            PATTERN_WIDTH             => PATTERN_WIDTH,
+            BUFFER_PATTERN            => BUFFER_PATTERN,
+            ZERO_BITS_CNT             => ZERO_BITS_CNT,
+            HIGH_BITS_CNT             => HIGH_BITS_CNT,
+            CLK_HZ                    => CLK_SAMPL_HZ,
+
+            CNT_ONEHOT_WIDTH          => CNT_ONEHOT_WIDTH,
+            DETECTOR_ACTIVE_PERIOD_NS => DETECTOR_ACTIVE_PERIOD_NS,
+            DETECTOR_DEAD_PERIOD_NS   => DETECTOR_DEAD_PERIOD_NS,
+
+            TOLERANCE_KEEP_FASTER_BIT_CYCLES => TOLERANCE_KEEP_FASTER_BIT_CYCLES,
+            IGNORE_CYCLES_AFTER_TIMEUP => IGNORE_CYCLES_AFTER_TIMEUP,
+
+            PHOTON_H_DELAY_NS => PHOTON_5H_DELAY_NS,
+            PHOTON_V_DELAY_NS => PHOTON_5V_DELAY_NS
+        )
+        port map (
+            clk => sampl_clk,
+            rst => sl_rst_samplclk,
+            noisy_channels_in => s_noisy_channels(9 downto 8),
+
+            qubit_valid_250MHz => s_valid_qubits_stable_to_cdcc(4),
+            qubit_250MHz => s_stable_channels_to_cdcc(9 downto 8)
+        );
+
+        -- QUBIT 6
+        inst_qubit6_deskew : entity lib_src.qubit_deskew(rtl)
+        generic map (
+            RST_VAL                   => RST_VAL,
+            BUFFER_DEPTH              => BUFFER_DEPTH,
+            PATTERN_WIDTH             => PATTERN_WIDTH,
+            BUFFER_PATTERN            => BUFFER_PATTERN,
+            ZERO_BITS_CNT             => ZERO_BITS_CNT,
+            HIGH_BITS_CNT             => HIGH_BITS_CNT,
+            CLK_HZ                    => CLK_SAMPL_HZ,
+
+            CNT_ONEHOT_WIDTH          => CNT_ONEHOT_WIDTH,
+            DETECTOR_ACTIVE_PERIOD_NS => DETECTOR_ACTIVE_PERIOD_NS,
+            DETECTOR_DEAD_PERIOD_NS   => DETECTOR_DEAD_PERIOD_NS,
+
+            TOLERANCE_KEEP_FASTER_BIT_CYCLES => TOLERANCE_KEEP_FASTER_BIT_CYCLES,
+            IGNORE_CYCLES_AFTER_TIMEUP => IGNORE_CYCLES_AFTER_TIMEUP,
+
+            PHOTON_H_DELAY_NS => PHOTON_6H_DELAY_NS,
+            PHOTON_V_DELAY_NS => PHOTON_6V_DELAY_NS
+        )
+        port map (
+            clk => sampl_clk,
+            rst => sl_rst_samplclk,
+            noisy_channels_in => s_noisy_channels(11 downto 10),
+
+            qubit_valid_250MHz => s_valid_qubits_stable_to_cdcc(5),
+            qubit_250MHz => s_stable_channels_to_cdcc(11 downto 10)
+        );
+
+
+        -- QUBIT 7
+        inst_qubit7_deskew : entity lib_src.qubit_deskew(rtl)
+        generic map (
+            RST_VAL                   => RST_VAL,
+            BUFFER_DEPTH              => BUFFER_DEPTH,
+            PATTERN_WIDTH             => PATTERN_WIDTH,
+            BUFFER_PATTERN            => BUFFER_PATTERN,
+            ZERO_BITS_CNT             => ZERO_BITS_CNT,
+            HIGH_BITS_CNT             => HIGH_BITS_CNT,
+            CLK_HZ                    => CLK_SAMPL_HZ,
+
+            CNT_ONEHOT_WIDTH          => CNT_ONEHOT_WIDTH,
+            DETECTOR_ACTIVE_PERIOD_NS => DETECTOR_ACTIVE_PERIOD_NS,
+            DETECTOR_DEAD_PERIOD_NS   => DETECTOR_DEAD_PERIOD_NS,
+
+            TOLERANCE_KEEP_FASTER_BIT_CYCLES => TOLERANCE_KEEP_FASTER_BIT_CYCLES,
+            IGNORE_CYCLES_AFTER_TIMEUP => IGNORE_CYCLES_AFTER_TIMEUP,
+
+            PHOTON_H_DELAY_NS => PHOTON_7H_DELAY_NS,
+            PHOTON_V_DELAY_NS => PHOTON_7V_DELAY_NS
+        )
+        port map (
+            clk => sampl_clk,
+            rst => sl_rst_samplclk,
+            noisy_channels_in => s_noisy_channels(13 downto 12),
+
+            qubit_valid_250MHz => s_valid_qubits_stable_to_cdcc(6),
+            qubit_250MHz => s_stable_channels_to_cdcc(13 downto 12)
+        );
+
+        -- QUBIT 8
+        inst_qubit8_deskew : entity lib_src.qubit_deskew(rtl)
+        generic map (
+            RST_VAL                   => RST_VAL,
+            BUFFER_DEPTH              => BUFFER_DEPTH,
+            PATTERN_WIDTH             => PATTERN_WIDTH,
+            BUFFER_PATTERN            => BUFFER_PATTERN,
+            ZERO_BITS_CNT             => ZERO_BITS_CNT,
+            HIGH_BITS_CNT             => HIGH_BITS_CNT,
+            CLK_HZ                    => CLK_SAMPL_HZ,
+
+            CNT_ONEHOT_WIDTH          => CNT_ONEHOT_WIDTH,
+            DETECTOR_ACTIVE_PERIOD_NS => DETECTOR_ACTIVE_PERIOD_NS,
+            DETECTOR_DEAD_PERIOD_NS   => DETECTOR_DEAD_PERIOD_NS,
+
+            TOLERANCE_KEEP_FASTER_BIT_CYCLES => TOLERANCE_KEEP_FASTER_BIT_CYCLES,
+            IGNORE_CYCLES_AFTER_TIMEUP => IGNORE_CYCLES_AFTER_TIMEUP,
+
+            PHOTON_H_DELAY_NS => PHOTON_8H_DELAY_NS,
+            PHOTON_V_DELAY_NS => PHOTON_8V_DELAY_NS
+        )
+        port map (
+            clk => sampl_clk,
+            rst => sl_rst_samplclk,
+            noisy_channels_in => s_noisy_channels(15 downto 14),
+
+            qubit_valid_250MHz => s_valid_qubits_stable_to_cdcc(7),
+            qubit_250MHz => s_stable_channels_to_cdcc(15 downto 14)
         );
 
 
         -- n-FF CDCC (Cross Domain Crossing Circuit)
         gen_nff_cdcc_sysclk : for i in 0 to QUBITS_CNT-1 generate
-            inst_nff_cdcc_cntcross_samplclk : entity lib_src.nff_cdcc(rtl)
+            inst_nff_cdcc_cntcross_samplclk_bit1 : entity lib_src.nff_cdcc(rtl)
             generic map (
                 ASYNC_FLOPS_CNT => 2,
-                DATA_WIDTH => 2,
-                FLOPS_BEFORE_CROSSING_CNT => 1
+                DATA_WIDTH => 1,
+                FLOPS_BEFORE_CROSSING_CNT => 1,
+                WR_READY_DEASSERTED_CYCLES => 2
             )
             port map (
                 -- sampl_clk
                 clk_write => sampl_clk,
-                wr_en     => s_valid_qubits_stable_to_cdcc(i),
-                wr_data   => s_stable_channels_to_cdcc((i+1)*2-1 downto i*2),
+                wr_en     => s_valid_qubits_stable_to_cdcc(QUBITS_CNT-1-i),
+                wr_data   => s_stable_channels_to_cdcc((QUBITS_CNT-1-i+1)*2-1 downto (QUBITS_CNT-1-i+1)*2-1),
+                wr_ready  => open,
 
                 -- sys_clk
                 clk_read => sys_clk,
                 rd_valid => slv_cdcc_rd_valid_to_fsm(i),
-                rd_data  => slv_cdcc_rd_qubits_to_fsm((i+1)*2-1 downto i*2)
+                rd_data  => slv_cdcc_rd_qubits_to_fsm((i+1)*2-1 downto (i+1)*2-1)
+            );
+
+            inst_nff_cdcc_cntcross_samplclk_bit2 : entity lib_src.nff_cdcc(rtl)
+            generic map (
+                ASYNC_FLOPS_CNT => 2,
+                DATA_WIDTH => 1,
+                FLOPS_BEFORE_CROSSING_CNT => 1,
+                WR_READY_DEASSERTED_CYCLES => 2
+            )
+            port map (
+                -- sampl_clk
+                clk_write => sampl_clk,
+                wr_en     => s_valid_qubits_stable_to_cdcc(QUBITS_CNT-1-i),
+                wr_data   => s_stable_channels_to_cdcc((QUBITS_CNT-1-i)*2 downto (QUBITS_CNT-1-i)*2),
+                wr_ready  => open,
+
+                -- sys_clk
+                clk_read => sys_clk,
+                rd_valid => open,
+                rd_data  => slv_cdcc_rd_qubits_to_fsm(i*2 downto i*2)
             );
         end generate;
 

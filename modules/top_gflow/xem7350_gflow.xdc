@@ -86,10 +86,10 @@ set_property PACKAGE_PIN B19 [get_ports output_pads[0]]
 ## Set False Paths as Clock Domain Cross Boundaries
 ############################################################################
 # Fast -> Slow
-set_false_path -from [get_pins {gen_cdcc_to_sysclk[*].inst_nff_cdcc_samplclk/slv_data_to_cross_2d_reg[1][*]/C}]\
+# set_false_path -from [get_pins {gen_cdcc_to_sysclk[*].inst_nff_cdcc_samplclk/slv_data_to_cross_2d_reg[1][*]/C}]\
                -to   [get_pins {gen_cdcc_to_sysclk[*].inst_nff_cdcc_samplclk/slv_data_asyncff_2d_reg[1][*]/D}]
 
-set_false_path -from [get_pins {gen_cdcc_to_sysclk[*].inst_nff_cdcc_samplclk/slv_bit_to_cross_reg[1]/C}]\
+# set_false_path -from [get_pins {gen_cdcc_to_sysclk[*].inst_nff_cdcc_samplclk/slv_bit_to_cross_reg[1]/C}]\
                -to   [get_pins {gen_cdcc_to_sysclk[*].inst_nff_cdcc_samplclk/slv_bit_asyncff_reg[1]/D}]
 
 
@@ -153,8 +153,8 @@ create_clock -name virt_okUH0 -period 9.920
 
 set_clock_groups -name async-mmcm-user-virt -asynchronous -group {mmcm0_clk0} -group {virt_okUH0}
 
-# set_input_delay -add_delay -max -clock [get_clocks {virt_okUH0}]  8.000 [get_ports {okUH[*]}]
-# set_input_delay -add_delay -min -clock [get_clocks {virt_okUH0}]  0.000 [get_ports {okUH[*]}]
+set_input_delay -add_delay -max -clock [get_clocks {virt_okUH0}]  8.000 [get_ports {okUH[*]}]
+set_input_delay -add_delay -min -clock [get_clocks {virt_okUH0}]  0.000 [get_ports {okUH[*]}]
 
 set_input_delay -add_delay -max -clock [get_clocks {virt_okUH0}]  8.000 [get_ports {okUHU[*]}]
 set_input_delay -add_delay -min -clock [get_clocks {virt_okUH0}]  2.000 [get_ports {okUHU[*]}]

@@ -37,12 +37,14 @@
             IGNORE_CYCLES_AFTER_TIMEUP       : natural := 2;
 
             PHOTON_H_DELAY_NS : real := -3177.95;        -- negative number = + delay
-            PHOTON_V_DELAY_NS : real := -3181.05
+            PHOTON_V_DELAY_NS : real := -3181.05;
+
+            PHOTON_COUNTER_WIDTH : positive := 2
         );
         port (
             clk : in  std_logic;
             rst : in  std_logic;
-            noisy_channels_in : in  std_logic_vector(2-1 downto 0);
+            noisy_channels_in : in std_logic_vector(2-1 downto 0);
 
             qubit_valid_250MHz : out std_logic;
             qubit_250MHz : out std_logic_vector(2-1 downto 0)

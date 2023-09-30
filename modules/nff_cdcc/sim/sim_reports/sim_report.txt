@@ -1,0 +1,121 @@
+
+SIMULATION REPORT          Generated on Sat Sep 30 19:33:40 2023
+
+
+Design simulated: C:/Git/zahapat/fpga-tools-qc/simulator/lib_sim.nff_cdcc_tb(sim)
+Number of signals/nets in design: 45
+Number of processes in design: 9
+Number of instances from user libraries in design: 14
+Number of executable statements in design: 12586
+
+Simulator Parameters:
+
+    Current directory: C:/Git/zahapat/fpga-tools-qc/simulator
+    Project file: C:/Git/zahapat/fpga-tools-qc/simulator/project.mpf
+    Project root directory: .
+    Simulation time resolution: 1ps
+
+List of Design units used:
+
+    Package Body: random_pack_tb
+    Library: C:/Git/zahapat/fpga-tools-qc/simulator/lib_sim
+    Source File: C:/Git/zahapat/fpga-tools-qc/packages/sim_tools/random_pack_tb.vhd
+    Occurrences: 1
+
+    Package Body: randompkg
+    Library: C:/Git/zahapat/fpga-tools-qc/simulator/osvvm
+    Source File: C:/Git/zahapat/fpga-tools-qc/packages/osvvm/RandomPkg.vhd
+    Occurrences: 1
+
+    Package Body: numeric_std_unsigned
+    Library: C:/intelFPGA/20.1/modelsim_ase/ieee
+    Source File: C:/intelFPGA/20.1/modelsim_ase/win32aloem/../vhdl_src/ieee/mti_numeric_std_unsigned.vhd
+    Occurrences: 1
+
+    Package Body: randombasepkg
+    Library: C:/Git/zahapat/fpga-tools-qc/simulator/osvvm
+    Source File: C:/Git/zahapat/fpga-tools-qc/packages/osvvm/RandomBasePkg.vhd
+    Occurrences: 1
+
+    Package Body: sortlistpkg_int
+    Library: C:/Git/zahapat/fpga-tools-qc/simulator/osvvm
+    Source File: C:/Git/zahapat/fpga-tools-qc/packages/osvvm/SortListPkg_int.vhd
+    Occurrences: 1
+
+    Package Body: std_logic_textio
+    Library: C:/intelFPGA/20.1/modelsim_ase/ieee
+    Source File: C:/intelFPGA/20.1/modelsim_ase/win32aloem/../vhdl_src/synopsys/std_logic_textio.vhd
+    Occurrences: 1
+
+    Package Body: alertlogpkg
+    Library: C:/Git/zahapat/fpga-tools-qc/simulator/osvvm
+    Source File: C:/Git/zahapat/fpga-tools-qc/packages/osvvm/AlertLogPkg.vhd
+    Occurrences: 1
+
+    Package Body: env
+    Library: C:/intelFPGA/20.1/modelsim_ase/std
+    Source File: C:/intelFPGA/20.1/modelsim_ase/win32aloem/../vhdl_src/std/env.vhd
+    Occurrences: 1
+
+    Package Body: textutilpkg
+    Library: C:/Git/zahapat/fpga-tools-qc/simulator/osvvm
+    Source File: C:/Git/zahapat/fpga-tools-qc/packages/osvvm/TextUtilPkg.vhd
+    Occurrences: 1
+
+    Package Body: transcriptpkg
+    Library: C:/Git/zahapat/fpga-tools-qc/simulator/osvvm
+    Source File: C:/Git/zahapat/fpga-tools-qc/packages/osvvm/TranscriptPkg.vhd
+    Occurrences: 1
+
+    Package Body: osvvmglobalpkg
+    Library: C:/Git/zahapat/fpga-tools-qc/simulator/osvvm
+    Source File: C:/Git/zahapat/fpga-tools-qc/packages/osvvm/OsvvmGlobalPkg.vhd
+    Occurrences: 1
+
+    Package Body: namepkg
+    Library: C:/Git/zahapat/fpga-tools-qc/simulator/osvvm
+    Source File: C:/Git/zahapat/fpga-tools-qc/packages/osvvm/NamePkg.vhd
+    Occurrences: 1
+
+    Package Body: clk_pack_tb
+    Library: C:/Git/zahapat/fpga-tools-qc/simulator/lib_sim
+    Source File: C:/Git/zahapat/fpga-tools-qc/packages/sim_tools/clk_pack_tb.vhd
+    Occurrences: 1
+
+    Package Body: math_real
+    Library: C:/intelFPGA/20.1/modelsim_ase/ieee
+    Source File: C:/intelFPGA/20.1/modelsim_ase/win32aloem/../vhdl_src/ieee/1076-2code.vhd
+    Occurrences: 1
+
+    Package Body: numeric_std
+    Library: C:/intelFPGA/20.1/modelsim_ase/ieee
+    Source File: C:/intelFPGA/20.1/modelsim_ase/win32aloem/../vhdl_src/ieee/mti_numeric_std.vhd
+    Occurrences: 1
+
+    Package Body: std_logic_1164
+    Library: C:/intelFPGA/20.1/modelsim_ase/ieee
+    Source File: C:/intelFPGA/20.1/modelsim_ase/win32aloem/../vhdl_src/ieee/stdlogic.vhd
+    Occurrences: 1
+
+    Package Body: textio
+    Library: C:/intelFPGA/20.1/modelsim_ase/std
+    Source File: C:/intelFPGA/20.1/modelsim_ase/win32aloem/../vhdl_src/std/textio.vhd
+    Occurrences: 1
+
+    Package: standard
+    Library: C:/intelFPGA/20.1/modelsim_ase/std
+    Source File: C:/intelFPGA/20.1/modelsim_ase/win32aloem/../vhdl_src/std/standard.vhd
+    Occurrences: 1
+
+    Entity: nff_cdcc_tb , acc : <novopt>
+    Architecture: sim
+    Library: C:/Git/zahapat/fpga-tools-qc/simulator/lib_sim
+    Source File: C:/Git/zahapat/fpga-tools-qc/modules/nff_cdcc/sim/nff_cdcc_tb.vhd
+    Occurrences: 1
+
+    Entity: nff_cdcc , acc : <novopt>
+    Architecture: rtl
+    Library: C:/Git/zahapat/fpga-tools-qc/simulator/lib_src
+    Source File: C:/Git/zahapat/fpga-tools-qc/modules/nff_cdcc/hdl/nff_cdcc.vhd
+    Occurrences: 1
+

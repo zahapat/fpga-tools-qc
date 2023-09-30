@@ -100,6 +100,10 @@
                                 CONFIG.Programmable_Empty_Type {Single_Programmable_Empty_Threshold_Constant}\
                                 CONFIG.Empty_Threshold_Assert_Value {5}\
                                 CONFIG.Empty_Threshold_Negate_Value {6}] [get_ips fifo_generator_0]
+        set_property -dict [list CONFIG.Read_Clock_Frequency {100.80645} \
+                                CONFIG.Write_Clock_Frequency {100} \
+                                CONFIG.Full_Threshold_Assert_Value {65536} \
+                                CONFIG.Full_Threshold_Negate_Value {65535}] [get_ips fifo_generator_0]
     }
 
     # 4.2) clk_wiz_0

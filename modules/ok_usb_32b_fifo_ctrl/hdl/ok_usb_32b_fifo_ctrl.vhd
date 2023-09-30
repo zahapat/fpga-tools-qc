@@ -73,7 +73,7 @@
         );
         end component;
 
-        signal sl_rst        : std_logic; -- not bound to any clk
+        signal sl_rst        : std_logic := '0'; -- not bound to any clk
 
         signal wr_clk        : std_logic;
         signal sl_wr_en      : std_logic;
@@ -154,7 +154,7 @@
             din    => slv_wr_data,
 
             -- Read: slower CLK, faster rate
-            rd_clk => rd_ok_clk,
+            rd_clk => rd_ok_clk, -- [Timing 38-316] Clock period '1000.000' specified during out-of-context synthesis of instance 'inst_okHost_fifo_ctrl/inst_native_fifo_generator' at clock pin 'rd_clk' is different from the actual clock period '9.920', this can lead to different synthesis results.
             rd_en  => rd_enable,
             valid  => sl_rd_valid,
             dout   => slv_rd_data_out,

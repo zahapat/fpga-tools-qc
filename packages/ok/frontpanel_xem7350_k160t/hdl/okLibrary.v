@@ -37,7 +37,9 @@ module okHost
 	assign okClk    =  okHC[0];
 	assign okHC[38] = ~mmcm0_locked;
 
-	IBUFG  hi_clk_bufg  (.I(okUH[0]), .O(okUH0_ibufg));
+	// [Netlist 29-432] The IBUFG primitive 'inst_ok_host_interf/hi_clk_bufg' has been retargeted to an IBUF primitive only. No BUFG will be added. If a global buffer is intended, please instantiate an available global clock primitive from the current architecture.
+	// IBUFG  hi_clk_bufg  (.I(okUH[0]), .O(okUH0_ibufg));
+	BUFG  hi_clk_bufg  (.I(okUH[0]), .O(okUH0_ibufg));
 
 	MMCME2_BASE #(
 		.BANDWIDTH("OPTIMIZED"),   // Jitter programming (OPTIMIZED, HIGH, LOW)
