@@ -7,6 +7,12 @@
     use std.env.finish;
 
     library lib_src;
+    use lib_src.types_pack.all;
+    use lib_src.const_pack.all;
+
+    library lib_sim;
+    use lib_sim.types_pack_tb.all;
+    use lib_sim.const_pack_tb.all;
 
     entity top_gflow_tb is
     end top_gflow_tb;
@@ -28,34 +34,20 @@
         constant SPCM_DEAD_TIME_DUR : time := 22 ns;
         signal s_clk_detector_31MHz : std_logic := '1';
 
-        -- Reset
-        constant RST_VAL : std_logic := '1';
-
-        -- Top I/O signals
-        signal SYS_CLK     : std_logic := '1';
-        signal RST         : std_logic := RST_VAL; -- Pullup
-        signal PHOTON_1H   : std_logic_vector(0 downto 0) := "0";
-        signal PHOTON_1V   : std_logic_vector(0 downto 0) := "0";
-        signal PHOTON_2H   : std_logic_vector(0 downto 0) := "0";
-        signal PHOTON_2V   : std_logic_vector(0 downto 0) := "0";
-        signal PHOTON_3H   : std_logic_vector(0 downto 0) := "0";
-        signal PHOTON_3V   : std_logic_vector(0 downto 0) := "0";
-        signal PHOTON_4H   : std_logic_vector(0 downto 0) := "0";
-        signal PHOTON_4V   : std_logic_vector(0 downto 0) := "0";
-        signal PULSE1_1MHZ : std_logic;
-        signal PULSE2_1MHZ : std_logic;
-
-        -- Duration of reset strobe
-        constant RST_DURATION : time := 10 * CLK_PERIOD;
-
-        -- REPETITIONS = duration of the test
         constant REPETITIONS : positive := 10000;
 
         -- Number od random inputs INST_B
         -- THE SEEDS MUST BE MODIFIED!
         constant RAND_NUMBS_SEEDS : natural := 1;
 
-        -- Time the measurement programm has to subtract or add to get the coincidence clicks (CCS)
+        -- Gflow generics
+        constant RST_VAL            : std_logic := '1';
+        constant CLK_SYS_HZ         : natural := 100e6;
+        constant CLK_SAMPL_HZ       : natural := 250e6;
+        constant QUBITS_CNT         : positive := 4;
+        constant INPUT_PADS_CNT     : positive := 8;
+        constant OUTPUT_PADS_CNT    : positive := 1;
+        constant EMULATE_INPUTS     : boolean := true;
         constant PHOTON_1H_DELAY_NS : real := 75.65;     -- zero delay = reference
         constant PHOTON_1V_DELAY_NS : real := 75.01;     -- zero delay = reference
         constant PHOTON_2H_DELAY_NS : real := -2117.95;  -- fibre delay of qubit 2
@@ -64,14 +56,29 @@
         constant PHOTON_3V_DELAY_NS : real := -1034.45;  -- fibre delay of qubit 3
         constant PHOTON_4H_DELAY_NS : real := -3177.95;  -- fibre delay of qubit 4
         constant PHOTON_4V_DELAY_NS : real := -3181.05;  -- fibre delay of qubit 4
-            -- constant PHOTON_1H_DELAY_NS : real := 0.0;     -- zero delay = reference
-            -- constant PHOTON_1V_DELAY_NS : real := 0.0;     -- zero delay = reference
-            -- constant PHOTON_2H_DELAY_NS : real := 0.0;  -- fibre delay of qubit 2
-            -- constant PHOTON_2V_DELAY_NS : real := 0.0;  -- fibre delay of qubit 2
-            -- constant PHOTON_3H_DELAY_NS : real := 0.0;  -- fibre delay of qubit 3
-            -- constant PHOTON_3V_DELAY_NS : real := 0.0;  -- fibre delay of qubit 3
-            -- constant PHOTON_4H_DELAY_NS : real := 0.0;  -- fibre delay of qubit 4
-            -- constant PHOTON_4V_DELAY_NS : real := 0.0;  -- fibre delay of qubit 4
+        constant PHOTON_5H_DELAY_NS : real := -3177.95;  -- fibre delay of qubit 5
+        constant PHOTON_5V_DELAY_NS : real := -3181.05;  -- fibre delay of qubit 5
+        constant PHOTON_6H_DELAY_NS : real := -3177.95;  -- fibre delay of qubit 6
+        constant PHOTON_6V_DELAY_NS : real := -3181.05;  -- fibre delay of qubit 6
+        constant PHOTON_7H_DELAY_NS : real := -3177.95;  -- fibre delay of qubit 7
+        constant PHOTON_7V_DELAY_NS : real := -3181.05;  -- fibre delay of qubit 7
+        constant PHOTON_8H_DELAY_NS : real := -3177.95;  -- fibre delay of qubit 8
+        constant PHOTON_8V_DELAY_NS : real := -3181.05;  -- fibre delay of qubit 8
+        constant WRITE_ON_VALID     : boolean := true;
+
+        -- Top I/O signals
+        signal sys_clk_p     : std_logic := '1';
+        signal sys_clk_n     : std_logic := '0';
+
+        signal led : std_logic_vector(4-1 downto 0);
+
+        signal input_pads : std_logic_vector(INPUT_PADS_CNT-1 downto 0);
+        signal output_pads : std_logic_vector(OUTPUT_PADS_CNT-1 downto 0);
+
+        signal readout_clk        : std_logic := '0';
+        signal readout_data_ready : std_logic;
+        signal readout_enable     : std_logic;
+        signal readout_data_32b   : std_logic_vector(31 downto 0);
 
         signal s_qubits_78MHz : std_logic_vector(7 downto 0) := (others => '0');
         signal s_qubits_31MHz : std_logic_vector(7 downto 0) := (others => '0');
@@ -88,14 +95,6 @@
             writeline(output, str);
         end procedure;
 
-        type t_state_gflow is (
-            QUBIT_1,
-            QUBIT_2,
-            QUBIT_3,
-            QUBIT_4
-        );
-        signal state_gflow : t_state_gflow := QUBIT_1;
-
     begin
 
         ------------------
@@ -103,8 +102,13 @@
         ------------------
         dut_top_gflow : entity lib_src.top_gflow(str)
         generic map (
-            CLK_HZ             => CLK_HZ,
             RST_VAL            => RST_VAL,
+            CLK_SYS_HZ         => CLK_SYS_HZ,
+            CLK_SAMPL_HZ       => CLK_SAMPL_HZ,
+            QUBITS_CNT         => QUBITS_CNT,
+            INPUT_PADS_CNT     => INPUT_PADS_CNT,
+            OUTPUT_PADS_CNT    => OUTPUT_PADS_CNT,
+            EMULATE_INPUTS     => EMULATE_INPUTS,
             PHOTON_1H_DELAY_NS => PHOTON_1H_DELAY_NS,
             PHOTON_1V_DELAY_NS => PHOTON_1V_DELAY_NS,
             PHOTON_2H_DELAY_NS => PHOTON_2H_DELAY_NS,
@@ -112,28 +116,43 @@
             PHOTON_3H_DELAY_NS => PHOTON_3H_DELAY_NS,
             PHOTON_3V_DELAY_NS => PHOTON_3V_DELAY_NS,
             PHOTON_4H_DELAY_NS => PHOTON_4H_DELAY_NS,
-            PHOTON_4V_DELAY_NS => PHOTON_4V_DELAY_NS
+            PHOTON_4V_DELAY_NS => PHOTON_4V_DELAY_NS,
+            PHOTON_5H_DELAY_NS => PHOTON_5H_DELAY_NS,
+            PHOTON_5V_DELAY_NS => PHOTON_5V_DELAY_NS,
+            PHOTON_6H_DELAY_NS => PHOTON_6H_DELAY_NS,
+            PHOTON_6V_DELAY_NS => PHOTON_6V_DELAY_NS,
+            PHOTON_7H_DELAY_NS => PHOTON_7H_DELAY_NS,
+            PHOTON_7V_DELAY_NS => PHOTON_7V_DELAY_NS,
+            PHOTON_8H_DELAY_NS => PHOTON_8H_DELAY_NS,
+            PHOTON_8V_DELAY_NS => PHOTON_8V_DELAY_NS,
+            WRITE_ON_VALID     => WRITE_ON_VALID
         )
         port map (
-            SYS_CLK => SYS_CLK,
-            RST_SECTOR_1 => RST,
-            PHOTON_1H_PMODA => s_qubits_31MHz(7),
-            PHOTON_1V_PMODA => s_qubits_31MHz(6),
-            PHOTON_2H_PMODA => s_qubits_31MHz(5),
-            PHOTON_2V_PMODA => s_qubits_31MHz(4),
-            PHOTON_3H_PMODA => s_qubits_31MHz(3),
-            PHOTON_3V_PMODA => s_qubits_31MHz(2),
-            PHOTON_4H_PMODA => s_qubits_31MHz(1),
-            PHOTON_4V_PMODA => s_qubits_31MHz(0),
-            -- PULSE1_1MHZ => PULSE1_1MHZ,
-            PULSE2_1MHZ_PMODB => PULSE2_1MHZ
+            -- External 200MHz oscillator
+            sys_clk_p => sys_clk_p,
+            sys_clk_n => sys_clk_n,
+
+            -- Readout Endpoint Signals
+            readout_clk => readout_clk,
+            readout_data_ready => readout_data_ready,
+            readout_enable => readout_enable,
+            readout_data_32b => readout_data_32b,
+
+            -- Debug LEDs
+            led => led,
+
+            -- Inputs from SPCM
+            input_pads => input_pads,
+
+            -- PCD Trigger
+            output_pads => output_pads
         );
 
         -----------------------
         -- Clock Oscillators --
         -----------------------
         -- 1) SYSTEM 230 MHz, 2) NEW_QUBIT 78 MHz, 3) DETECTOR 31 MHz
-        SYS_CLK <= not SYS_CLK after CLK_PERIOD / 2;
+        sys_clk_p <= not sys_clk_p after CLK_PERIOD / 2;
         s_clk_new_qubit_78MHz <= not s_clk_new_qubit_78MHz after CLK_NEW_QUBIT_78MHz_PERIOD / 2;
         proc_spcm_detector_osc : process
         begin
@@ -198,14 +217,6 @@
                 wait for SPCM_DEAD_TIME_DUR;
             end loop;
 
-            -- Send new data to the DUT each 32 ns
-            -- if s_clk_detector_31MHz = '1' then
-            --     -- Keep them during SPCM Active period
-            --     s_qubits_31MHz <= s_qubits_78MHz;
-            -- else
-            --     -- Respect SPCM Dead Period
-            --     s_qubits_31MHz <= (others => '0');
-            -- end if;
         end process;
 
 
@@ -382,7 +393,7 @@
                 constant cycles_cnt : integer
             ) is begin
                 for i in 0 to cycles_cnt-1 loop
-                    wait until rising_edge(SYS_CLK);
+                    wait until rising_edge(sys_clk_p);
                 end loop;
             end procedure;
 
@@ -394,11 +405,7 @@
 
         begin
 
-            -- Reset strobe
-            wait for RST_DURATION;
-
-            -- Release reset
-            RST <= RST_VAL;
+            wait for 1 us;
 
             -- Run for certain number of cycles: send random data
             for i in 0 to REPETITIONS-1 loop

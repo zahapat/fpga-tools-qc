@@ -35,10 +35,10 @@
             wr_data_stream_32b  : in std_logic_vector(32-1 downto 0);
 
             -- Read endpoint signals: slower CLK, faster rate
-            rd_ok_clk : in std_logic;
-            rd_data_ready : out std_logic;
-            rd_enable : in std_logic;
-            rd_data_32b : out std_logic_vector(32-1 downto 0);
+            readout_clk : in std_logic;
+            readout_data_ready : out std_logic;
+            readout_enable : in std_logic;
+            readout_data_32b : out std_logic_vector(32-1 downto 0);
 
             -- Flags
             fifo_full : out std_logic;
@@ -65,7 +65,7 @@
             rd_clk : in std_logic;
             rd_en : in std_logic;
             valid : out std_logic;
-            dout : out std_logic_vector(rd_data_32b'range);
+            dout : out std_logic_vector(readout_data_32b'range);
 
             full : out std_logic;
             empty : out std_logic;
@@ -142,6 +142,7 @@
         -------------------------------------
         fifo_full <= sl_full;
         fifo_empty <= sl_empty;
+        fifo_prog_empty <= sl_prog_empty;
         fifo_full_latched <= sl_full_latched;
 
         inst_native_fifo_generator : fifo_generator_0
@@ -154,8 +155,8 @@
             din    => slv_wr_data,
 
             -- Read: slower CLK, faster rate
-            rd_clk => rd_ok_clk, -- [Timing 38-316] Clock period '1000.000' specified during out-of-context synthesis of instance 'inst_okHost_fifo_ctrl/inst_native_fifo_generator' at clock pin 'rd_clk' is different from the actual clock period '9.920', this can lead to different synthesis results.
-            rd_en  => rd_enable,
+            rd_clk => readout_clk, -- [Timing 38-316] Clock period '1000.000' specified during out-of-context synthesis of instance 'inst_okHost_fifo_ctrl/inst_native_fifo_generator' at clock pin 'rd_clk' is different from the actual clock period '9.920', this can lead to different synthesis results.
+            rd_en  => readout_enable,
             valid  => sl_rd_valid,
             dout   => slv_rd_data_out,
 
@@ -466,10 +467,10 @@
         -- 3) Sending Ready Flag to okHost for future reading of a block of data
         --    FIFO Level indicator is tied to okBTPipeOut's 'ep_ready'
         --    When 'ep_ready' is asserted, the host is free to read a full block of data from FIFO
-        rd_data_ready <= sl_ok_endp_ready;
-        proc_endp_usb_fifo_ready : process(rd_ok_clk)
+        readout_data_ready <= sl_ok_endp_ready;
+        proc_endp_usb_fifo_ready : process(readout_clk)
         begin
-            if rising_edge(rd_ok_clk) then
+            if rising_edge(readout_clk) then
 
                 -- Default values
                 sl_ok_endp_ready <= '0';
@@ -483,16 +484,16 @@
         -- DO NOT TOUCH
         -- 4) Reacting to Read requests from okHost
         --    okHost already knows there is a block of data ready to transmit inside the FIFO
-        rd_data_32b <= slv_ok_rd_endp_data;
-        proc_endp_usb_fifo_read : process(rd_ok_clk)
+        readout_data_32b <= slv_ok_rd_endp_data;
+        proc_endp_usb_fifo_read : process(readout_clk)
         begin
-            if rising_edge(rd_ok_clk) then
+            if rising_edge(readout_clk) then
 
                 -- Default values
                 slv_ok_rd_endp_data <= (others => '0');
 
                 -- TO DO: POSSIBLE CAUSE OF ZEROS AFTER TRANSMISSION
-                if rd_enable = '1' then
+                if readout_enable = '1' then
                     if sl_rd_valid = '1' then
                         slv_ok_rd_endp_data <= slv_rd_data_out;
                     end if;

@@ -8,11 +8,29 @@ set vivado_added_hdl_report [open $vivado_added_hdl_report_path "a"]
 set vivado_added_scripts_report_path "${origin_dir}/vivado/0_report_added_xdc.rpt"
 set vivado_added_scripts_report [open $vivado_added_scripts_report_path "a"]
 
+
 # -------------------------------------------------------
-# 1.0) Add SRC Package Files
+# 2.1) Add TB Files
 # -------------------------------------------------------
-#    * Vivado
 #    * ModelSim
+puts -nonewline $simulator_comporder "\
+    ./modules/lfsr_inemul/sim/lfsr_inemul_tb.vhd\n\
+    ./modules/lfsr_inemul/sim/checkers_lfsr_inemul_tb.vhd\n\
+    ./modules/lfsr_inemul/sim/monitors_lfsr_inemul_tb.vhd\n\
+    ./modules/lfsr_inemul/sim/executors_lfsr_inemul_tb.vhd\n\
+    ./modules/lfsr_inemul/sim/harness_lfsr_inemul_tb.vhd\n"
+
+
+# -------------------------------------------------------
+# 2.0) Add TB Package Files
+# -------------------------------------------------------
+#    * ModelSim
+puts -nonewline $simulator_comporder "\
+    ./modules/lfsr_inemul/sim/pack/triggers_lfsr_inemul_pack_tb.vhd\n\
+    ./modules/lfsr_inemul/sim/pack/signals_lfsr_inemul_pack_tb.vhd\n\
+    ./modules/lfsr_inemul/sim/pack/types_lfsr_inemul_pack_tb.vhd\n\
+    ./modules/lfsr_inemul/sim/pack/const_lfsr_inemul_pack_tb.vhd\n"
+
 
 
 
@@ -36,27 +54,10 @@ puts -nonewline $simulator_comporder "\
 
 
 # -------------------------------------------------------
-# 2.0) Add TB Package Files
+# 1.0) Add SRC Package Files
 # -------------------------------------------------------
+#    * Vivado
 #    * ModelSim
-puts -nonewline $simulator_comporder "\
-    ./modules/lfsr_inemul/sim/pack/const_lfsr_inemul_pack_tb.vhd\n\
-    ./modules/lfsr_inemul/sim/pack/types_lfsr_inemul_pack_tb.vhd\n\
-    ./modules/lfsr_inemul/sim/pack/signals_lfsr_inemul_pack_tb.vhd\n\
-    ./modules/lfsr_inemul/sim/pack/triggers_lfsr_inemul_pack_tb.vhd\n"
-
-
-# -------------------------------------------------------
-# 2.1) Add TB Files
-# -------------------------------------------------------
-#    * ModelSim
-puts -nonewline $simulator_comporder "\
-    ./modules/lfsr_inemul/sim/harness_lfsr_inemul_tb.vhd\n\
-    ./modules/lfsr_inemul/sim/executors_lfsr_inemul_tb.vhd\n\
-    ./modules/lfsr_inemul/sim/monitors_lfsr_inemul_tb.vhd\n\
-    ./modules/lfsr_inemul/sim/checkers_lfsr_inemul_tb.vhd\n\
-    ./modules/lfsr_inemul/sim/lfsr_inemul_tb.vhd\n"
-
 
 
 # -------------------------------------------------------

@@ -8,15 +8,10 @@
     use UNISIM.VComponents.all;
     
     library lib_src;
-    use lib_src.FRONTPANEL.all;
     use lib_src.types_pack.all;
 
     entity top_gflow is
         generic(
-            -- okHost generics
-            CAPABILITY : std_logic_vector(31 downto 0) := x"00000001"; -- bitfield, used to indicate features supported by this bitfile
-            READ_FROM_FPGA_ONLY : boolean := true;
-
             -- Gflow generics
             RST_VAL                : std_logic := '1';
             CLK_SYS_HZ             : natural := 100e6;
@@ -54,11 +49,11 @@
             sys_clk_p : in std_logic;
             sys_clk_n : in std_logic;
 
-            -- okHost signals
-            okUH  : in    std_logic_vector(4 downto 0);
-            okHU  : out   std_logic_vector(2 downto 0);
-            okUHU : inout std_logic_vector(31 downto 0); -- data
-            okAA  : inout std_logic;
+            -- Readout Endpoint Signals
+            readout_clk        : in std_logic;
+            readout_data_ready : out std_logic;
+            readout_enable     : in std_logic;
+            readout_data_32b   : out std_logic_vector(31 downto 0);
 
             -- Debug LEDs
             led : out std_logic_vector(3 downto 0);
@@ -74,46 +69,9 @@
 
     architecture str of top_gflow is
 
-
-        -------------------------------
-        -- Opal Kelly okHost signals --
-        -------------------------------
-        constant OUT_ENDPTS_TOTAL_CNT : integer := 5;
-
-        signal okClk : std_logic := '0';
-        signal okHE  : std_logic_vector(112 downto 0) := (others => '0');
-        signal okEH  : std_logic_vector(64 downto 0) := (others => '0');
-
-        -- Number of outgoing endpoints in your design (n*65-1 downto 0)
-        signal okEHx : std_logic_vector(OUT_ENDPTS_TOTAL_CNT*65-1 downto 0);
-
-        -- Endpoint: WireIn
-        signal slv_win_ep00               : std_logic_vector(31 downto 0) := (others => '0');
-        signal slv_win_ep01_throttle_out  : std_logic_vector(31 downto 0) := (others => '0');
-        signal slv_win_ep02_throttle_in   : std_logic_vector(31 downto 0) := (others => '0');
-        signal slv_win_ep03_fixed_pattern : std_logic_vector(31 downto 0) := (others => '0');
-
-        -- Endpoint: WireOut
-        signal slv_wout_ep20            : std_logic_vector(31 downto 0) := (others => '0');
-        signal slv_wout_ep21_rcv_errors : std_logic_vector(31 downto 0) := (others => '0');
-        signal slv_wout_ep3e            : std_logic_vector(31 downto 0) := (others => '0');
-        signal slv_wout_ep3f            : std_logic_vector(31 downto 0) := (others => '0');
-
-        -- Endpoint: PipeIn
-        signal slv_pipe_in_endp_write_en : std_logic := '0';
-        signal slv_pipe_in_endp_ready    : std_logic := '0';
-        signal slv_pipe_in_endp_data     : std_logic_vector(31 downto 0) := (others => '0');
-        signal slv_blockstrobe_pipe_in : std_logic := '0';
-
-        -- Endpoint: PipeOut
-        signal slv_pipe_out_endp_read_en : std_logic;
-        signal slv_pipe_out_endp_ready   : std_logic;
-        signal slv_pipe_out_endp_data    : std_logic_vector(31 downto 0);
-        signal slv_blockstrobe_pipe_out : std_logic;
-
-        signal slv_pattern_code : std_logic_vector(2 downto 0) := (others => '0');
-
-        -- USB FIFO Control
+        ------------------------------
+        -- USB FIFO Readout Control --
+        ------------------------------
         signal sl_led_fifo_full_latched : std_logic := '0';
         signal slv_fifo_wr_valid_qubit_flags : std_logic_vector(QUBITS_CNT-1 downto 0);
         signal sl_usb_fifo_empty : std_logic := '0';
@@ -155,10 +113,6 @@
         constant DETECTOR_DEAD_PERIOD_NS          : positive := 22;
         constant TOLERANCE_KEEP_FASTER_BIT_CYCLES : natural := 1;
         constant IGNORE_CYCLES_AFTER_TIMEUP       : natural := 3;
-
-        -- Qubit Sampler
-        constant LUTRAM_SAMPLER_WIDTH : positive := 2;
-        constant LUTRAM_SAMPLER_DEPTH : positive := 2;
 
         -- Reset
         constant RST_STROBE_CNTR_WIDTH_SYSCLK : positive := 28; -- 10*10^(-9) sec * 2^28 / 2 = 1.3 sec
@@ -270,150 +224,6 @@
     begin
 
 
-        ---------------------------
-        -- OK FRONTPANEL Wire OR --
-        ---------------------------
-        -- okHost interface needs to be connected to user endpoints
-        -- - A Gateway for FrontPanel to interact with user design
-        -- - Contains the logic that lets the USB microcontroller on the device communicate with 
-        --   the various endpoints within the design.
-        -- The following signals need to be connected directly to pins on the FPGA 
-        -- which go to the USB microcontroller 
-        inst_ok_host_interf : entity lib_src.okHost
-        port map (
-            okUH=>okUH,     -- Input signals         : from USB Controller Host interface (from PC)
-            okHU=>okHU,     -- Output signals        : to USB Controller Host interface (to PC)
-            okUHU=>okUHU,   -- DATA IN/OUT           : to/from USB Controller Host interface
-            okAA=>okAA,     -- FLAG IN/OUT           : to/from USB Controller Host interface
-            okClk=>okClk,   -- Output synch CLK      : from 'okLibrary.vhd'; buffered copy of the host interface clock (100.8 MHz)
-            okHE=>okHE,     -- Input Control signals : to user target endpoints (host to endpoint)
-            okEH=>okEH      -- Output Control flag   : from user target endpoints (endpoint to host)
-        );
-
-        ---------------------------
-        -- OK FRONTPANEL Wire OR --
-        ---------------------------
-        -- All endpoints on a single output bus 'okEHx' are OR-ed together, the output is 'okEH' bus
-        -- -> Each endpoint (x) is told when it can send its data to the bus
-        -- Available in library 'okLibrary.vhd'
-        -- Multiple endpoints can share a bus without requiring the use of tristates or a large mux
-        -- The OR-ed output goes to 'okEH'
-        -- -> Set N to fit the number of OUTPUT endpoints in your design
-        inst_ok_wire_or : entity lib_src.okWireOR
-        generic map (
-            N => OUT_ENDPTS_TOTAL_CNT
-        ) 
-        port map (
-            okEH  => okEH,
-            okEHx => okEHx
-        );
-
-        -----------------------------------------
-        -- OK FRONTPANEL Wire In/Out Endpoints --
-        -----------------------------------------
-        -- Wire In (to FPGA)
-        slv_pattern_code <= slv_win_ep00(4 downto 2);
-        -- inst_wire_in_addr_00 : entity lib_src.okWireIn
-        -- port map (
-        --     okHE       => okHE,
-        --     -- ep_addr    => std_logic_vector(to_unsigned(0, 8)),
-        --     ep_addr    => std_logic_vector(to_unsigned(16#00#, 8)),
-        --     ep_dataout => slv_win_ep00 -- slv_win_ep00 = reset + throttle_set
-        -- );
-        -- inst_wire_in_addr_01 : entity lib_src.okWireIn 
-        -- port map (
-        --     okHE       => okHE,
-        --     ep_addr    => std_logic_vector(to_unsigned(16#01#, 8)),
-        --     ep_dataout => slv_win_ep01_throttle_out
-        -- );
-        -- inst_wire_in_addr_02 : entity lib_src.okWireIn
-        -- port map (
-        --     okHE       => okHE,
-        --     ep_addr    => std_logic_vector(to_unsigned(16#02#, 8)),
-        --     ep_dataout => slv_win_ep02_throttle_in
-        -- );
-        -- inst_wire_in_addr_03 : entity lib_src.okWireIn
-        -- port map (
-        --     okHE       => okHE, 
-        --     ep_addr    => std_logic_vector(to_unsigned(16#03#, 8)),
-        --     ep_dataout => slv_win_ep03_fixed_pattern
-        -- );
-
-        -- Wire Out (from FPGA)
-        slv_wout_ep20 <= x"12345678";
-        -- inst_wire_out_addr_20 : entity lib_src.okWireOut
-        -- port map (
-        --     okHE      => okHE, 
-        --     okEH      => okEHx( 1*65-1 downto 0*65 ), -- Common output bus loc to be OR-ed
-        --     ep_addr   => std_logic_vector(to_unsigned(16#20#, 8)),
-        --     ep_datain => slv_wout_ep20
-        -- );
-
-        -- -- led <= not slv_wout_ep21_rcv_errors(3 downto 0);
-        -- inst_wire_out_addr_21 : entity lib_src.okWireOut
-        -- port map (
-        --     okHE      => okHE,
-        --     okEH      => okEHx( 2*65-1 downto 1*65 ), -- Common output bus loc to be OR-ed
-        --     ep_addr   => std_logic_vector(to_unsigned(16#21#, 8)),
-        --     ep_datain => slv_wout_ep21_rcv_errors
-        -- );
-
-        -- slv_wout_ep3e <= CAPABILITY;
-        -- inst_wire_out_addr_3e : entity lib_src.okWireOut   
-        -- port map (
-        --     okHE      => okHE,
-        --     okEH      => okEHx( 3*65-1 downto 2*65 ), -- Common output bus loc to be OR-ed
-        --     ep_addr   => std_logic_vector(to_unsigned(16#3e#, 8)),
-        --     ep_datain => slv_wout_ep3e
-        -- );
-
-        -- slv_wout_ep3f <= x"beeff00d";
-        -- inst_wire_out_addr_3f : entity lib_src.okWireOut   
-        -- port map (
-        --     okHE      => okHE,
-        --     okEH      => okEHx( 4*65-1 downto 3*65 ), -- Common output bus loc to be OR-ed
-        --     ep_addr   => std_logic_vector(to_unsigned(16#3f#, 8)),
-        --     ep_datain => slv_wout_ep3f
-        -- );
-
-
-        -----------------------------------------
-        -- OK FRONTPANEL Pipe In/Out Endpoints --
-        -----------------------------------------
-        -- okPipeIn endpoint:
-        --     Frontpanel 'PC -> FPGA' Pipeline Interface
-        --     For synchronous multi-byte data transfer from PC -> FPGA 
-        --     (from host to the target endpoint)
-        -- gen_pipe_in : if READ_FROM_FPGA_ONLY = false generate
-        --     ep_80 : entity lib_src.okBTPipeIn
-        --     port map (
-        --         okHE	       => okHE,
-        --         okEH	       => okEHx( 5*65-1 downto 4*65 ),
-        --         ep_addr        => 16#80#,
-        --         ep_write       => slv_pipe_in_endp_write_en,
-        --         ep_blockstrobe => slv_blockstrobe_pipe_in,
-        --         ep_dataout     => slv_pipe_in_endp_data,    -- DATA IN
-        --         ep_ready       => slv_pipe_in_endp_ready    -- READY
-        --     );
-        -- end generate;
-
-        -- okPipeOut endpoint: 
-        --     Frontpanel 'FPGA -> PC' Pipeline Interface
-        --     For synchronous multi-byte data transfer from FPGA -> PC
-        --     (from target endpoint to the host)
-        ep_A0 : entity lib_src.okBTPipeOut
-        port map (
-            okHE           => okHE,
-            okEH           => okEHx( 5*65-1 downto 4*65 ),
-            ep_addr        => std_logic_vector(to_unsigned(16#A0#, 8)),
-            ep_read        => slv_pipe_out_endp_read_en,
-            ep_blockstrobe => slv_blockstrobe_pipe_out,
-            ep_datain      => slv_pipe_out_endp_data,   -- DATA OUT
-            ep_ready       => slv_pipe_out_endp_ready   -- READY
-        );
-
-
-
         ----------------------
         -- Xilinx IP Blocks --
         ----------------------
@@ -458,7 +268,7 @@
             -- Reset
             rst => sl_rst_sysclk,
 
-            -- Write endpoint signals: faster CLK, slower rate
+            -- Write endpoint signals
             wr_sys_clk           => sys_clk,
 
             wr_valid_qubit_flags => slv_fifo_wr_valid_qubit_flags,
@@ -472,11 +282,11 @@
             wr_data_modulo_buffer => slv_modulo_buffer_2d,
             wr_data_stream_32b  => slv_usb3_transaction_32b,
 
-            -- Read endpoint signals: slower CLK, faster rate
-            rd_ok_clk     => okClk,
-            rd_data_ready => slv_pipe_out_endp_ready,
-            rd_enable     => slv_pipe_out_endp_read_en,
-            rd_data_32b   => slv_pipe_out_endp_data,
+            -- Optional: Readout endpoint signals
+            readout_clk     => readout_clk,
+            readout_data_ready => readout_data_ready,
+            readout_enable     => readout_enable,
+            readout_data_32b   => readout_data_32b,
 
             -- Flags
             fifo_full       => sl_usb_fifo_full,
@@ -579,6 +389,7 @@
                 clk => sys_clk,
                 rst => sl_rst_sysclk,
         
+                ready => open,
                 data_out => s_noisy_channels(16-1 downto 8),
                 valid_out => open
             );
@@ -596,6 +407,7 @@
                 clk => sys_clk,
                 rst => sl_rst_sysclk,
         
+                ready => open,
                 data_out => s_noisy_channels(8-1 downto 0),
                 valid_out => open
             );

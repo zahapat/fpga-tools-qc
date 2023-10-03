@@ -8,32 +8,19 @@ set vivado_added_hdl_report [open $vivado_added_hdl_report_path "a"]
 set vivado_added_scripts_report_path "${origin_dir}/vivado/0_report_added_xdc.rpt"
 set vivado_added_scripts_report [open $vivado_added_scripts_report_path "a"]
 
-# -------------------------------------------------------
-# 1.0) Add SRC Package Files
-# -------------------------------------------------------
-#    * Vivado
-add_files -fileset "sources_1" -norecurse {\
-    ./packages/proj_specific_src/const_pack.vhd\
-    ./packages/proj_specific_src/types_pack.vhd\
-    ./packages/proj_specific_src/signals_pack.vhd\
-}
-set_property library "lib_src" [get_files {\
-    ./packages/proj_specific_src/const_pack.vhd\
-    ./packages/proj_specific_src/types_pack.vhd\
-    ./packages/proj_specific_src/signals_pack.vhd\
-}]
-puts -nonewline $vivado_added_hdl_report "\
-    ./packages/proj_specific_src/const_pack.vhd\n\
-    ./packages/proj_specific_src/types_pack.vhd\n\
-    ./packages/proj_specific_src/signals_pack.vhd\n"
 
-update_compile_order -fileset "sources_1"
-
+# -------------------------------------------------------
+# 2.1) Add TB Files
+# -------------------------------------------------------
 #    * ModelSim
-puts -nonewline $simulator_comporder "\
-    ./packages/proj_specific_src/const_pack.vhd\n\
-    ./packages/proj_specific_src/types_pack.vhd\n\
-    ./packages/proj_specific_src/signals_pack.vhd\n"
+
+
+# -------------------------------------------------------
+# 2.0) Add TB Package Files
+# -------------------------------------------------------
+#    * ModelSim
+
+
 
 # -------------------------------------------------------
 # 1.1) Add SRC HDL Files
@@ -41,15 +28,34 @@ puts -nonewline $simulator_comporder "\
 #    * Vivado
 #    * ModelSim
 
-# -------------------------------------------------------
-# 2.0) Add TB Package Files
-# -------------------------------------------------------
-#    * ModelSim
 
 # -------------------------------------------------------
-# 2.1) Add TB Files
+# 1.0) Add SRC Package Files
 # -------------------------------------------------------
+#    * Vivado
+add_files -fileset "sources_1" -norecurse {\
+    ./packages/proj_specific_src/signals_pack.vhd\
+    ./packages/proj_specific_src/types_pack.vhd\
+    ./packages/proj_specific_src/const_pack.vhd\
+}
+set_property library "lib_src" [get_files {\
+    ./packages/proj_specific_src/signals_pack.vhd\
+    ./packages/proj_specific_src/types_pack.vhd\
+    ./packages/proj_specific_src/const_pack.vhd\
+}]
+puts -nonewline $vivado_added_hdl_report "\
+    ./packages/proj_specific_src/signals_pack.vhd\n\
+    ./packages/proj_specific_src/types_pack.vhd\n\
+    ./packages/proj_specific_src/const_pack.vhd\n"
+
+update_compile_order -fileset "sources_1"
+
 #    * ModelSim
+puts -nonewline $simulator_comporder "\
+    ./packages/proj_specific_src/signals_pack.vhd\n\
+    ./packages/proj_specific_src/types_pack.vhd\n\
+    ./packages/proj_specific_src/const_pack.vhd\n"
+
 
 # -------------------------------------------------------
 # 3.0) Add XDC/TCL Files

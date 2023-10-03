@@ -8,6 +8,21 @@ set vivado_added_hdl_report [open $vivado_added_hdl_report_path "a"]
 set vivado_added_scripts_report_path "${origin_dir}/vivado/0_report_added_xdc.rpt"
 set vivado_added_scripts_report [open $vivado_added_scripts_report_path "a"]
 
+
+# -------------------------------------------------------
+# 2.0) Add TB Package Files
+# -------------------------------------------------------
+#    * ModelSim
+
+
+# -------------------------------------------------------
+# 2.1) Add TB Files
+# -------------------------------------------------------
+#    * ModelSim
+puts -nonewline $simulator_comporder "\
+    ./modules/alu_gflow/sim/alu_gflow_tb.vhd\n"
+
+
 # -------------------------------------------------------
 # 1.0) Add SRC Package Files
 # -------------------------------------------------------
@@ -33,20 +48,6 @@ update_compile_order -fileset sources_1
 #    * ModelSim
 puts -nonewline $simulator_comporder "\
     ./modules/alu_gflow/hdl/alu_gflow.vhd\n"
-
-
-# -------------------------------------------------------
-# 2.0) Add TB Package Files
-# -------------------------------------------------------
-#    * ModelSim
-
-
-# -------------------------------------------------------
-# 2.1) Add TB Files
-# -------------------------------------------------------
-#    * ModelSim
-puts -nonewline $simulator_comporder "\
-    ./modules/alu_gflow/sim/alu_gflow_tb.vhd\n"
 
 
 

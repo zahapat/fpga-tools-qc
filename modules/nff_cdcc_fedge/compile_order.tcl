@@ -9,6 +9,24 @@ set vivado_added_scripts_report_path "${origin_dir}/vivado/0_report_added_xdc.rp
 set vivado_added_scripts_report [open $vivado_added_scripts_report_path "a"]
 
 # -------------------------------------------------------
+# 2.0) Add TB Package Files
+# -------------------------------------------------------
+#    * ModelSim
+
+
+
+# -------------------------------------------------------
+# 2.1) Add TB Files
+# -------------------------------------------------------
+#    * ModelSim
+if {$srcfile_added_or_not ne ""} {
+    puts -nonewline $simulator_comporder "\
+        ./modules/nff_cdcc_fedge/sim/nff_cdcc_fedge_tb.vhd\n"
+}
+
+
+
+# -------------------------------------------------------
 # 1.0) Add SRC Package Files
 # -------------------------------------------------------
 #    * Vivado
@@ -34,23 +52,6 @@ if {$srcfile_added_or_not ne ""} {
     #    * ModelSim
     puts -nonewline $simulator_comporder "\
         ./modules/nff_cdcc_fedge/hdl/nff_cdcc_fedge.vhd\n"
-}
-
-
-# -------------------------------------------------------
-# 2.0) Add TB Package Files
-# -------------------------------------------------------
-#    * ModelSim
-
-
-
-# -------------------------------------------------------
-# 2.1) Add TB Files
-# -------------------------------------------------------
-#    * ModelSim
-if {$srcfile_added_or_not ne ""} {
-    puts -nonewline $simulator_comporder "\
-        ./modules/nff_cdcc_fedge/sim/nff_cdcc_fedge_tb.vhd\n"
 }
 
 

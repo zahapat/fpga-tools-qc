@@ -9,6 +9,7 @@
     use std.env.finish;
 
     library lib_src;
+    use lib_src.types_pack.all;
 
     entity alu_gflow_tb is
     end alu_gflow_tb;
@@ -16,20 +17,28 @@
     architecture sim of alu_gflow_tb is
 
         -- Generics
+        constant QUBITS_CNT : integer := 4;
+        constant RST_VAL : std_logic := '1';
+        constant SYNCH_FACTORS_CALCULATION : boolean := true;
+
         constant CLK_HZ      : natural := 80e6;
-        constant RST_VAL     : std_logic := '1';
         constant PC_DELAY_US : natural := 1;      -- Duration of the pulse from PC in usec
 
         constant CLK_PERIOD : time := 1 sec / CLK_HZ;
 
         -- Signals
-        signal CLK            : std_logic := '1';
-        signal RST            : std_logic := RST_VAL;
-        signal S_X            : std_logic := '0';
-        signal S_Z            : std_logic := '0';
-        signal ALPHA_POSITIVE : std_logic_vector(1 downto 0) := (others => '0');
-        signal RAND_BIT       : std_logic  := '0';
-        signal MATH_TO_MOD    : std_logic_vector(3 downto 0);
+        signal CLK             : std_logic := '1';
+        signal RST             : std_logic := RST_VAL;
+        signal QUBIT_VALID     : std_logic := '0';
+        signal S_X             : std_logic := '0';
+        signal S_Z             : std_logic := '0';
+        signal ALPHA_POSITIVE  : std_logic_vector(1 downto 0) := (others => '0');
+        signal RAND_BIT        : std_logic  := '0';
+        signal MATH_TO_MOD     : std_logic_vector(3 downto 0);
+        signal RANDOM_BUFFER   : t_random_buffer_2d;
+        signal MODULO_BUFFER   : t_modulo_buffer_2d;
+        signal DATA_MODULO_OUT : std_logic_vector(1 downto 0);
+        signal DATA_VALID      : std_logic;
 
         -- Number od random inputs INST_B
         constant MAX_RANDOM_NUMBS : natural := 300;
@@ -65,13 +74,17 @@
             RST_VAL => RST_VAL
         )
         port map (
-            CLK            => CLK,
-            RST            => RST,
-            S_X            => S_X,
-            S_Z            => S_Z,
-            ALPHA_POSITIVE => ALPHA_POSITIVE,
-            RAND_BIT       => RAND_BIT,
-            MATH_TO_MOD    => MATH_TO_MOD
+            CLK             => CLK,
+            RST             => RST,
+            QUBIT_VALID     => QUBIT_VALID,
+            S_X             => S_X,
+            S_Z             => S_Z,
+            ALPHA_POSITIVE  => ALPHA_POSITIVE,
+            RAND_BIT        => RAND_BIT,
+            RANDOM_BUFFER   => RANDOM_BUFFER,
+            MODULO_BUFFER   => MODULO_BUFFER,
+            DATA_MODULO_OUT => DATA_MODULO_OUT,
+            DATA_VALID      => DATA_VALID
         );
 
 
@@ -127,20 +140,26 @@
                     loop
                         loop
                             -- Send new data
+                            QUBIT_VALID <= '1';
                             S_X <= v_s_x(0);
                             S_Z <= v_s_z(0);
                             ALPHA_POSITIVE <= v_alpha;
                             RAND_BIT <= v_rand_bit(0);
 
+                            wait_cycles(1);
+                            QUBIT_VALID <= '0';
+
                             -- Wait for the signal to propagate to output
-                            wait_cycles(3);
+                            wait until DATA_VALID = '1';
+                            wait for 0 ns;
+                            wait for 0 ns;
 
-                            v_left_result := ((-1)**to_integer(unsigned(v_s_x)) * to_integer(unsigned(v_alpha)))
-                                + (to_integer(unsigned(v_s_z)) + to_integer(unsigned(v_rand_bit)))*PI;
+                            v_left_result := (((-1)**to_integer(unsigned(v_s_x)) * to_integer(unsigned(v_alpha)))
+                                + (to_integer(unsigned(v_s_z)) + to_integer(unsigned(v_rand_bit)))*PI) mod 4;
 
-                            assert to_integer(signed(MATH_TO_MOD)) = v_left_result
-                                report "Error: Actual result before modulo is : " & integer'image(to_integer(signed(MATH_TO_MOD))) 
-                                        & " . Expected : " & integer'image(v_left_result)
+                            assert to_integer(signed(DATA_MODULO_OUT)) = v_left_result
+                                report "Error: Actual result is : " & integer'image(to_integer(signed(DATA_MODULO_OUT))) 
+                                        & " . Expected result is : " & integer'image(v_left_result)
                                 severity failure;
 
                             v_rand_bit := std_logic_vector(unsigned(v_rand_bit) + 1);

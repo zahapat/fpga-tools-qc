@@ -8,34 +8,6 @@ set vivado_added_hdl_report [open $vivado_added_hdl_report_path "a"]
 set vivado_added_scripts_report_path "${origin_dir}/vivado/0_report_added_xdc.rpt"
 set vivado_added_scripts_report [open $vivado_added_scripts_report_path "a"]
 
-# -------------------------------------------------------
-# 1.0) Add SRC Package Files
-# -------------------------------------------------------
-#    * Vivado
-#    * ModelSim
-
-
-# -------------------------------------------------------
-# 1.1) Add SRC HDL Files
-# -------------------------------------------------------
-#    * Vivado
-set srcfile_added_or_not [add_files -fileset "sources_1" -norecurse {\
-    ./modules/johnson_cnt/hdl/johnson_cnt.vhd\
-}]
-
-if {$srcfile_added_or_not ne ""} {
-    set_property library lib_src [get_files {\
-        ./modules/johnson_cnt/hdl/johnson_cnt.vhd\
-    }]
-    puts -nonewline $vivado_added_hdl_report "\
-        ./modules/johnson_cnt/hdl/johnson_cnt.vhd\n"
-    update_compile_order -fileset sources_1
-
-    #    * ModelSim
-    puts -nonewline $simulator_comporder "\
-        ./modules/johnson_cnt/hdl/johnson_cnt.vhd\n"
-}
-
 
 # -------------------------------------------------------
 # 2.0) Add TB Package Files
@@ -47,10 +19,30 @@ if {$srcfile_added_or_not ne ""} {
 # 2.1) Add TB Files
 # -------------------------------------------------------
 #    * ModelSim
-if {$srcfile_added_or_not ne ""} {
-    puts -nonewline $simulator_comporder "\
-        ./modules/johnson_cnt/sim/johnson_cnt_tb.vhd\n"
+puts -nonewline $simulator_comporder "\
+    ./modules/johnson_cnt/sim/johnson_cnt_tb.vhd\n"
+
+
+# -------------------------------------------------------
+# 1.0) Add SRC Package Files
+# -------------------------------------------------------
+#    * Vivado
+#    * ModelSim
+
+
+# -------------------------------------------------------
+# 1.1) Add SRC HDL Files
+# -------------------------------------------------------
+#    * Vivado
+add_files -fileset "sources_1" -norecurse {\
+    ./modules/johnson_cnt/hdl/johnson_cnt.vhd\
 }
+set_property library "lib_src" [get_files {\
+    ./modules/johnson_cnt/hdl/johnson_cnt.vhd\
+}]
+puts -nonewline $vivado_added_hdl_report "\
+    ./modules/johnson_cnt/hdl/johnson_cnt.vhd\n"
+update_compile_order -fileset sources_1
 
 
 

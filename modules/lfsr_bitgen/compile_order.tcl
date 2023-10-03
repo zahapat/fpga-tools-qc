@@ -10,6 +10,20 @@ set vivado_added_scripts_report [open $vivado_added_scripts_report_path "a"]
 
 
 # -------------------------------------------------------
+# 2.0) Add TB Package Files
+# -------------------------------------------------------
+#    * ModelSim
+
+
+# -------------------------------------------------------
+# 2.1) Add TB Files
+# -------------------------------------------------------
+#    * ModelSim
+puts -nonewline $simulator_comporder "\
+    ./modules/lfsr_bitgen/sim/lfsr_bitgen_tb.vhd\n"
+
+
+# -------------------------------------------------------
 # 1.0) Add SRC Package Files
 # -------------------------------------------------------
 #    * Vivado
@@ -33,20 +47,6 @@ update_compile_order -fileset "sources_1"
 #    * ModelSim
 puts -nonewline $simulator_comporder "\
     ./modules/lfsr_bitgen/hdl/lfsr_bitgen.vhd\n"
-
-
-# -------------------------------------------------------
-# 2.0) Add TB Package Files
-# -------------------------------------------------------
-#    * ModelSim
-
-
-# -------------------------------------------------------
-# 2.1) Add TB Files
-# -------------------------------------------------------
-#    * ModelSim
-puts -nonewline $simulator_comporder "\
-    ./modules/lfsr_bitgen/sim/lfsr_bitgen_tb.vhd\n"
 
 
 # -------------------------------------------------------

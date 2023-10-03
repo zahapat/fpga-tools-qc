@@ -8,31 +8,6 @@ set vivado_added_hdl_report [open $vivado_added_hdl_report_path "a"]
 set vivado_added_scripts_report_path "${origin_dir}/vivado/0_report_added_xdc.rpt"
 set vivado_added_scripts_report [open $vivado_added_scripts_report_path "a"]
 
-# -------------------------------------------------------
-# 1.0) Add SRC Package Files
-# -------------------------------------------------------
-#    * Vivado
-#    * ModelSim
-
-
-# -------------------------------------------------------
-# 1.1) Add SRC HDL Files
-# -------------------------------------------------------
-#    * Vivado
-add_files -fileset "sources_1" -norecurse {\
-    ./modules/top_gflow/hdl/top_gflow.vhd\
-}
-set_property library "lib_src" [get_files {\
-    ./modules/top_gflow/hdl/top_gflow.vhd\
-}]
-puts -nonewline $vivado_added_hdl_report "\
-    ./modules/top_gflow/hdl/top_gflow.vhd\n"
-update_compile_order -fileset "sources_1"
-
-#    * ModelSim
-puts -nonewline $simulator_comporder "\
-    ./modules/top_gflow/hdl/top_gflow.vhd\n"
-
 
 # -------------------------------------------------------
 # 2.0) Add TB Package Files
@@ -47,6 +22,36 @@ puts -nonewline $simulator_comporder "\
 puts -nonewline $simulator_comporder "\
     ./modules/top_gflow/sim/top_gflow_tb.vhd\n"
 
+
+
+
+# -------------------------------------------------------
+# 1.0) Add SRC Package Files
+# -------------------------------------------------------
+#    * Vivado
+#    * ModelSim
+
+
+# -------------------------------------------------------
+# 1.1) Add SRC HDL Files
+# -------------------------------------------------------
+#    * Vivado
+add_files -fileset "sources_1" -norecurse {\
+    ./modules/top_gflow/hdl/top_gflow_ok_wrapper.vhd\
+    ./modules/top_gflow/hdl/top_gflow.vhd\
+}
+set_property library "lib_src" [get_files {\
+    ./modules/top_gflow/hdl/top_gflow_ok_wrapper.vhd\
+    ./modules/top_gflow/hdl/top_gflow.vhd\
+}]
+puts -nonewline $vivado_added_hdl_report "\
+    ./modules/top_gflow/hdl/top_gflow_ok_wrapper.vhd\n\
+    ./modules/top_gflow/hdl/top_gflow.vhd\n"
+update_compile_order -fileset "sources_1"
+
+#    * ModelSim
+puts -nonewline $simulator_comporder "\
+    ./modules/top_gflow/hdl/top_gflow.vhd\n"
 
 
 # -------------------------------------------------------

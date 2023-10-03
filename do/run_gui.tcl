@@ -16,12 +16,13 @@ if {$lib_sim_vhdl eq "work"} {
 # vmap work $lib_sim_vhdl
 
 # NEW
-set tb_top_abspath [string range [lindex $all_modules [expr [llength $all_modules]-1]] 0 end]
-set filepath_correction [concat ${proj_root_dir}${tb_top_abspath}]
-puts "TCL: filepath_correction = $filepath_correction"
-set tb_top_dir_abspath [string map {" ./" "/"} $filepath_correction]
-puts "TCL: tb_top_dir_abspath = $tb_top_dir_abspath "
+# set tb_top_abspath [string range [lindex $all_modules [expr [llength $all_modules]-1]] 0 end]
+set tb_top_abspath [string range [lindex $all_modules 0] 0 end]
+set filepath_correction [concat ${proj_root_dir} ${tb_top_abspath}]
+set filepath_correction [string map {" " ""} $filepath_correction]
+set tb_top_dir_abspath [string map {"./" "/"} $filepath_correction]
 set tb_top_dir_abspath [file dirname "[file normalize $tb_top_dir_abspath]"]
+puts "TCL: tb_top_dir_abspath: $tb_top_dir_abspath"
 
 
 # Check if harness module is used
@@ -37,23 +38,23 @@ close $slurp_file
 
 
 # Run Testbench
-if {$file_lang eq "sv"} {
+if {($file_lang eq "sv") || ($file_lang eq "svh")} {
     if { [string first "_tb." ${file_name}] != -1} {
-        vsim -onfinish stop work.${file_name}_tb
+        vsim -lib work -onfinish stop -L unisim_verilog work.glbl work.${file_name}_tb
     } else {
-        vsim -onfinish stop work.${file_name}
+        vsim -lib work -onfinish stop -L unisim_verilog work.glbl work.${file_name}
     }
-} elseif {$file_lang eq "v"} {
+} elseif {($file_lang eq "v") || ($file_lang eq "vh")} {
     if { [string first "_tb." ${file_name}] != -1} {
-        vsim -onfinish stop work.${file_name}_tb
+        vsim -lib work -onfinish stop -L unisim_verilog work.glbl work.${file_name}_tb
     } else {
-        vsim -onfinish stop work.${file_name}
+        vsim -lib work -onfinish stop -L unisim_verilog work.glbl work.${file_name}
     }
 } elseif {$file_lang eq "vhd"} {
     if { [string first "_tb." ${file_name}] != -1} {
-        vsim -onfinish stop $lib_sim_vhdl.${file_name}_tb
+        vsim -lib $lib_sim_vhdl -onfinish stop $lib_sim_vhdl.${file_name}_tb
     } else {
-        vsim -onfinish stop $lib_sim_vhdl.${file_name}
+        vsim -lib $lib_src_vhdl -onfinish stop $lib_src_vhdl.${file_name}
     }
 } else {
     puts "TCL: ERROR: File type $file_lang is not supported."

@@ -9,10 +9,19 @@ set vivado_added_scripts_report_path "${origin_dir}/vivado/0_report_added_xdc.rp
 set vivado_added_scripts_report [open $vivado_added_scripts_report_path "a"]
 
 # -------------------------------------------------------
-# 1.0) Add SRC Package Files
+# 2.1) Add TB Files
 # -------------------------------------------------------
-#    * Vivado
 #    * ModelSim
+
+# -------------------------------------------------------
+# 2.0) Add TB Package Files
+# -------------------------------------------------------
+#    * ModelSim
+puts -nonewline $simulator_comporder "\
+    ./packages/proj_specific_sim/signals_pack_tb.vhd\n\
+    ./packages/proj_specific_sim/types_pack_tb.vhd\n\
+    ./packages/proj_specific_sim/const_pack_tb.vhd\n"
+
 
 
 # -------------------------------------------------------
@@ -21,18 +30,11 @@ set vivado_added_scripts_report [open $vivado_added_scripts_report_path "a"]
 #    * Vivado
 #    * ModelSim
 
-# -------------------------------------------------------
-# 2.0) Add TB Package Files
-# -------------------------------------------------------
-#    * ModelSim
-puts -nonewline $simulator_comporder "\
-    ./packages/proj_specific_sim/const_pack_tb.vhd\n\
-    ./packages/proj_specific_sim/types_pack_tb.vhd\n\
-    ./packages/proj_specific_sim/signals_pack_tb.vhd\n"
 
 # -------------------------------------------------------
-# 2.1) Add TB Files
+# 1.0) Add SRC Package Files
 # -------------------------------------------------------
+#    * Vivado
 #    * ModelSim
 
 

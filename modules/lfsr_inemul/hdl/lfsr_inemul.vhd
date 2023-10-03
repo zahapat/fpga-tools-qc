@@ -32,6 +32,7 @@
             -- valid_in                : in std_logic;
 
             -- Out
+            ready                   : out std_logic;
             data_out                : out std_logic_vector(SYMBOL_WIDTH-1 downto 0);
             valid_out               : out std_logic
         );
@@ -85,6 +86,9 @@
 
 
     begin
+
+        -- Requited by the simulator environment
+        ready <= '1';
 
 
         -- Shift register for counting (do not infer carry logic)

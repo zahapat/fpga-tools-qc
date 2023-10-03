@@ -8,6 +8,23 @@ set vivado_added_hdl_report [open $vivado_added_hdl_report_path "a"]
 set vivado_added_scripts_report_path "${origin_dir}/vivado/0_report_added_xdc.rpt"
 set vivado_added_scripts_report [open $vivado_added_scripts_report_path "a"]
 
+
+# -------------------------------------------------------
+# 2.0) Add TB Package Files
+# -------------------------------------------------------
+#    * ModelSim
+
+
+# -------------------------------------------------------
+# 2.1) Add TB Files
+# -------------------------------------------------------
+#    * ModelSim
+if {$srcfile_added_or_not ne ""} {
+    puts -nonewline $simulator_comporder "\
+        ./modules/shiftreg_redgedetect/sim/shiftreg_redgedetect_tb.vhd\n"
+}
+
+
 # -------------------------------------------------------
 # 1.0) Add SRC Package Files
 # -------------------------------------------------------
@@ -34,22 +51,6 @@ if {$srcfile_added_or_not ne ""} {
     #    * ModelSim
     puts -nonewline $simulator_comporder "\
         ./modules/shiftreg_redgedetect/hdl/shiftreg_redgedetect.vhd\n"
-}
-
-
-# -------------------------------------------------------
-# 2.0) Add TB Package Files
-# -------------------------------------------------------
-#    * ModelSim
-
-
-# -------------------------------------------------------
-# 2.1) Add TB Files
-# -------------------------------------------------------
-#    * ModelSim
-if {$srcfile_added_or_not ne ""} {
-    puts -nonewline $simulator_comporder "\
-        ./modules/shiftreg_redgedetect/sim/shiftreg_redgedetect_tb.vhd\n"
 }
 
 

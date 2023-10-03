@@ -8,11 +8,26 @@ set vivado_added_hdl_report [open $vivado_added_hdl_report_path "a"]
 set vivado_added_scripts_report_path "${origin_dir}/vivado/0_report_added_xdc.rpt"
 set vivado_added_scripts_report [open $vivado_added_scripts_report_path "a"]
 
+
 # -------------------------------------------------------
-# 1.0) Add SRC Package Files
+# 2.1) Add TB Files
 # -------------------------------------------------------
-#    * Vivado
 #    * ModelSim
+
+# -------------------------------------------------------
+# 2.0) Add TB Package Files
+# -------------------------------------------------------
+#    * ModelSim
+puts -nonewline $simulator_comporder "\
+    ./packages/sim_tools/random_pack_tb.vhd\n\
+    ./packages/sim_tools/print_pack_tb.vhd\n\
+    ./packages/sim_tools/print_list_pack_tb.vhd\n\
+    ./packages/sim_tools/list_string_pack_tb.vhd\n\
+    ./packages/sim_tools/list_pack_tb.vhd\n\
+    ./packages/sim_tools/fifo_pack_tb.vhd\n\
+    ./packages/sim_tools/export_pack_tb.vhd\n\
+    ./packages/sim_tools/clk_pack_tb.vhd\n"
+
 
 # -------------------------------------------------------
 # 1.1) Add SRC HDL Files
@@ -21,23 +36,12 @@ set vivado_added_scripts_report [open $vivado_added_scripts_report_path "a"]
 #    * ModelSim
 
 # -------------------------------------------------------
-# 2.0) Add TB Package Files
+# 1.0) Add SRC Package Files
 # -------------------------------------------------------
+#    * Vivado
 #    * ModelSim
-puts -nonewline $simulator_comporder "\
-    ./packages/sim_tools/clk_pack_tb.vhd\n\
-    ./packages/sim_tools/export_pack_tb.vhd\n\
-    ./packages/sim_tools/fifo_pack_tb.vhd\n\
-    ./packages/sim_tools/list_pack_tb.vhd\n\
-    ./packages/sim_tools/list_string_pack_tb.vhd\n\
-    ./packages/sim_tools/print_list_pack_tb.vhd\n\
-    ./packages/sim_tools/print_pack_tb.vhd\n\
-    ./packages/sim_tools/random_pack_tb.vhd\n"
 
-# -------------------------------------------------------
-# 2.1) Add TB Files
-# -------------------------------------------------------
-#    * ModelSim
+
 
 # -------------------------------------------------------
 # 3.0) Add XDC/TCL Files

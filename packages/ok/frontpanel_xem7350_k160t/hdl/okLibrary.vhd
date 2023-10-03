@@ -73,8 +73,8 @@ begin
 	notCH36          <= not(okCH(36));
 	
 	-- [Netlist 29-432] The IBUFG primitive 'inst_ok_host_interf/hi_clk_bufg' has been retargeted to an IBUF primitive only. No BUFG will be added. If a global buffer is intended, please instantiate an available global clock primitive from the current architecture.
-	hi_clk_bufg : IBUFG port map (I=>okUH(0), O=>okUH0_ibufg);
-	-- hi_clk_bufg : BUFG port map (I=>okUH(0), O=>okUH0_ibufg);
+	-- hi_clk_bufg : IBUFG port map (I=>okUH(0), O=>okUH0_ibufg);
+	hi_clk_bufg : IBUF port map (I=>okUH(0), O=>okUH0_ibufg);
 	
 	mmcm0: MMCME2_BASE generic map (
 		BANDWIDTH        => "OPTIMIZED",      -- Jitter programming (OPTIMIZED, HIGH, LOW)
