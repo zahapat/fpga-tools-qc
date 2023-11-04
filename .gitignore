@@ -75,9 +75,11 @@ packages/uvvm/*/*/*/*/sim
 
 
 
-simulator
+# Ignore all files in ./simulator directory but allow some exceptions
+simulator/*
 !simulator/*.do
 !simulator/*.tcl
+!simulator/do
 
 
 
