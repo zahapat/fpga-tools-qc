@@ -3,11 +3,11 @@
 # -------------------------------------------------------------
 # Mandatory variables
 PROJ_NAME = $(shell basename $(CURDIR))
-PROJ_DIR = $(shell pwd)
+PROJ_DIR = $(dir $(abspath $(firstword $(MAKEFILE_LIST))))
 
 # Libraries for HDL sources and testbenches
-LIB_SRC ?= lib_src
-LIB_SIM ?= lib_sim
+LIB_SRC ?= work
+LIB_SIM ?= work
 
 # -------------------------------------------------------------
 #                     MAKEFILE TARGETS
@@ -16,13 +16,22 @@ LIB_SIM ?= lib_sim
 
 
 # Modelsim
-# make sim LIB_SRC=libname LIB_SIM=libname: re/create respective libraries for the project in ModelSim, run all
-sim : modelsim.ini 
-	$(info ----- RESET SIM ENVIRONMENT, RUN ALL IN BATCH -----)
-	vsim -c -do "do ./do/make_sim.tcl $(LIB_SRC),$(LIB_SIM)"
+# Initialize Simulator (Questa)
+# sim_init :
+# 	cd $(PROJ_DIR)simulator; vmap -c
+# 	set MODELSIM=$(PROJ_DIR)simulator/modelsim.ini
 
+# make sim LIB_SRC=libname LIB_SIM=libname: re/create respective libraries for the project in ModelSim, run all
+sim_reset : 
+	cd $(PROJ_DIR)simulator; vsim -c -do "do ./do/make_sim_clean.tcl $(LIB_SRC),$(LIB_SIM),$(PROJ_DIR)"
+
+# make sim LIB_SRC=libname LIB_SIM=libname: re/create respective libraries for the project in ModelSim, run all
+sim : $(PROJ_DIR)/simulator/modelsim.ini
+	cd $(PROJ_DIR)simulator; vsim -c -do "do ./do/make_sim.tcl $(LIB_SRC),$(LIB_SIM),$(PROJ_DIR)"
 
 # make sim_gui LIB_SRC=libname LIB_SIM=libname: re/create Questa project, create libraries, add files, compile all, run all
-sim_gui : modelsim.ini ./simulator/run.do
-	$(info ----- RESET SIM ENVIRONMENT, RUN ALL IN GUI -----)
-	vsim -do "do ./do/make_sim.tcl $(LIB_SRC),$(LIB_SIM)"
+sim_gui : $(PROJ_DIR)/simulator/modelsim.ini $(PROJ_DIR)/simulator/run.do $(PROJ_DIR)/simulator/new.do
+	cd $(PROJ_DIR)simulator; vsim -do "do ./do/make_sim.tcl $(LIB_SRC),$(LIB_SIM),$(PROJ_DIR)"
+
+compile: $(PROJ_DIR)/simulator/modelsim.ini
+	cd $(PROJ_DIR)simulator; vsim -c -do "do ./do/compile_nosim.tcl $(LIB_SRC),$(LIB_SIM),$(PROJ_DIR)"

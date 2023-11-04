@@ -6,7 +6,7 @@
 
     library UNISIM;
     use UNISIM.VComponents.all;
-    
+
     library lib_src;
     use lib_src.types_pack.all;
 
@@ -52,6 +52,7 @@
             -- Readout Endpoint Signals
             readout_clk        : in std_logic;
             readout_data_ready : out std_logic;
+            readout_data_valid : out std_logic;
             readout_enable     : in std_logic;
             readout_data_32b   : out std_logic_vector(31 downto 0);
 
@@ -115,7 +116,8 @@
         constant IGNORE_CYCLES_AFTER_TIMEUP       : natural := 3;
 
         -- Reset
-        constant RST_STROBE_CNTR_WIDTH_SYSCLK : positive := 28; -- 10*10^(-9) sec * 2^28 / 2 = 1.3 sec
+        -- constant RST_STROBE_CNTR_WIDTH_SYSCLK : positive := 28; -- 10*10^(-9) sec * 2^28 / 2 = 1.3 sec
+        constant RST_STROBE_CNTR_WIDTH_SYSCLK : positive := 3; -- 10*10^(-9) sec * 2^28 / 2 = 1.3 sec
         constant RST_STROBE_CNTR_WIDTH_SAMPLCLK : positive := 2;
 
         -- Pseudorandom bit generator
@@ -181,7 +183,7 @@
         signal locked : std_logic;
 
         signal sl_rst : std_logic := '0';
-        signal sl_rst_sysclk : std_logic;
+        signal sl_rst_sysclk : std_logic := '0'; -- Pullup
         signal sl_rst_samplclk : std_logic := '0';
 
         -- Dimensioned for 8 qubits max
@@ -285,6 +287,7 @@
             -- Optional: Readout endpoint signals
             readout_clk     => readout_clk,
             readout_data_ready => readout_data_ready,
+            readout_data_valid => readout_data_valid,
             readout_enable     => readout_enable,
             readout_data_32b   => readout_data_32b,
 

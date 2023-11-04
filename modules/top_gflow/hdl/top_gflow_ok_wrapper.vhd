@@ -233,14 +233,14 @@
             ep_datain => slv_wout_ep3e
         );
 
-        slv_wout_ep3f <= x"beeff00d";
-        inst_wire_out_addr_3f : entity lib_src.okWireOut   
-        port map (
-            okHE      => okHE,
-            okEH      => okEHx( 4*65-1 downto 3*65 ), -- Common output bus loc to be OR-ed
-            ep_addr   => std_logic_vector(to_unsigned(16#3f#, 8)),
-            ep_datain => slv_wout_ep3f
-        );
+        -- slv_wout_ep3f <= x"beeff00d";
+        -- inst_wire_out_addr_3f : entity lib_src.okWireOut   
+        -- port map (
+        --     okHE      => okHE,
+        --     okEH      => okEHx( 4*65-1 downto 3*65 ), -- Common output bus loc to be OR-ed
+        --     ep_addr   => std_logic_vector(to_unsigned(16#3f#, 8)),
+        --     ep_datain => slv_wout_ep3f
+        -- );
 
 
         -----------------------------------------
@@ -253,7 +253,7 @@
         ep_80 : entity lib_src.okBTPipeIn
         port map (
             okHE	       => okHE,
-            okEH	       => okEHx( 5*65-1 downto 4*65 ),
+            okEH	       => okEHx( 4*65-1 downto 3*65 ),
             ep_addr        => std_logic_vector(to_unsigned(16#80#, 8)),
             ep_write       => slv_pipe_in_endp_write_en,
             ep_blockstrobe => slv_blockstrobe_pipe_in,
@@ -322,10 +322,10 @@
             led => led,
 
             -- Optional: Readout Endpoint Signals
-            okClk => okClk,
-            rd_data_ready => slv_pipe_out_endp_ready,
-            rd_enable     => slv_pipe_out_endp_read_en,
-            rd_data_32b   => slv_pipe_out_endp_data,
+            readout_clk        => okClk,
+            readout_data_ready => slv_pipe_out_endp_ready,
+            readout_enable     => slv_pipe_out_endp_read_en,
+            readout_data_32b   => slv_pipe_out_endp_data,
 
             -- Inputs from SPCM
             input_pads => input_pads,

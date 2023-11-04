@@ -37,6 +37,7 @@
             -- Read endpoint signals: slower CLK, faster rate
             readout_clk : in std_logic;
             readout_data_ready : out std_logic;
+            readout_data_valid : out std_logic;
             readout_enable : in std_logic;
             readout_data_32b : out std_logic_vector(32-1 downto 0);
 
@@ -80,7 +81,7 @@
         signal slv_wr_data    : std_logic_vector(31 downto 0);
 
         signal rd_clk        : std_logic;
-        signal sl_rd_valid   : std_logic;
+        signal sl_rd_valid   : std_logic := '0';
         signal slv_rd_data_out : std_logic_vector(31 downto 0);
 
         signal sl_full       : std_logic;
@@ -97,7 +98,7 @@
         signal sl_at_least_one_qubit_valid : std_logic := '0';
 
         -- OK endpoint read logic
-        signal sl_ok_endp_ready   : std_logic := '0';
+        signal sl_readout_endp_ready   : std_logic := '0';
         signal slv_ok_rd_endp_data   : std_logic_vector(31 downto 0) := (others => '0');
 
         -- Buffer Values Captured
@@ -467,38 +468,12 @@
         -- 3) Sending Ready Flag to okHost for future reading of a block of data
         --    FIFO Level indicator is tied to okBTPipeOut's 'ep_ready'
         --    When 'ep_ready' is asserted, the host is free to read a full block of data from FIFO
-        readout_data_ready <= sl_ok_endp_ready;
-        proc_endp_usb_fifo_ready : process(readout_clk)
-        begin
-            if rising_edge(readout_clk) then
-
-                -- Default values
-                sl_ok_endp_ready <= '0';
-
-                if sl_prog_empty = '0' then
-                    sl_ok_endp_ready <= '1';
-                end if;
-            end if;
-        end process;
+        readout_data_ready <= not sl_prog_empty;
+        readout_data_valid <= sl_rd_valid;
 
         -- DO NOT TOUCH
         -- 4) Reacting to Read requests from okHost
         --    okHost already knows there is a block of data ready to transmit inside the FIFO
-        readout_data_32b <= slv_ok_rd_endp_data;
-        proc_endp_usb_fifo_read : process(readout_clk)
-        begin
-            if rising_edge(readout_clk) then
-
-                -- Default values
-                slv_ok_rd_endp_data <= (others => '0');
-
-                -- TO DO: POSSIBLE CAUSE OF ZEROS AFTER TRANSMISSION
-                if readout_enable = '1' then
-                    if sl_rd_valid = '1' then
-                        slv_ok_rd_endp_data <= slv_rd_data_out;
-                    end if;
-                end if;
-            end if;
-        end process;
+        readout_data_32b <= slv_rd_data_out;
 
     end architecture;

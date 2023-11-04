@@ -44,7 +44,6 @@ remove_ws_vitis :
 
 new_vitis :
 	$(SUBSHELL_ENV)
-	$(info ----- RE/CREATE THE VITIS PLATFORM PROJECT: $(PLATFORM_NAME); AND BUILD APPS: $(PLATFORM_NAME) -----)
 	which vitis
 	which xsct
 	xsct.bat tcl/generic/vitis/recreate_vitis_proj.tcl $(PART) $(BOARD) $(WORKSPACE_NAME) $(PLATFORM_NAME) $(XSA_PATH) $(DOMAIN_NAME) $(PROCESSOR_NAME) $(PROCESSOR_INSTANCE) $(DOMAIN_OS) $(SYSTEM_NAME)
@@ -52,21 +51,18 @@ new_vitis :
 APP_NAME ?= app1
 new_app_vitis :
 	$(SUBSHELL_ENV)
-	$(info ----- CREATE AND BUILD AN APP: $(APP_NAME) -----)
 	which vitis
 	which xsct
 	xsct.bat tcl/generic/vitis/make_new_app.tcl $(WORKSPACE_NAME) $(PLATFORM_NAME) $(DOMAIN_NAME) $(SYSTEM_NAME) $(APP_NAME)
 
 add_sources_vitis :
 	$(SUBSHELL_ENV)
-	$(info ----- CREATE AND BUILD AN APP: $(APP_NAME) -----)
 	which vitis
 	which xsct
 	xsct.bat tcl/generic/vitis/make_new_app.tcl $(WORKSPACE_NAME) $(PLATFORM_NAME) $(DOMAIN_NAME) $(SYSTEM_NAME) $(APP_NAME)
 
 gui_vitis :
 	$(SUBSHELL_ENV)
-	$(info ----- RE/CREATE THE VITIS PLATFORM PROJECT: $(PROJ_NAME) -----)
 	xsct.bat -interactive -eval "setws -switch $(WORKSPACE_PATH); \
 		platform read $(WORKSPACE_PATH)/$(PLATFORM_NAME)/platform.spr; \
  		platform active $(PLATFORM_NAME); \
@@ -75,7 +71,6 @@ gui_vitis :
 
 bsp_regen_vitis :
 	$(SUBSHELL_ENV)
-		$(info ----- RE/CREATE THE VITIS PLATFORM PROJECT: $(PROJ_NAME) -----)
 		which vitis
 		which xsct
 		xsct.bat -eval "setws -switch $(WORKSPACE_PATH); \
@@ -85,7 +80,6 @@ bsp_regen_vitis :
 
 reset_vitis :
 	$(SUBSHELL_ENV)
-	$(info ----- BUILD THE VITIS PLATFORM PROJECT: $(PLATFORM_NAME) -----)
 	which vitis
 	which xsct
 	make remove_vitis

@@ -2,8 +2,10 @@
     use ieee.std_logic_1164.all;
     use ieee.numeric_std.all;
     use ieee.math_real.all;
-
+    
     use std.textio.all;
+    use ieee.std_logic_textio.all;
+
     use std.env.finish;
 
     library lib_src;
@@ -14,10 +16,16 @@
     use lib_sim.types_pack_tb.all;
     use lib_sim.const_pack_tb.all;
 
+    library OSVVM;
+    use OSVVM.RandomPkg.all;
+
     entity top_gflow_tb is
     end top_gflow_tb;
 
     architecture sim of top_gflow_tb is
+
+        -- File I/O
+        file sim_result : text;
 
         -- FPGA System Clock
         constant CLK_HZ : integer := 200e6;
@@ -25,16 +33,13 @@
 
         -- New qubit each 78 MHz
         constant CLK_NEW_QUBIT_78MHz_HZ : integer := 78e6;
-        constant CLK_NEW_QUBIT_78MHz_PERIOD : time := 1 sec / CLK_NEW_QUBIT_78MHz_HZ;
-        signal s_clk_new_qubit_78MHz : std_logic := '1';
+        constant LASER_CLK_PERIOD : time := 1 sec / CLK_NEW_QUBIT_78MHz_HZ;
+        signal laser_clk : std_logic := '1';
 
         -- External Detector: Excelitas SPCM (Single Photon Counting Module) SPCM-AQRH-1X
         -- 31.249999999999996 MHz
-        constant SPCM_OUTPUT_PULSE_DUR : time := 10 ns;
-        constant SPCM_DEAD_TIME_DUR : time := 22 ns;
-        signal s_clk_detector_31MHz : std_logic := '1';
-
-        constant REPETITIONS : positive := 10000;
+        constant DETECTOR_PULSE_NS : time := 10 ns;
+        constant DETECTOR_DEAD_TIME_NS : time := 22 ns;
 
         -- Number od random inputs INST_B
         -- THE SEEDS MUST BE MODIFIED!
@@ -47,7 +52,7 @@
         constant QUBITS_CNT         : positive := 4;
         constant INPUT_PADS_CNT     : positive := 8;
         constant OUTPUT_PADS_CNT    : positive := 1;
-        constant EMULATE_INPUTS     : boolean := true;
+        constant EMULATE_INPUTS     : boolean := false;
         constant PHOTON_1H_DELAY_NS : real := 75.65;     -- zero delay = reference
         constant PHOTON_1V_DELAY_NS : real := 75.01;     -- zero delay = reference
         constant PHOTON_2H_DELAY_NS : real := -2117.95;  -- fibre delay of qubit 2
@@ -76,12 +81,12 @@
         signal output_pads : std_logic_vector(OUTPUT_PADS_CNT-1 downto 0);
 
         signal readout_clk        : std_logic := '0';
-        signal readout_data_ready : std_logic;
-        signal readout_enable     : std_logic;
+        signal readout_data_ready : std_logic := '0';
+        signal readout_data_valid : std_logic := '0';
+        signal readout_enable     : std_logic := '0';
         signal readout_data_32b   : std_logic_vector(31 downto 0);
 
-        signal s_qubits_78MHz : std_logic_vector(7 downto 0) := (others => '0');
-        signal s_qubits_31MHz : std_logic_vector(7 downto 0) := (others => '0');
+        signal s_qubits : std_logic_vector(2*QUBITS_CNT-1 downto 0) := (others => '0');
 
         -- Delta time of the arrival of a single photon
         constant DELTA_ARRIVAL_MIN_NS : real := -0.5;
@@ -135,6 +140,7 @@
             -- Readout Endpoint Signals
             readout_clk => readout_clk,
             readout_data_ready => readout_data_ready,
+            readout_data_valid => readout_data_valid,
             readout_enable => readout_enable,
             readout_data_32b => readout_data_32b,
 
@@ -151,271 +157,184 @@
         -----------------------
         -- Clock Oscillators --
         -----------------------
-        -- 1) SYSTEM 230 MHz, 2) NEW_QUBIT 78 MHz, 3) DETECTOR 31 MHz
+        -- 1) ACQUISITION 250 MHz, 2) NEW_QUBIT 78 MHz, 3) DETECTOR 31 MHz
+        -- The Laser frequency of 78 MHz must be downconverted to 31.24999 MHz to prevent detector saturation
         sys_clk_p <= not sys_clk_p after CLK_PERIOD / 2;
-        s_clk_new_qubit_78MHz <= not s_clk_new_qubit_78MHz after CLK_NEW_QUBIT_78MHz_PERIOD / 2;
-        proc_spcm_detector_osc : process
+        sys_clk_n <= not sys_clk_p;
+        laser_clk <= not laser_clk after LASER_CLK_PERIOD / 2;
+        readout_clk <= not readout_clk after 5 ns;
+
+        --------------------------------------------------------------
+        -- GENERATE RANDOM QUBITS AT MAX DETECTOR FREQ 31.24999 MHz --
+        --------------------------------------------------------------
+        proc_gen_rand_qbts_detector_maxfreq : process
+            -- Random SLV type generator
+            variable rand_slv : RandomPType;
         begin
-            for i in 0 to REPETITIONS-1 loop
-                s_clk_detector_31MHz <= '1' ;
-                wait for SPCM_OUTPUT_PULSE_DUR;
-                s_clk_detector_31MHz <= '0';
-                wait for SPCM_DEAD_TIME_DUR;
+            wait for 0 ns;
+            -- Create a unique seed
+            rand_slv.InitSeed(rand_slv'instance_name);
+            wait for 0 ns;
+
+            loop
+                -- Create the randomized values (Normal Distribution)
+                s_qubits <= (others => '0');
+                wait for 0 ns;
+                input_pads <= s_qubits;
+                wait for DETECTOR_DEAD_TIME_NS;
+
+                -- Create the randomized values (Normal Distribution)
+                s_qubits <= rand_slv.Randslv(0, integer(2**(2*QUBITS_CNT)-1), 2*QUBITS_CNT);
+                wait for 0 ns;
+                input_pads <= s_qubits;
+                wait for DETECTOR_PULSE_NS;
             end loop;
         end process;
 
-
-        ---------------------------------------------
-        -- GENERATE RANDOM QUBITS WITH FREQ 78 MHz --
-        ---------------------------------------------
-        proc_gen_rand_qbts : process
-            -- Random SLV generator
-            variable v_rand : std_logic_vector(7 downto 0) := (others => '0');
-            variable seed_1, seed_2 : integer := RAND_NUMBS_SEEDS;
-            impure function rand_slv (
-                constant length : integer
-            ) return std_logic_vector is
-                variable r   : real;
-                variable slv : std_logic_vector(length-1 downto 0);
-            begin
-                for i in slv'range loop
-                    uniform(seed_1, seed_2, r);
-                    slv(i) := '1' when r > 0.5 else '0';
-                end loop;
-                return slv;
-            end function;
-
-            procedure update_seeds(constant index : integer) is
-                begin
-                    seed_1 := seed_1 + index;
-                    seed_2 := seed_2 + (index+1);
-            end procedure;
-
-        begin
-
-            -- Send some random data to the system and to the TB
-            for i in 0 to REPETITIONS-1 loop
-                s_qubits_78MHz <= rand_slv(8);
-                update_seeds(i);
-                wait until rising_edge(s_clk_new_qubit_78MHz);
-            end loop;
-        end process;
-
-
-        -------------------------------------------
-        -- DETECT RANDOM QUBITS WITH FREQ 31 MHz --
-        -------------------------------------------
-        -- 31.249999999999996 MHz
-        -- proc_detect_rand_qbts : process(all)
-        proc_detect_rand_qbts : process
-        begin
-
-            for i in 0 to REPETITIONS-1 loop
-                s_qubits_31MHz <= s_qubits_78MHz;
-                wait for SPCM_OUTPUT_PULSE_DUR;
-                s_qubits_31MHz <= (others => '0');
-                wait for SPCM_DEAD_TIME_DUR;
-            end loop;
-
-        end process;
-
-
-        -----------------------------------------
-        -- SIMULATE DELAYED HORIZONTAL PHOTONS --
-        -----------------------------------------
-        -- proc_horizontal_photons_arrival : process
-        --     variable v_rand_delta_ns : real := 0.0;
-        --     variable v_str_state : t_state_gflow := QUBIT_1;
-        --     -- Random real number generator
-        --     variable seed_1, seed_2 : integer := RAND_NUMBS_SEEDS;
-        --     impure function rand_real(min_val, max_val : real)
-        --     return real is
-        --         variable r : real;
-        --     begin
-        --         uniform(seed_1, seed_2, r);
-        --         return r * (max_val - min_val) + min_val;
-        --     end function;
-        -- begin
-
-        --     -- 78 MHz = 12.820512820513 ns
-        --     -- Horizontal photons
-        --     for i in 0 to REPETITIONS-1 loop
-        --         v_str_state := << signal DUT.inst_gflow_fsm.state_gflow : t_state_gflow >>;
-        --         case v_str_state is
-        --             when QUBIT_1 =>
-        --                 -- Wait for the rising edge of the input signal (about 31 MHz)
-        --                 wait until rising_edge(s_clk_detector_31MHz);
-        --                 v_rand_delta_ns := rand_real(DELTA_ARRIVAL_MIN_NS, DELTA_ARRIVAL_MAX_NS);
-        --                 -- wait for (abs(PHOTON_1H_DELAY_NS) + v_rand_delta_ns)*1 ns; -- WRONG
-        --                 report "TX(H): QUBIT_1 AFTER " & to_string(PHOTON_1H_DELAY_NS, "%.3f") & " ns + rand. delta " & to_string(v_rand_delta_ns, "%.3f") & " ns.";
-        --                 -- FORCE
-        --                 -- ...
-        --                 wait for SPCM_OUTPUT_PULSE_DUR;
-        --                 -- RELEASE
-
-        --             when QUBIT_2 =>
-        --                 -- Flow
-        --                 v_rand_delta_ns := rand_real(DELTA_ARRIVAL_MIN_NS, DELTA_ARRIVAL_MAX_NS);
-        --                 -- wait for (abs(PHOTON_2H_DELAY_NS) + v_rand_delta_ns)*1 ns; -- WRONG
-        --                 report "TX(H): QUBIT_2 AFTER " & to_string(PHOTON_2H_DELAY_NS, "%.3f") & " ns + rand. delta " & to_string(v_rand_delta_ns, "%.3f") & " ns.";
-        --                 -- FORCE
-        --                 -- ...
-        --                 wait for SPCM_OUTPUT_PULSE_DUR;
-        --                 -- RELEASE
-
-        --             when QUBIT_3 =>
-        --                 -- Flow
-        --                 v_rand_delta_ns := rand_real(DELTA_ARRIVAL_MIN_NS, DELTA_ARRIVAL_MAX_NS);
-        --                 -- wait for (abs(PHOTON_3H_DELAY_NS) + v_rand_delta_ns)*1 ns; -- WRONG
-        --                 report "TX(H): QUBIT_3 AFTER " & to_string(PHOTON_3H_DELAY_NS, "%.3f") & " ns + rand. delta " & to_string(v_rand_delta_ns, "%.3f") & " ns.";
-        --                 -- FORCE
-        --                 -- ...
-        --                 wait for SPCM_OUTPUT_PULSE_DUR;
-        --                 -- RELEASE
-
-        --             when QUBIT_4 =>
-        --                 -- Flow
-        --                 v_rand_delta_ns := rand_real(DELTA_ARRIVAL_MIN_NS, DELTA_ARRIVAL_MAX_NS);
-        --                 -- wait for (abs(PHOTON_4H_DELAY_NS) + v_rand_delta_ns)*1 ns;
-        --                 report "TX(H): QUBIT_4 AFTER " & to_string(PHOTON_4H_DELAY_NS, "%.3f") & " ns + rand. delta " & to_string(v_rand_delta_ns, "%.3f") & " ns.";
-        --                 -- FORCE
-        --                 -- ...
-        --                 wait for SPCM_OUTPUT_PULSE_DUR;
-        --                 -- RELEASE
-        --         end case;
-
-        --         -- Update seeds for new values
-        --         seed_1 := seed_1 + i;
-        --         seed_2 := seed_2 + (i+1);
-        --     end loop;
-
-        -- end process;
-
-
-        -- ---------------------------------------
-        -- -- SIMULATE DELAYED VERTICAL PHOTONS --
-        -- ---------------------------------------
-        -- proc_vertical_photons_arrival : process
-        --     variable v_rand_delta_ns : real := 0.0;
-        --     variable v_str_state : t_state_gflow := QUBIT_1;
-        --     -- Random real number generator
-        --     variable seed_1, seed_2 : integer := RAND_NUMBS_SEEDS;
-        --     impure function rand_real(min_val, max_val : real)
-        --     return real is
-        --         variable r : real;
-        --     begin
-        --         uniform(seed_1, seed_2, r);
-        --         return r * (max_val - min_val) + min_val;
-        --     end function;
-
-        -- begin
-
-        --     -- 78 MHz = 12.820512820513 ns
-        --     -- Vertical photons
-        --     for i in 0 to REPETITIONS-1 loop
-        --         v_str_state := << signal DUT.inst_gflow_fsm.state_gflow : t_state_gflow >>;
-        --         case v_str_state is
-        --             when QUBIT_1 =>
-        --                 -- Wait for the rising edge of the input signal from the detector (about 31 MHz)
-        --                 wait until rising_edge(s_clk_detector_31MHz);
-        --                 v_rand_delta_ns := rand_real(DELTA_ARRIVAL_MIN_NS, DELTA_ARRIVAL_MAX_NS);
-        --                 -- wait for (abs(PHOTON_1V_DELAY_NS) + v_rand_delta_ns)*1 ns; -- WRONG
-        --                 report "TX(V): QUBIT_1 AFTER " & to_string(PHOTON_1V_DELAY_NS, "%.3f") & " ns + rand. delta " & to_string(v_rand_delta_ns, "%.3f") & " ns.";
-        --                 -- FORCE
-        --                 -- ...
-        --                 wait for SPCM_OUTPUT_PULSE_DUR;
-        --                 -- RELEASE
-
-        --             when QUBIT_2 =>
-        --                 -- Flow
-        --                 v_rand_delta_ns := rand_real(DELTA_ARRIVAL_MIN_NS, DELTA_ARRIVAL_MAX_NS);
-        --                 -- wait for (abs(PHOTON_2V_DELAY_NS) + v_rand_delta_ns)*1 ns; -- WRONG
-        --                 report "TX(V): QUBIT_2 AFTER " & to_string(PHOTON_2V_DELAY_NS, "%.3f") & " ns + rand. delta " & to_string(v_rand_delta_ns, "%.3f") & " ns.";
-        --                 -- FORCE
-        --                 -- ...
-        --                 wait for SPCM_OUTPUT_PULSE_DUR;
-        --                 -- RELEASE
-
-        --             when QUBIT_3 =>
-        --                 -- Flow
-        --                 v_rand_delta_ns := rand_real(DELTA_ARRIVAL_MIN_NS, DELTA_ARRIVAL_MAX_NS);
-        --                 -- wait for (abs(PHOTON_3V_DELAY_NS) + v_rand_delta_ns)*1 ns; -- WRONG
-        --                 report "TX(V): QUBIT_3 AFTER " & to_string(PHOTON_3V_DELAY_NS, "%.3f") & " ns + rand. delta " & to_string(v_rand_delta_ns, "%.3f") & " ns.";
-        --                 -- FORCE
-        --                 -- ...
-        --                 wait for SPCM_OUTPUT_PULSE_DUR;
-        --                 -- RELEASE
-
-        --             when QUBIT_4 =>
-        --                 -- Flow
-        --                 v_rand_delta_ns := rand_real(DELTA_ARRIVAL_MIN_NS, DELTA_ARRIVAL_MAX_NS);
-        --                 -- wait for (abs(PHOTON_4V_DELAY_NS) + v_rand_delta_ns)*1 ns; -- WRONG
-        --                 report "TX(V): QUBIT_4 AFTER " & to_string(PHOTON_4V_DELAY_NS, "%.3f") & " ns + rand. delta " & to_string(v_rand_delta_ns, "%.3f") & " ns.";
-        --                 -- FORCE
-        --                 -- ...
-        --                 wait for SPCM_OUTPUT_PULSE_DUR;
-        --                 -- RELEASE
-        --         end case;
-
-        --         -- Update seeds for new values
-        --         seed_1 := seed_1 + i;
-        --         seed_2 := seed_2 + (i+1);
-        --     end loop;
-
-        -- end process;
- 
 
         ---------------
         -- SEQUENCER --
         ---------------
         proc_sequencer : process
-
-        variable v_keep_time_pulse_p1 : time;
-
-            -- Random SLV generator
-            variable v_rand_slv : std_logic_vector(0 downto 0) := "0";
-            variable seed_1, seed_2 : integer := 0;
-            impure function rand_slv (
-                constant length : integer
-            ) return std_logic_vector is
-                variable r   : real;
-                variable slv : std_logic_vector(length-1 downto 0);
-            begin
-                for i in slv'range loop
-                    uniform(seed_1, seed_2, r);
-                    slv(i) := '1' when r > 0.5 else '0';
-                end loop;
-                return slv;
-            end function;
-
-            -- Wait for certain number of SYSTEM clk cycles
-            procedure wait_cycles (
-                constant cycles_cnt : integer
-            ) is begin
-                for i in 0 to cycles_cnt-1 loop
-                    wait until rising_edge(sys_clk_p);
-                end loop;
-            end procedure;
-
-            procedure update_seeds(constant index : integer) is
-                begin
-                    seed_1 := seed_1 + index;
-                    seed_2 := seed_2 + (index+1);
-            end procedure;
-
+            -- File I/O
+            variable v_file_line_buffer : line;
         begin
+            -- Open and Initialize report file
+            file_open(sim_result, "C:/Git/zahapat/fpga-tools-qc/modules/top_gflow/sim/sim_reports/sim_result.csv", write_mode);
+            write(v_file_line_buffer, string'("q1,q2,q3,q4,,"));
+            write(v_file_line_buffer, string'("alpha_q1,alpha_q2,alpha_q3,alpha_q4,,"));
+            write(v_file_line_buffer, string'("rand_q1,rand_q2,rand_q3,rand_q4,,"));
+            write(v_file_line_buffer, string'("mod_q1,mod_q2,mod_q3,mod_q4,,"));
+            write(v_file_line_buffer, string'("q1_time,q1_time_overflows,q2_time,q2_time_overflows,q3_time,q3_time_overflows,q4_time,q4_time_overflows,,"));
+            writeline(sim_result, v_file_line_buffer);
 
-            wait for 1 us;
+            -- Run for ...
+            wait for 5000 us; -- make timer: Build Duration: 00:48:59
 
-            -- Run for certain number of cycles: send random data
-            for i in 0 to REPETITIONS-1 loop
-                -- transmit;
-                wait_cycles(1);
-            end loop;
+            if readout_data_valid = '1' then
+                wait until falling_edge(readout_data_valid);
+                wait for 1 ns;
+            end if;
 
             print_test_ok;
+            file_close(sim_result);
             finish;
             wait;
+        end process;
+
+
+        ---------------
+        -- READOUT --
+        ---------------
+        proc_readout : process
+            -- Output Vectors
+            variable q1, q2, q3, q4 : integer := 0;
+            variable alpha_q1, alpha_q2, alpha_q3, alpha_q4 : integer := 0;
+            variable rand_q1, rand_q2, rand_q3, rand_q4 : integer := 0;
+            variable mod_q1, mod_q2, mod_q3, mod_q4 : integer := 0;
+            variable qubit_time : integer := 0;
+
+            -- File I/O
+            variable v_file_line_buffer : line;
+            variable v_space      : character;
+            variable v_comma      : character := ',';
+        begin
+                readout_enable <= '1';
+
+                -- Do not wait each clk cycle, but on an event
+                wait until rising_edge(readout_data_valid);
+                -- file_open(sim_result, "C:/Git/zahapat/fpga-tools-qc/modules/top_gflow/sim/sim_reports/sim_result.txt", write_mode);
+
+                -- Synchronize readout with readout clock
+                wait until rising_edge(readout_clk);
+
+                while readout_data_valid = '1' loop
+                    -- Update deltas to make sure data vectors contain the most recent value
+
+                    -- Parse the data vector
+                    if readout_data_32b(3 downto 0) = x"1" then
+                        q1 := to_integer(unsigned(readout_data_32b(31 downto 30)));
+                        q2 := to_integer(unsigned(readout_data_32b(29 downto 28)));
+                        q3 := to_integer(unsigned(readout_data_32b(27 downto 26)));
+                        q4 := to_integer(unsigned(readout_data_32b(25 downto 24)));
+                        write(v_file_line_buffer, integer'image(q1) & v_comma);
+                        write(v_file_line_buffer, integer'image(q2) & v_comma);
+                        write(v_file_line_buffer, integer'image(q3) & v_comma);
+                        write(v_file_line_buffer, integer'image(q4) & v_comma);
+                        write(v_file_line_buffer, v_comma);
+                        alpha_q1 := to_integer(unsigned(readout_data_32b(23 downto 22)));
+                        alpha_q2 := to_integer(unsigned(readout_data_32b(21 downto 20)));
+                        alpha_q3 := to_integer(unsigned(readout_data_32b(19 downto 18)));
+                        alpha_q4 := to_integer(unsigned(readout_data_32b(17 downto 16)));
+                        write(v_file_line_buffer, integer'image(alpha_q1) & v_comma);
+                        write(v_file_line_buffer, integer'image(alpha_q2) & v_comma);
+                        write(v_file_line_buffer, integer'image(alpha_q3) & v_comma);
+                        write(v_file_line_buffer, integer'image(alpha_q4) & v_comma);
+                        write(v_file_line_buffer, v_comma);
+                        rand_q1 := to_integer(unsigned(readout_data_32b(15 downto 15)));
+                        rand_q2 := to_integer(unsigned(readout_data_32b(14 downto 14)));
+                        rand_q3 := to_integer(unsigned(readout_data_32b(13 downto 13)));
+                        rand_q4 := to_integer(unsigned(readout_data_32b(12 downto 12)));
+                        write(v_file_line_buffer, integer'image(rand_q1) & v_comma);
+                        write(v_file_line_buffer, integer'image(rand_q2) & v_comma);
+                        write(v_file_line_buffer, integer'image(rand_q3) & v_comma);
+                        write(v_file_line_buffer, integer'image(rand_q4) & v_comma);
+                        write(v_file_line_buffer, v_comma);
+                        mod_q1 := to_integer(unsigned(readout_data_32b(11 downto 10)));
+                        mod_q2 := to_integer(unsigned(readout_data_32b(9 downto 8)));
+                        mod_q3 := to_integer(unsigned(readout_data_32b(7 downto 6)));
+                        mod_q4 := to_integer(unsigned(readout_data_32b(5 downto 4)));
+                        write(v_file_line_buffer, integer'image(mod_q1) & v_comma);
+                        write(v_file_line_buffer, integer'image(mod_q2) & v_comma);
+                        write(v_file_line_buffer, integer'image(mod_q3) & v_comma);
+                        write(v_file_line_buffer, integer'image(mod_q4) & v_comma);
+                        write(v_file_line_buffer, v_comma);
+
+                        report  "q1=" & to_string(q1) & " " &
+                                "q2=" & to_string(q2) & " " &
+                                "q3=" & to_string(q3) & " " &
+                                "q4=" & to_string(q4) & " " &
+                                "alpha_q1=" & to_string(alpha_q1) & " " &
+                                "alpha_q2=" & to_string(alpha_q2) & " " &
+                                "alpha_q3=" & to_string(alpha_q3) & " " &
+                                "alpha_q4=" & to_string(alpha_q4) & " " &
+                                "rand_q1=" & to_string(rand_q1) & " " &
+                                "rand_q2=" & to_string(rand_q2) & " " &
+                                "rand_q3=" & to_string(rand_q3) & " " &
+                                "rand_q4=" & to_string(rand_q4) & " " &
+                                "mod_q1=" & to_string(mod_q1) & " " &
+                                "mod_q2=" & to_string(mod_q2) & " " &
+                                "mod_q3=" & to_string(mod_q3) & " " &
+                                "mod_q4=" & to_string(mod_q4) ;
+                    end if;
+
+                    if readout_data_32b(3 downto 0) = x"2" then
+                        qubit_time := to_integer(unsigned(readout_data_32b(31 downto 4)));
+                        write(v_file_line_buffer, integer'image(qubit_time) & v_comma);
+                        report  "qubit X detection time = " & to_string(qubit_time);
+                    end if;
+
+                    if readout_data_32b(3 downto 0) = x"3" then
+                        qubit_time := to_integer(unsigned(readout_data_32b(31 downto 4)));
+                        write(v_file_line_buffer, integer'image(qubit_time) & v_comma);
+                        write(v_file_line_buffer, v_comma);
+                        report  "qubit X detection time = " & to_string(qubit_time);
+                    end if;
+
+                    if readout_data_32b(3 downto 0) > x"3" then
+                        report  "readout_data_32b = " & to_string(readout_data_32b);
+                    end if;
+
+                    if readout_data_32b(3 downto 0) = x"0" then
+                        report  "Info: Waiting until valid data. Current data: " & to_string(readout_data_32b);
+                    end if;
+
+                    -- Parse the next transaction
+                    wait until rising_edge(readout_clk);
+                end loop;
+
+                -- Parsing done, print out the line to the file
+                writeline(sim_result, v_file_line_buffer);
         end process;
 
     end architecture;

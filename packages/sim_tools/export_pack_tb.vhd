@@ -8,7 +8,7 @@
     use std.textio.all;
     use ieee.std_logic_textio.all;
 
-    -- Prototypes of the subprograms
+    -- Prototypes of subprograms
     package export_pack_tb is
 
         procedure write_file_line (
@@ -24,10 +24,10 @@
     end package;
 
 
-    -- Bodies of all the prototypes
+    -- Bodies of all prototypes
     package body export_pack_tb is
 
-        -- Create a single line for output csv file (string_delimiter = ',') (max elements/strings per line = 32)
+        -- Create a single line for the output csv file (string_delimiter = ',') (max elements/strings per line = 32)
         procedure write_file_line (
             string_delimiter : string;
             int_elements_cnt : positive;

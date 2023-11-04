@@ -218,7 +218,7 @@
                         -- Using comparators, assign the value to the respective data slot
                         for i in 0 to QUBITS_CNT-1 loop
                             if std_logic_vector(to_unsigned(i, sl_alpha_positive_p2'length)) = sl_alpha_positive_p2 then
-                                slv_modulo_buffer_2d(i) <= s_modulo(1 downto 0);
+                                slv_modulo_buffer_2d(QUBITS_CNT-1-i) <= s_modulo(1 downto 0);
                             end if;
                         end loop;
                     end if;

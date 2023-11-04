@@ -139,7 +139,7 @@ void guiBackendObj::processReceivedData(Redis *redis, unsigned char* pucBuffer, 
 
     int write_max_clusters_per_process = 1;
     int written_clusters_per_process = 0;
-    
+
 
     bool cmd_1 = false;
     bool cmd_2 = false;

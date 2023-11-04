@@ -6,11 +6,11 @@
     
     entity reset is
         generic (
-            RST_STROBE_COUNTER_WIDTH  : positive := 8
+            RST_STROBE_COUNTER_WIDTH  : positive := 4
         );
         port (
             CLK     : in std_logic;
-            IN_RST  : in std_logic; -- Pullup signal (value '1' if is not connected to anything: see generic RST_PULLUP_HIGH)
+            IN_RST  : in std_logic; -- Pullup
             OUT_RST : out std_logic
         );
     end reset;

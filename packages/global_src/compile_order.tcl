@@ -1,4 +1,9 @@
 
+# -------------------------------------------------------
+# 2.1) Add TB Files
+# -------------------------------------------------------
+#    * ModelSim
+
 
 # -------------------------------------------------------
 # 2.0) Add TB Package Files
@@ -6,27 +11,23 @@
 #    * ModelSim
 
 
-# -------------------------------------------------------
-# 2.1) Add TB Files
-# -------------------------------------------------------
-#    * ModelSim
-add_sim_file ./modules/qubit_deskew/sim/qubit_deskew_tb.vhd
 
+# -------------------------------------------------------
+# 1.1) Add SRC HDL Files
+# -------------------------------------------------------
+#    * Vivado
+#    * ModelSim
 
 
 # -------------------------------------------------------
 # 1.0) Add SRC Package Files
 # -------------------------------------------------------
 #    * Vivado
-#    * ModelSim
-
-
-# -------------------------------------------------------
-# 1.1) Add SRC HDL Files
-# -------------------------------------------------------
-#    * Vivado
-add_src_file lib_src ./modules/qubit_deskew/hdl/qubit_deskew.vhd
+add_src_file lib_src ./packages/global_src/signals_pack.vhd
+add_src_file lib_src ./packages/global_src/types_pack.vhd
+add_src_file lib_src ./packages/global_src/const_pack.vhd
 
 #    * ModelSim
-add_sim_file ./modules/qubit_deskew/hdl/qubit_deskew.vhd
-
+add_sim_file ./packages/global_src/signals_pack.vhd
+add_sim_file ./packages/global_src/types_pack.vhd
+add_sim_file ./packages/global_src/const_pack.vhd

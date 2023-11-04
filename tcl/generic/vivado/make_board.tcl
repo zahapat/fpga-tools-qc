@@ -81,7 +81,6 @@ foreach l $line_part {
     set ln [string range $l 0 end]
     if {$ln != ""} {
         puts -nonewline $xpr_file "$ln\n"
-        # puts "TCL: ln = $ln"
     }
 }
 close $xpr_file

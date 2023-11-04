@@ -290,7 +290,6 @@
                                             actual_qubit_valid <= '1';
                                             slv_time_stamp_buffer_2d(QUBITS_CNT-1-QUBIT_ID(i)) <= std_logic_vector(uns_actual_time_stamp_counter);
                                             slv_time_stamp_buffer_overflows_2d(QUBITS_CNT-1-QUBIT_ID(i)) <= std_logic_vector(uns_actual_time_overflow_counter);
-                                            -- state_gflow <= QUBIT_4;
                                             int_state_gflow <= int_state_gflow + 1;
                                         end if;
 
