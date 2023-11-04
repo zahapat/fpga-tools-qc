@@ -1,0 +1,67 @@
+<: set board [get_parameter_property "BOARD"]:>
+<: set boardFile [get_property PROJECT_PARAM.BOARD] :>
+<: set selection [get_parameter_property EXDES.SELECTION]:>
+<: set flow [get_parameter_property EXDES.FLOW]:>
+<: set isXEM8350 [expr {($board == "XEM8350-KU060") || ($board == "XEM8350-KU060-3E") || ($board == "XEM8350-KU115")}]:>
+<: :>
+<: # The following variables hold information about the LEDs onboard :>
+<: # The format is: {<Number of LEDs> <LED driver type (See LED IP for descriptions)>} :>
+<: set leds_XEM7305-S50 {4 tristate}:>
+<: set leds_XEM7310-A75 {8 tristate}:>
+<: set leds_XEM7310-A200 {8 tristate}:>
+<: set leds_XEM7310MT-A75 {8 tristate}:>
+<: set leds_XEM7310MT-A200 {8 tristate}:>
+<: set leds_XEM7320-A75 {8 tristate}:>
+<: set leds_XEM7320-A200 {8 tristate}:>
+<: set leds_XEM7350-K70T {4 inverted}:>
+<: set leds_XEM7350-K160T {4 inverted}:>
+<: set leds_XEM7350-K410T {4 inverted}:>
+<: set leds_XEM7350-K410T-3E {4 inverted}:>
+<: set leds_XEM7360-K160T {4 inverted}:>
+<: set leds_XEM7360-K160T-3E {4 inverted}:>
+<: set leds_XEM7360-K410T {4 inverted}:>
+<: set leds_XEM7360-K410T-3E {4 inverted}:>
+<: set leds_XEM8310-AU25P {4 standard}:>
+<: set leds_XEM8320-AU25P {6 standard}:>
+<: set leds_XEM8350-KU060 {8 standard}:>
+<: set leds_XEM8350-KU060-3E {8 standard}:>
+<: set leds_XEM8350-KU115 {8 standard}:>
+<: set numLEDS [lindex [set leds_$board] 0] :>
+<: set driverType [lindex [set leds_$board] 1] :>
+<: set ledsMSB [expr $numLEDS - 1] :>
+<: if {($driverType == "tristate")} { :>
+    <: set ledDirection inout :>
+    <: set ledNetName led_out_tristate :>
+    <: set ledInterfaceName led_tristate :>
+<: } else {:>
+    <: set ledDirection output :>
+    <: set ledNetName led_out :>
+    <: set ledInterfaceName led :>
+<: } :>
+<: :>
+<: # The following variables hold information about the clock oscillators onboard :>
+<: # The format is: {P N Period IOSTANDARD} :>
+<: set sysclk_XEM7305-S50 {R2 R1 5 LVDS_25}:>
+<: set sysclk_XEM7310-A75 {W11 W12 5 LVDS_25}:>
+<: set sysclk_XEM7310-A200 {W11 W12 5 LVDS_25}:>
+<: set sysclk_XEM7310MT-A75 {W11 W12 5 LVDS_25}:>
+<: set sysclk_XEM7310MT-A200 {W11 W12 5 LVDS_25}:>
+<: set sysclk_XEM7320-A75 {D17 C17 5 LVDS_25}:>
+<: set sysclk_XEM7320-A200 {D17 C17 5 LVDS_25}:>
+<: set sysclk_XEM7350-K70T {AC4 AC3 5 LVDS}:>
+<: set sysclk_XEM7350-K160T {AC4 AC3 5 LVDS}:>
+<: set sysclk_XEM7350-K410T {AC4 AC3 5 LVDS}:>
+<: set sysclk_XEM7350-K410T-3E {AC4 AC3 5 LVDS}:>
+<: set sysclk_XEM7360-K160T {AB11 AC11 5 LVDS}:>
+<: set sysclk_XEM7360-K160T-3E {AB11 AC11 5 LVDS}:>
+<: set sysclk_XEM7360-K410T {AB11 AC11 5 LVDS}:>
+<: set sysclk_XEM7360-K410T-3E {AB11 AC11 5 LVDS}:>
+<: set sysclk_XEM8310-AU25P {J23 J24 10 LVDS}:>
+<: set sysclk_XEM8320-AU25P {T24 U24 10 LVDS}:>
+<: set sysclk_XEM8350-KU060 {AM22 AN22 5 LVDS}:>
+<: set sysclk_XEM8350-KU060-3E {AM22 AN22 5 LVDS}:>
+<: set sysclk_XEM8350-KU115 {AM22 AN22 5 LVDS}:>
+<: set sys_clk_p [lindex [set sysclk_$board]  0] :>
+<: set sys_clk_n [lindex [set sysclk_$board]  1] :>
+<: set sys_clk_period [lindex [set sysclk_$board]  2] :>
+<: set sys_clk_iostandard [lindex [set sysclk_$board]  3] :>

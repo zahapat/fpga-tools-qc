@@ -1,0 +1,10 @@
+<: set board [get_parameter_property "BOARD"]:>
+<: set secondaryEnable [get_parameter_property "S.EN"]:>
+<: set secondaryEnabledBoards {XEM8350-KU060 XEM8350-KU060-3E XEM8350-KU115}:>
+<: set secondaryEnableExpr [expr {($board in $secondaryEnabledBoards) && ($secondaryEnable == "true")}]:>
+<: set kintexUltrascaleBoards {XEM8350-KU060 XEM8350-KU060-3E XEM8350-KU115}:>
+<: set dnaEnable [get_parameter_property "DNA.EN"]:>
+<: set dnaWidth [get_parameter_property DNA.WIDTH] :>
+<: set verVal [lindex [split [get_ipdefs opalkelly.com:ip:frontpanel:*] ":"] 3] :>
+<: set currentToolVersion [lindex [split [version] "\n"] 0] :>
+<: regexp {v([0-9]+[^\s]+)} $currentToolVersion -> currentToolVersionNumber :>

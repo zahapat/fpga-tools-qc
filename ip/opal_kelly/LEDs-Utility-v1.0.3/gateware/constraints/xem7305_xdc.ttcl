@@ -1,0 +1,23 @@
+<: set board [get_parameter_property "BOARD"]:>
+<: set boardfile [get_property PROJECT_PARAM.BOARD] :>
+<: if {$board != "XEM7305-S50"} { ttcl_return; }:>
+<: setFileName "xem7305" :>
+<: setFileExtension ".xdc" :>
+<: setOutputDirectory "./gateware":>
+<: :>
+<: if { $boardfile == ""} { :>
+# LEDS #####################################################################
+set_property PACKAGE_PIN J5 [get_ports {led_out_tristate[0]}]
+set_property PACKAGE_PIN G6 [get_ports {led_out_tristate[1]}]
+set_property PACKAGE_PIN R12 [get_ports {led_out_tristate[2]}]
+set_property PACKAGE_PIN L13 [get_ports {led_out_tristate[3]}]
+<: } :>
+# LEDs 0-1 powered by VDD_DDR3, which is provided through the user peripheral attached to the XEM7305.
+# Likely to be 1.5V, but there is an option to connect 1.35v for DDR3L. If required, you can overwrite
+# this constraint in a top level constraints file.
+set_property IOSTANDARD LVCMOS15 [get_ports -regexp {led_out_tristate\[[0-1]\]}]
+#LEDs 2-3 are provided by an onboard 1.8v supply.
+set_property IOSTANDARD LVCMOS18 [get_ports -regexp {led_out_tristate\[[2-3]\]}]
+set_property DRIVE 8 [get_ports {led_out_tristate[*]}]
+set_false_path -to [get_ports {led_out_tristate[*]}]
+set_false_path -from [get_ports {led_out_tristate[*]}]

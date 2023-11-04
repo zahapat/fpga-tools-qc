@@ -1,0 +1,10 @@
+<: set ComponentName [getComponentNameString] :>
+<: setFileName [ttcl_string_concat $ComponentName "_wrapper_synthesis"] :>
+<: setFileExtension ".v" :>
+<: setOutputDirectory "./gateware/synthesis":>
+<: :>
+<#: gateware/common/copyright.ttcl :>
+
+<: # scriptMode is how we pass variables into wrapper.ttcl :>
+<: set scriptMode "synthesis":>
+<#: gateware/common/wrapper.ttcl :>

@@ -1,0 +1,7 @@
+<: setFileName "generated_ports" :>
+<: setFileExtension ".vh" :>
+<: setOutputDirectory "./gateware/common":>
+<: :>
+<: # scriptMode is how we pass variables into param_loop.ttcl :>
+<: set scriptMode "wrapper_masterside":>
+<#: gateware/common/param_loop.ttcl :>

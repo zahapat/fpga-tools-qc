@@ -1,0 +1,145 @@
+<#: exampledesigns/common/board_variables.ttcl :>
+<: if {$flow != "Block Designer" || $selection != "PipeTest"} { ttcl_return; }:>
+<: setFileName "pipe_in_check" :>
+<: setFileExtension ".v" :>
+<: setOutputDirectory "./exampledesign":>
+<: :>
+<: # In the case of XEM8350 (8 leds), half the leds come from the first pipe_in_check instantiation :>
+<: # and the other half from the pipe_in_check_s secondary instantiation:>
+<: if {$isXEM8350} { :>
+<:     set pipetest_ledsMSB 3 :>
+<: } else { :>
+<:     set pipetest_ledsMSB $ledsMSB :>
+<: } :>
+//------------------------------------------------------------------------
+// pipe_in_check.v
+//
+// Received data and checks against pseudorandom sequence for Pipe In.
+//
+// Even though we're able to produce data in sequence every clock cycle,
+// a virtual FIFO is used to provide a way to throttle transfers on a 
+// block basis.
+//
+// Copyright (c) 2005-2022  Opal Kelly Incorporated
+// $Rev$ $Date$
+//------------------------------------------------------------------------
+
+`timescale 1ns / 1ps
+`default_nettype none
+
+module pipe_in_check(
+	input  wire            clk,
+    
+    output wire [<=:$pipetest_ledsMSB:>:0]      receive_error_count,
+    
+    // The following port definitions and interface groupings were taken from "bd_interface_template.vh" from
+    // within the FrontPanel Subsystem IP's Synthesis file group. You can find this file within the "IP Sources"
+    // panel. This file contains generated ports and interface groupings for each endpoint that you've requested
+    // within the GUI. This enables you to copy and paste these groupings into your RTL for enabling interface
+    // connection within the IPI block designer.
+    (* X_INTERFACE_INFO = "opalkelly.com:interface:wirein:1.0 shared_wirein00_control EP_DATAOUT" *)
+	input  wire [31:0]     wi00_ep_dataout_control,
+    
+    (* X_INTERFACE_INFO = "opalkelly.com:interface:wirein:1.0 wirein02_throttle_val EP_DATAOUT" *)
+	input  wire [31:0]     wi02_ep_dataout_throttle_val,
+    
+    (* X_INTERFACE_INFO = "opalkelly.com:interface:wirein:1.0 shared_wirein03_fixed_pattern EP_DATAOUT" *)
+	input  wire [31:0]     wi03_ep_dataout_fixed_pattern,
+	
+    (* X_INTERFACE_INFO = "opalkelly.com:interface:wireout:1.0 wireout21_error_count EP_DATAIN" *)
+	output reg  [31:0]     wo21_ep_datain_error_count,
+    
+    (* X_INTERFACE_INFO = "opalkelly.com:interface:btpipein:1.0 btpipein80_datastream_in EP_DATAOUT" *)
+	input  wire [31:0]     btpi80_ep_dataout_datastream_in,
+    (* X_INTERFACE_INFO = "opalkelly.com:interface:btpipein:1.0 btpipein80_datastream_in EP_WRITE" *)
+	input  wire            btpi80_ep_write_datastream_in,
+    (* X_INTERFACE_INFO = "opalkelly.com:interface:btpipein:1.0 btpipein80_datastream_in EP_READY" *)
+	output reg             btpi80_ep_ready_datastream_in
+);
+
+reg  [63:0]  lfsr;
+reg  [31:0]  throttle;
+reg  [16:0]  level;
+wire [31:0]  pg_dout;
+wire         reset;
+wire         throttle_set;
+wire [ 2:0]  pattern;
+
+assign receive_error_count = wo21_ep_datain_error_count[<=:$pipetest_ledsMSB:>:0];
+
+assign reset = wi00_ep_dataout_control[0];
+assign throttle_set = wi00_ep_dataout_control[1];
+assign pattern = wi00_ep_dataout_control[4:2];
+
+
+pattern_gen #(
+		.WIDTH    (32)
+	) pg0 (
+		.clk           (clk),
+		.reset         (reset),
+		.enable        (btpi80_ep_write_datastream_in),
+		.mode          (pattern),
+		.fixed_pattern (wi03_ep_dataout_fixed_pattern),
+		.dout          (pg_dout)
+	);
+
+
+always @(posedge clk) begin
+	if (reset == 1'b1) begin
+		wo21_ep_datain_error_count <= 0;
+		throttle    <= wi02_ep_dataout_throttle_val;
+		level       <= 16'd0;
+	end else begin
+		if (level < 16'd64512) begin
+			btpi80_ep_ready_datastream_in <= 1'b1;
+		end else begin
+			btpi80_ep_ready_datastream_in <= 1'b0;
+		end
+	
+		// Update our virtual FIFO level.
+		case ({btpi80_ep_write_datastream_in, throttle[0]})
+			2'b00: begin
+			end
+			
+			// Read : Decrease the FIFO level
+			2'b01: begin
+				if (level > 16'd0) begin
+					level <= level - 1'b1;
+				end
+			end
+			
+			// Write : Increase the FIFO level
+			2'b10: begin
+				if (level < 16'd65535) begin
+					level <= level + 1'b1;
+				end
+			end
+			
+			// Read/Write : No net change
+			2'b11: begin
+			end
+		endcase
+	
+		// The throttle is a circular register.
+		// 1 enabled read or write this cycle.
+		// 0 disables read or write this cycle.
+		// So a single bit (0x00000001) would lead to 1/32 data rate.
+		// Similarly 0xAAAAAAAA would lead to 1/2 data rate.
+		if (throttle_set == 1'b1) begin
+			throttle <= wi02_ep_dataout_throttle_val;
+		end else begin
+			throttle <= {throttle[0], throttle[31:1]};
+		end
+		
+		
+		// Check incoming data for validity
+		if (btpi80_ep_write_datastream_in == 1'b1) begin
+			if (btpi80_ep_dataout_datastream_in[31:0] != pg_dout[31:0]) begin
+				wo21_ep_datain_error_count <= wo21_ep_datain_error_count + 1'b1;
+			end
+		end
+	end
+end
+
+endmodule
+`default_nettype wire

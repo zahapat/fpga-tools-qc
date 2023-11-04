@@ -1,0 +1,85 @@
+<#: gateware/common/variables.ttcl :>
+<: variable scriptMode :>
+<: if {($scriptMode != "simulation") && ($scriptMode != "synthesis")} { ttcl_return; }:>
+`default_nettype none
+
+<: if {($scriptMode == "simulation")} { :>
+module <=:$ComponentName:>_wrapper_simulation(
+<: } elseif {($scriptMode == "synthesis")} { :>
+module <=:$ComponentName:>_wrapper_synthesis(
+<: } :>
+    // Precompiler directive to inline ports and define interfaces for all requested endpoints
+    `include "generated_ports.vh"
+	);
+
+<: if {($scriptMode == "simulation") && ($dnaEnable)} { :>
+// Device DNA is a unique identifier for each FPGA device. This simulation module
+// outputs a randomly generated HEX value for this field.
+assign dna_valid = 1'b1;
+<: if {$dnaWidth == 57} { :>
+assign dna = 57'h1dce96f8c1e2b51;
+<: } elseif {$dnaWidth == 96} {:>
+assign dna = 96'h49c2581203328b853b9f4731;
+<: } else {:>
+assign dna = 0;
+<: } :>
+<: } :>
+
+// Target interface bus:
+wire [112:0] okHE;
+wire [64:0]  okEH;
+<: if {$secondaryEnableExpr} { :>
+wire [112:0] okHEs;
+wire [64:0]  okEHs;
+<: } :>
+
+// Instantiate the okHost and connect endpoints.
+<: if {$secondaryEnableExpr} { :>
+    <: set regBridgeEnSecondary [get_parameter_property S.RB.EN] :>
+    <: set numEndpointsWithokEHSecondary [expr [get_parameter_property S.WO.COUNT] + [get_parameter_property S.TO.COUNT] + [get_parameter_property S.PI.COUNT] + [get_parameter_property S.PO.COUNT] + [get_parameter_property S.BTPI.COUNT] + [get_parameter_property S.BTPO.COUNT]] :>
+    <: if {$regBridgeEnSecondary} {incr numEndpointsWithokEHSecondary} :>
+wire [65*<=:$numEndpointsWithokEHSecondary:>-1:0]  okEHsx;
+<: } :>
+<: set regBridgeEn [get_parameter_property RB.EN] :>
+<: set numEndpointsWithokEH [expr [get_parameter_property WO.COUNT] + [get_parameter_property TO.COUNT] + [get_parameter_property PI.COUNT] + [get_parameter_property PO.COUNT] + [get_parameter_property BTPI.COUNT] + [get_parameter_property BTPO.COUNT]] :>
+<: if {$regBridgeEn} {incr numEndpointsWithokEH} :>
+wire [65*<=:$numEndpointsWithokEH:>-1:0]  okEHx;
+
+<: if {($scriptMode == "simulation") && ($secondaryEnableExpr)} { :>
+okDualHost okHI(
+<: } else { :>
+okHost okHI(
+<: } :>
+<: if {$dnaEnable} { :>
+	.dna(dna),
+	.dna_valid(dna_valid),
+<: } :>
+<: if {$secondaryEnableExpr} { :>
+	.okUHs(okUHs),
+	.okHUs(okHUs),
+	.okUHUs(okUHUs),
+	.ok_done(ok_done),
+	.okClks(okClks),
+	.okHEs(okHEs), 
+	.okEHs(okEHs),
+<: } :>
+	.okUH(okUH),
+	.okHU(okHU),
+	.okUHU(okUHU),
+	.okAA(okAA),
+	.okClk(okClk),
+	.okHE(okHE), 
+	.okEH(okEH)
+);
+
+<: if {$secondaryEnableExpr} { :>
+okWireOR # (.N(<=:$numEndpointsWithokEHSecondary:>)) wireORs (okEHs, okEHsx);
+<: } :>
+okWireOR # (.N(<=:$numEndpointsWithokEH:>)) wireOR (okEH, okEHx);
+
+<: # scriptMode is how we pass variables into param_loop.ttcl :>
+<: set scriptMode "endpoint_instantiations":>
+<#: gateware/common/param_loop.ttcl :>
+
+endmodule
+`default_nettype wire

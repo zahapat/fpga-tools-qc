@@ -1,0 +1,107 @@
+//-----------------------------------------------------------------------
+// Secondary Host Interface Counters
+//-----------------------------------------------------------------------
+
+// Secondary host interface bus:
+wire         okClks;
+wire [112:0] okHEs;
+wire [64:0]  okEHs;
+
+// Secondary host interface endpoint connections:
+wire [31:0]  wi00_s_ep_dataout;
+wire [31:0]  wo20_s_ep_datain, wo21_s_ep_datain;
+wire [31:0]  ti40_s_ep_trigger;
+wire [31:0]  to60_s_ep_trigger, to61_s_ep_trigger;
+
+// Secondary host interface counter 1:
+reg  [23:0] div1_s;
+reg         clk1div_s;
+reg  [7:0]  count1_s;
+reg         count1eq00_s;
+reg         count1eq80_s;
+wire        reset1_s;
+wire        disable1_s;
+
+// Secondary host interface counter 2:
+reg  [23:0] div2_s;
+reg         clk2div_s;
+reg  [7:0]  count2_s;
+reg         count2eqFF_s;
+wire        reset2_s;
+wire        up2_s;
+wire        down2_s;
+wire        autocount2_s;
+
+// Counter 1:
+assign reset1_s     = wi00_s_ep_dataout[0];
+assign disable1_s   = wi00_s_ep_dataout[1];
+assign autocount2_s = wi00_s_ep_dataout[2];
+assign wo20_s_ep_datain   = {24'd0, count1_s};
+assign wo21_s_ep_datain   = {24'd0, count2_s};
+
+// Counter 2:
+assign reset2_s   = ti40_s_ep_trigger[0];
+assign up2_s      = ti40_s_ep_trigger[1];
+assign down2_s    = ti40_s_ep_trigger[2];
+assign to60_s_ep_trigger = {30'b0, count1eq80_s, count1eq00_s};
+assign to61_s_ep_trigger = {31'b0, count2eqFF_s};
+
+// Counter #1
+// + Counting using a divided sysclk.
+// + Reset sets the counter to 0.
+// + Disable turns off the counter.
+always @(posedge sys_clk) begin
+	div1_s <= div1_s - 1;
+	if (div1_s == 24'h000000) begin
+		div1_s <= 24'h400000;
+		clk1div_s <= 1'b1;
+	end else begin
+		clk1div_s <= 1'b0;
+	end
+	
+	if (clk1div_s == 1'b1) begin
+		if (reset1_s == 1'b1)
+			count1_s <= 8'h00;
+		else if (disable1_s == 1'b0)
+			count1_s <= count1_s + 1;
+	end
+		
+	if (count1_s == 8'h00)
+		count1eq00_s <= 1'b1;
+	else
+		count1eq00_s <= 1'b0;
+
+	if (count1_s == 8'h80)
+		count1eq80_s <= 1'b1;
+	else
+		count1eq80_s <= 1'b0;
+end
+
+
+// Counter #2
+// + Reset, up, and down control counter.
+// + If autocount is enabled, a divided sys_clk can also
+//   upcount.
+always @(posedge sys_clk) begin
+	div2_s <= div2_s - 1;
+	if (div2_s == 24'h000000) begin
+		div2_s <= 24'h100000;
+		clk2div_s <= 1'b1;
+	end else begin
+		clk2div_s <= 1'b0;
+	end
+		
+	if (reset2_s == 1'b1)
+		count2_s <= 8'h00;
+	else if (up2_s == 1'b1)
+		count2_s <= count2_s + 1;
+	else if (down2_s == 1'b1)
+		count2_s <= count2_s - 1;
+	else if ((autocount2_s == 1'b1) && (clk2div_s == 1'b1))
+		count2_s <= count2_s + 1;
+
+	if (count2_s == 8'hff)
+		count2eqFF_s <= 1'b1;
+	else
+		count2eqFF_s <= 1'b0;
+end

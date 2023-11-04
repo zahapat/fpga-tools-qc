@@ -1,0 +1,10 @@
+<: set ComponentName [getComponentNameString] :>
+<: setFileName [ttcl_string_concat $ComponentName "_wrapper_simulation"] :>
+<: setFileExtension ".v" :>
+<: setOutputDirectory "./gateware/simulation":>
+<: :>
+<#: gateware/common/copyright.ttcl :>
+
+<: # scriptMode is how we pass variables into wrapper.ttcl :>
+<: set scriptMode "simulation":>
+<#: gateware/common/wrapper.ttcl :>

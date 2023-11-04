@@ -1,0 +1,24 @@
+package require xilinx::board 1.0
+namespace import ::xilinx::board::*
+set instname [current_inst]
+set f_xdc [add_ipfile -usedIn  [list synthesis implementation board ] -force ${instname}_board.xdc]
+puts_ipfile $f_xdc "#--------------------Physical Constraints-----------------\n"
+if { [get_project_property BOARD] == "" } {
+    close_ipfile $f_xdc
+    return 
+}
+
+board_add_port_constraints $f_xdc host_interface okHU  okHU 
+board_add_port_constraints $f_xdc host_interface okUH  okUH  
+board_add_port_constraints $f_xdc host_interface okUHU okUHU 
+board_add_port_constraints $f_xdc host_interface okAA  okAA 
+
+set secondary_enable [get_property PARAM_VALUE.S.EN]
+if {$secondary_enable eq "true"} {
+    board_add_port_constraints $f_xdc host_interface_s okHU  okHUs
+    board_add_port_constraints $f_xdc host_interface_s okUH  okUHs
+    board_add_port_constraints $f_xdc host_interface_s okUHU okUHUs
+    board_add_port_constraints $f_xdc host_interface_s ok_done  ok_done 
+
+}
+close_ipfile $f_xdc

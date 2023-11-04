@@ -19,9 +19,6 @@ build_x64
 *.str
 
 
-ip/*
-
-
 do/modules.tcl
 
 

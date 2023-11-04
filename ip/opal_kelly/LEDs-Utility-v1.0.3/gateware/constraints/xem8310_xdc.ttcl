@@ -1,0 +1,17 @@
+<: set board [get_parameter_property "BOARD"]:>
+<: set boardfile [get_property PROJECT_PARAM.BOARD] :>
+<: if {$board != "XEM8310-AU25P"} { ttcl_return; }:>
+<: setFileName "xem8310" :>
+<: setFileExtension ".xdc" :>
+<: setOutputDirectory "./gateware":>
+<: :>
+<: if { $boardfile == ""} { :>
+# LEDS #####################################################################
+set_property PACKAGE_PIN U24 [get_ports {led_out[0]}]
+set_property PACKAGE_PIN V19 [get_ports {led_out[1]}]
+set_property PACKAGE_PIN T24 [get_ports {led_out[2]}]
+set_property PACKAGE_PIN U19 [get_ports {led_out[3]}]
+<: } :>
+set_property IOSTANDARD LVCMOS18 [get_ports {led_out[*]}]
+set_property DRIVE 8 [get_ports {led_out[*]}]
+set_false_path -to [get_ports {led_out[*]}]

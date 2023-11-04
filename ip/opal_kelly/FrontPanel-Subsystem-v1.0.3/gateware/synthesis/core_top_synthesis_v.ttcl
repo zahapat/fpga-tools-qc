@@ -1,0 +1,26 @@
+<: set ComponentName [getComponentNameString] :>
+<: setFileName [ttcl_string_concat $ComponentName "_synthesis"] :>
+<: setFileExtension ".v" :>
+<: setOutputDirectory "./gateware/synthesis":>
+<: :>
+<#: gateware/common/copyright.ttcl :>
+
+`default_nettype none
+
+module <=:$ComponentName:>(
+<: # scriptMode is how we pass variables into param_loop.ttcl :>
+<: set scriptMode "wrapper_masterside":>
+<#: gateware/common/param_loop.ttcl :>
+);
+
+<: # This file serves a very important purpose. We need an instantiation  :>
+<: # of our wrapper in order to apply XDC constraints to something. Board  :>
+<: # specific constraints as well as board file constraints apply to "inst". :>
+<: # This process is implemented by Xilinx's backend, so you won't find this in OK source. :>
+<=:$ComponentName:>_wrapper_synthesis inst (
+<: set scriptMode "core_top_ports":>
+<#: gateware/common/param_loop.ttcl :>
+);
+
+endmodule
+`default_nettype wire

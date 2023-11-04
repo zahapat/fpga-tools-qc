@@ -1,0 +1,19 @@
+package require xilinx::board 1.0
+namespace import ::xilinx::board::*
+set instname [current_inst]
+set f_xdc [add_ipfile -usedIn  [list synthesis implementation board ] -force ${instname}_board.xdc]
+puts_ipfile $f_xdc "#--------------------Physical Constraints-----------------\n"
+if { [get_project_property BOARD] == "" } {
+    close_ipfile $f_xdc
+    return 
+}
+
+set width [get_property PARAM_VALUE.WIDTH]
+set driverType [get_property PARAM_VALUE.DRIVERTYPE]
+if {$driverType == "tristate"} {
+    board_add_port_constraints $f_xdc board_leds LED_OUT_TRISTATE led_out_tristate $width
+} else {
+    board_add_port_constraints $f_xdc board_leds LED_OUT led_out $width
+}
+
+close_ipfile $f_xdc

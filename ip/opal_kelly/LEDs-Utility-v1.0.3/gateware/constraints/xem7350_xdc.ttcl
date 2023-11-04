@@ -1,0 +1,17 @@
+<: set board [get_parameter_property "BOARD"]:>
+<: set boardfile [get_property PROJECT_PARAM.BOARD] :>
+<: if {($board != "XEM7350-K70T") && ($board != "XEM7350-K160T") && ($board != "XEM7350-K410T") && ($board != "XEM7350-K410T-3E")} { ttcl_return; }:>
+<: setFileName "xem7350" :>
+<: setFileExtension ".xdc" :>
+<: setOutputDirectory "./gateware":>
+<: :>
+<: if { $boardfile == ""} { :>
+# LEDS #####################################################################
+set_property PACKAGE_PIN T24 [get_ports {led_out[0]}]
+set_property PACKAGE_PIN T25 [get_ports {led_out[1]}]
+set_property PACKAGE_PIN R25 [get_ports {led_out[2]}]
+set_property PACKAGE_PIN P26 [get_ports {led_out[3]}]
+<: } :>
+set_property IOSTANDARD LVCMOS33 [get_ports {led_out[*]}]
+set_property DRIVE 8 [get_ports {led_out[*]}]
+set_false_path -to [get_ports {led_out[*]}]

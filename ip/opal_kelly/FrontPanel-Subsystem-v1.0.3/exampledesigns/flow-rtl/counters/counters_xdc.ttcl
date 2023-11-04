@@ -1,0 +1,30 @@
+<#: exampledesigns/common/board_variables.ttcl :>
+<: if {$flow != "RTL" || $selection != "Counters"} { ttcl_return; }:>
+<: setFileName "counters_$board" :>
+<: setFileExtension ".xdc" :>
+<: setOutputDirectory "./exampledesign":>
+<: :>
+############################################################################
+## System Clock On <=:$board:>
+############################################################################
+set_property PACKAGE_PIN <=:$sys_clk_p:> [get_ports {sys_clkp}]
+set_property IOSTANDARD <=:$sys_clk_iostandard:> [get_ports {sys_clkp}]
+
+set_property PACKAGE_PIN <=:$sys_clk_n:> [get_ports {sys_clkn}]
+set_property IOSTANDARD <=:$sys_clk_iostandard:> [get_ports {sys_clkn}]
+
+create_clock -name sys_clk -period <=:$sys_clk_period:> [get_ports sys_clkp]
+
+############################################################################
+## Asyncronous Clocks
+############################################################################
+# okUH[0] is used to produce okClk on the IP instantiation
+<: if {$isXEM8350} { :>
+# okUHs[0] is used to produce okClks on the IP instantiation
+<: } :>
+set_clock_groups -name async-groups -asynchronous \
+-group [get_clocks -include_generated_clocks -of_objects [get_ports okUH[0]]] \
+<: if {$isXEM8350} { :>
+-group [get_clocks -include_generated_clocks -of_objects [get_ports okUHs[0]]] \
+<: } :>
+-group [get_clocks -include_generated_clocks sys_clk]

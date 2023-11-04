@@ -1,0 +1,514 @@
+<: # This script is the main driver for the IP. Various files inline this script. :>
+<: # The mode the script is to execute with is passed through the scriptMode variable. :>
+<: # See examples of this within the various source files.:>
+<: # :>
+<: # While this file is dense, it provides two major benefits: :>
+<: # 1. Defines a single loop over all GUI parameters. This removes cumbersome loop source :>
+<: #    code from multiple files. :>
+<: # 2. Naming convention consistency is to be kept in all files. This file defines that :>
+<: #    naming and keeps its consistency within all files. :>
+<: # :>
+<: # The script modes perform the following operations: :>
+<: #   wrapper_masterside      : Generates the master side port and interface definitions for :>
+<: #                             the wrapper and core_top. :>
+<: #   template_slaveside      : Generates the slave side port and interface definitions for :>
+<: #                             the interface template. :>
+<: #   core_top_ports          : Generates the wrapper instantiation connections within core_top. :>
+<: #   endpoint_instantiations : Generates the endpoint instantiations within the wrapper. :>
+<: #   tcl_command             : Generates the TCL IP recreation command. :>
+<: :>
+<#: gateware/common/variables.ttcl :>
+<: set endpointTypes {WI WO TI TO PI PO BTPI BTPO} :>
+<: foreach type $endpointTypes { :>
+    <: set [set type].COUNT [get_parameter_property [set type].COUNT] :>
+    <: set S.[set type].COUNT [get_parameter_property S.[set type].COUNT] :>
+    <: for { set i 0 } { $i < 32 } { incr i } { :>
+        <: set [set type].ADDR_$i [get_parameter_property [set type].ADDR_$i] :>
+        <: set S.[set type].ADDR_$i [get_parameter_property S.[set type].ADDR_$i] :>
+    <: } :>
+<: } :>
+<: variable scriptMode :>
+<: if {($scriptMode != "template_slaveside") && ($scriptMode != "wrapper_masterside") && ($scriptMode != "core_top_ports") && ($scriptMode != "endpoint_instantiations") && ($scriptMode != "tcl_command")} { ttcl_return; }:>
+<: :>
+<: # Additional TCL commands that need to be represented in the generated TCL command should be placed below :>
+<: if {$scriptMode == "tcl_command"} { :>
+CONFIG.BOARD {<=:$board:>} \
+    <: if {$dnaEnable} { :>
+CONFIG.DNA.EN {true} \
+    <: } :>
+    <: if {$secondaryEnableExpr} { :>
+CONFIG.S.EN {true} \
+    <: } :>
+    <: if {[get_parameter_property "BITSTREAM.FLASH"]} { :>
+CONFIG.BITSTREAM.FLASH {true} \
+    <: } :>
+<: } :>
+<: # Handle the DNA port :>
+<: if {$dnaEnable} { :>
+<: if {($scriptMode == "template_slaveside") || ($scriptMode == "wrapper_masterside")} { :>
+//----------------------------------------------------------------------------------------------------------------------------------
+// DNA Port
+//----------------------------------------------------------------------------------------------------------------------------------
+<: } :>
+<: if {$scriptMode == "template_slaveside"} { :>
+    (* X_INTERFACE_INFO = "opalkelly.com:interface:dna:1.0 dna dna" *)
+    input  wire [<=:$dnaWidth:>:0] dna,
+    (* X_INTERFACE_INFO = "opalkelly.com:interface:dna:1.0 dna dna_valid" *)
+    input  wire        dna_valid,
+<: } elseif {$scriptMode == "wrapper_masterside"} { :>
+    (* X_INTERFACE_INFO = "opalkelly.com:interface:dna:1.0 dna dna" *)
+    output wire [<=:$dnaWidth:>:0] dna,
+    (* X_INTERFACE_INFO = "opalkelly.com:interface:dna:1.0 dna dna_valid" *)
+    output wire        dna_valid,
+<: } elseif {$scriptMode == "core_top_ports"} { :>
+    .dna(dna),
+    .dna_valid(dna_valid),
+<: } :>
+<: } :>
+<:  :>
+<: # If we are generating the slave side interface we add in a user editable description field to the interface name :>
+<: if {$scriptMode == "template_slaveside"} { :>
+    <: set addDescriptionText "_DESCRIPTION" :>
+<: } elseif {$scriptMode == "wrapper_masterside"} { :>
+    <: set addDescriptionText "" :>
+<: } :>
+<:  :>
+<: # The Primary host interface doesn't receive any appended/prepended tags. It is represented with the following first list item. :>
+<: set interfaces {{"" "" "" ""} {S. _s "Secondary " "s"}} :>
+<: foreach interface $interfaces { :>
+<: if {$scriptMode == "endpoint_instantiations"} { :>
+    <: set incrementingSection 0 :>
+<: } :>
+<: # We have a couple different name appendings to do in regard to the secondary host interface :>
+<: # secondaryParamNameTag: These are how the GUI parameters are named :>
+<: # secondaryUnderscoreNameTag: These are how the ports are named :>
+<: # secondaryComment: Used in the following comment headers :>
+<: # set secondaryCharNameTag: Used for consistency with some of our existing sources and the host interface port naming:>
+<: set secondaryParamNameTag [lindex $interface 0] :>
+<: set secondaryUnderscoreNameTag [lindex $interface 1] :>
+<: set secondaryComment [lindex $interface 2] :>
+<: set secondaryCharNameTag [lindex $interface 3] :>
+<: # The host interface are the last ports to be generated. This is done because we know it will always be present. :>
+<: # Done this way then we don't need to search all endpoints to find which is last in order to absent that comma :>
+<: # during generation. okClk and okClks are the last ports generated and the following determines if those require a comma.:>
+<: if {($secondaryComment == "") && ($secondaryEnableExpr) } { :>
+    <: set closingComma ",":>
+<: } elseif {($secondaryComment == "") && (!$secondaryEnableExpr) } { :>
+    <: set closingComma "":>
+<: } elseif {($secondaryComment == "Secondary ") && ($secondaryEnableExpr) } { :>
+    <: set closingComma "":>
+<: } elseif {($secondaryComment == "Secondary ") && (!$secondaryEnableExpr) } { :>
+    <: # If the secondary host interface is not enabled on the XEM8350, we simply skip the secondary interation of this master loop:>
+    <: continue :>
+<: } :>
+<: set endpointCount [set [set secondaryParamNameTag]WI.COUNT] :>
+<: if {$endpointCount != 0} { :>
+    <: if {($scriptMode == "template_slaveside") || ($scriptMode == "wrapper_masterside")} { :>
+//----------------------------------------------------------------------------------------------------------------------------------
+// <=:$secondaryComment:>WireIns
+//----------------------------------------------------------------------------------------------------------------------------------
+        <: if {$scriptMode == "template_slaveside"} { :>
+            <: set direction_1 "input " :>
+        <: } elseif {$scriptMode == "wrapper_masterside"} { :>
+            <: set direction_1 "output" :>
+        <: } :>
+    <: } elseif {$scriptMode == "tcl_command"} { :>
+CONFIG.<=:$secondaryParamNameTag:>WI.COUNT {<=:$endpointCount:>} \
+    <: } :>
+    <: for { set i 0 } { $i < $endpointCount } { incr i } { :>
+        <: set address [set [set secondaryParamNameTag]WI.ADDR_$i] :>
+        <: set addressRemoveHexPrefix [string replace $address 0 1 ""] :>
+        <: set portName_1 wi[set addressRemoveHexPrefix][set secondaryUnderscoreNameTag]_ep_dataout :>
+        <: if {($scriptMode == "template_slaveside") || ($scriptMode == "wrapper_masterside")} { :>
+    (* X_INTERFACE_INFO = "opalkelly.com:interface:wirein:1.0 wirein<=:$addressRemoveHexPrefix:><=:$secondaryUnderscoreNameTag:><=:$addDescriptionText:> EP_DATAOUT" *)
+    <=:$direction_1:> wire [31:0] <=:$portName_1:><=:$addDescriptionText:>,
+
+        <: } elseif {$scriptMode == "core_top_ports"} { :>
+    .<=:$portName_1:>(<=:$portName_1:>),
+        <: } elseif {$scriptMode == "endpoint_instantiations"} { :>
+okWireIn     wi<=:$addressRemoveHexPrefix:><=:$secondaryCharNameTag:>   (.okHE(okHE<=:$secondaryCharNameTag:>),                             .ep_addr(8'h<=:$addressRemoveHexPrefix:>), .ep_dataout(<=:$portName_1:>));
+        <: } elseif {$scriptMode == "tcl_command"} { :>
+CONFIG.<=:$secondaryParamNameTag:>WI.ADDR_<=:$i:> {<=:$address:>} \
+        <: } :>
+    <: } :>
+<: } :>
+<:  :>
+<: set endpointCount [set [set secondaryParamNameTag]WO.COUNT] :>
+<: if {$endpointCount != 0} { :>
+    <: if {($scriptMode == "template_slaveside") || ($scriptMode == "wrapper_masterside")} { :>
+//----------------------------------------------------------------------------------------------------------------------------------
+// <=:$secondaryComment:>WireOuts
+//----------------------------------------------------------------------------------------------------------------------------------
+        <: if {$scriptMode == "template_slaveside"} { :>
+            <: set direction_1 "output" :>
+        <: } elseif {$scriptMode == "wrapper_masterside"} { :>
+            <: set direction_1 "input " :>
+        <: } :>
+    <: } elseif {$scriptMode == "tcl_command"} { :>
+CONFIG.<=:$secondaryParamNameTag:>WO.COUNT {<=:$endpointCount:>} \
+    <: } :>
+    <: for { set i 0 } { $i < $endpointCount } { incr i } { :>
+        <: set address [set [set secondaryParamNameTag]WO.ADDR_$i] :>
+        <: set addressRemoveHexPrefix [string replace $address 0 1 ""] :>
+        <: set portName_1 wo[set addressRemoveHexPrefix][set secondaryUnderscoreNameTag]_ep_datain :>
+        <: if {($scriptMode == "template_slaveside") || ($scriptMode == "wrapper_masterside")} { :>
+    (* X_INTERFACE_INFO = "opalkelly.com:interface:wireout:1.0 wireout<=:$addressRemoveHexPrefix:><=:$secondaryUnderscoreNameTag:><=:$addDescriptionText:> EP_DATAIN" *)
+    <=:$direction_1:> wire [31:0] <=:$portName_1:><=:$addDescriptionText:>,
+
+        <: } elseif {$scriptMode == "core_top_ports"} { :>
+    .<=:$portName_1:>(<=:$portName_1:>),
+        <: } elseif {$scriptMode == "endpoint_instantiations"} { :>
+okWireOut    wo<=:$addressRemoveHexPrefix:><=:$secondaryCharNameTag:>   (.okHE(okHE<=:$secondaryCharNameTag:>), .okEH(okEH<=:$secondaryCharNameTag:>x[ <=:$incrementingSection:>*65 +: 65 ]), .ep_addr(8'h<=:$addressRemoveHexPrefix:>), .ep_datain(<=:$portName_1:>));
+            <: incr incrementingSection :>
+        <: } elseif {$scriptMode == "tcl_command"} { :>
+CONFIG.<=:$secondaryParamNameTag:>WO.ADDR_<=:$i:> {<=:$address:>} \
+        <: } :>
+    <: } :>
+<: } :>
+<:  :>
+<: set endpointCount [set [set secondaryParamNameTag]TI.COUNT] :>
+<: if {$endpointCount != 0} { :>
+    <: if {($scriptMode == "template_slaveside") || ($scriptMode == "wrapper_masterside")} { :>
+//----------------------------------------------------------------------------------------------------------------------------------
+// <=:$secondaryComment:>TriggerIns
+//----------------------------------------------------------------------------------------------------------------------------------
+        <: if {$scriptMode == "template_slaveside"} { :>
+            <: set direction_1 "input " :>
+            <: set direction_2 "output" :>
+        <: } elseif {$scriptMode == "wrapper_masterside"} { :>
+            <: set direction_1 "output" :>
+            <: set direction_2 "input " :>
+        <: } :>
+    <: } elseif {$scriptMode == "tcl_command"} { :>
+CONFIG.<=:$secondaryParamNameTag:>TI.COUNT {<=:$endpointCount:>} \
+    <: } :>
+    <: for { set i 0 } { $i < $endpointCount } { incr i } { :>
+        <: set address [set [set secondaryParamNameTag]TI.ADDR_$i] :>
+        <: set addressRemoveHexPrefix [string replace $address 0 1 ""] :>
+        <: set portName_1 ti[set addressRemoveHexPrefix][set secondaryUnderscoreNameTag]_ep_trigger :>
+        <: set portName_2 ti[set addressRemoveHexPrefix][set secondaryUnderscoreNameTag]_ep_clk :>
+        <: if {($scriptMode == "template_slaveside") || ($scriptMode == "wrapper_masterside")} { :>
+    (* X_INTERFACE_INFO = "opalkelly.com:interface:triggerin:1.0 triggerin<=:$addressRemoveHexPrefix:><=:$secondaryUnderscoreNameTag:><=:$addDescriptionText:> EP_TRIGGER" *)
+    <=:$direction_1:> wire [31:0] <=:$portName_1:><=:$addDescriptionText:>,
+    (* X_INTERFACE_INFO = "opalkelly.com:interface:triggerin:1.0 triggerin<=:$addressRemoveHexPrefix:><=:$secondaryUnderscoreNameTag:><=:$addDescriptionText:> EP_CLK" *)
+    <=:$direction_2:> wire        <=:$portName_2:><=:$addDescriptionText:>,
+
+        <: } elseif {$scriptMode == "core_top_ports"} { :>
+    .<=:$portName_1:>(<=:$portName_1:>),
+    .<=:$portName_2:>(<=:$portName_2:>),
+        <: } elseif {$scriptMode == "endpoint_instantiations"} { :>
+okTriggerIn  ti<=:$addressRemoveHexPrefix:><=:$secondaryCharNameTag:>   (.okHE(okHE),                             .ep_addr(8'h<=:$addressRemoveHexPrefix:>), .ep_clk(<=:$portName_2:>), .ep_trigger(<=:$portName_1:>));
+        <: } elseif {$scriptMode == "tcl_command"} { :>
+CONFIG.<=:$secondaryParamNameTag:>TI.ADDR_<=:$i:> {<=:$address:>} \
+        <: } :>
+    <: } :>
+<: } :>
+<:  :>
+<: set endpointCount [set [set secondaryParamNameTag]TO.COUNT] :>
+<: if {$endpointCount != 0} { :>
+    <: if {($scriptMode == "template_slaveside") || ($scriptMode == "wrapper_masterside")} { :>
+//----------------------------------------------------------------------------------------------------------------------------------
+// <=:$secondaryComment:>TriggerOuts
+//----------------------------------------------------------------------------------------------------------------------------------
+        <: if {$scriptMode == "template_slaveside"} { :>
+            <: set direction_1 "output" :>
+            <: set direction_2 "output" :>
+        <: } elseif {$scriptMode == "wrapper_masterside"} { :>
+            <: set direction_1 "input " :>
+            <: set direction_2 "input " :>
+        <: } :>
+    <: } elseif {$scriptMode == "tcl_command"} { :>
+CONFIG.<=:$secondaryParamNameTag:>TO.COUNT {<=:$endpointCount:>} \
+    <: } :>
+    <: for { set i 0 } { $i < $endpointCount } { incr i } { :>
+        <: set address [set [set secondaryParamNameTag]TO.ADDR_$i] :>
+        <: set addressRemoveHexPrefix [string replace $address 0 1 ""] :>
+        <: set portName_1 to[set addressRemoveHexPrefix][set secondaryUnderscoreNameTag]_ep_trigger :>
+        <: set portName_2 to[set addressRemoveHexPrefix][set secondaryUnderscoreNameTag]_ep_clk :>
+        <: if {($scriptMode == "template_slaveside") || ($scriptMode == "wrapper_masterside")} { :>
+    (* X_INTERFACE_INFO = "opalkelly.com:interface:triggerout:1.0 triggerout<=:$addressRemoveHexPrefix:><=:$secondaryUnderscoreNameTag:><=:$addDescriptionText:> EP_TRIGGER" *)
+    <=:$direction_1:> wire [31:0] <=:$portName_1:><=:$addDescriptionText:>,
+    (* X_INTERFACE_INFO = "opalkelly.com:interface:triggerout:1.0 triggerout<=:$addressRemoveHexPrefix:><=:$secondaryUnderscoreNameTag:><=:$addDescriptionText:> EP_CLK" *)
+    <=:$direction_2:> wire        <=:$portName_2:><=:$addDescriptionText:>,
+
+        <: } elseif {$scriptMode == "core_top_ports"} { :>
+    .<=:$portName_1:>(<=:$portName_1:>),
+    .<=:$portName_2:>(<=:$portName_2:>),
+        <: } elseif {$scriptMode == "endpoint_instantiations"} { :>
+okTriggerOut to<=:$addressRemoveHexPrefix:><=:$secondaryCharNameTag:>   (.okHE(okHE<=:$secondaryCharNameTag:>), .okEH(okEH<=:$secondaryCharNameTag:>x[ <=:$incrementingSection:>*65 +: 65 ]), .ep_addr(8'h<=:$addressRemoveHexPrefix:>), .ep_clk(<=:$portName_2:>), .ep_trigger(<=:$portName_1:>));
+            <: incr incrementingSection :>
+        <: } elseif {$scriptMode == "tcl_command"} { :>
+CONFIG.<=:$secondaryParamNameTag:>TO.ADDR_<=:$i:> {<=:$address:>} \
+        <: } :>
+    <: } :>
+<: } :>
+<:  :>
+<: set endpointCount [set [set secondaryParamNameTag]PI.COUNT] :>
+<: if {$endpointCount != 0} { :>
+    <: if {($scriptMode == "template_slaveside") || ($scriptMode == "wrapper_masterside")} { :>
+//----------------------------------------------------------------------------------------------------------------------------------
+// <=:$secondaryComment:>PipeIns
+//----------------------------------------------------------------------------------------------------------------------------------
+        <: if {$scriptMode == "template_slaveside"} { :>
+            <: set direction_1 "input " :>
+            <: set direction_2 "input " :>
+        <: } elseif {$scriptMode == "wrapper_masterside"} { :>
+            <: set direction_1 "output" :>
+            <: set direction_2 "output" :>
+        <: } :>
+    <: } elseif {$scriptMode == "tcl_command"} { :>
+CONFIG.<=:$secondaryParamNameTag:>PI.COUNT {<=:$endpointCount:>} \
+    <: } :>
+    <: for { set i 0 } { $i < $endpointCount } { incr i } { :>
+        <: set address [set [set secondaryParamNameTag]PI.ADDR_$i] :>
+        <: set addressRemoveHexPrefix [string replace $address 0 1 ""] :>
+        <: set portName_1 pi[set addressRemoveHexPrefix][set secondaryUnderscoreNameTag]_ep_dataout :>
+        <: set portName_2 pi[set addressRemoveHexPrefix][set secondaryUnderscoreNameTag]_ep_write :>
+        <: if {($scriptMode == "template_slaveside") || ($scriptMode == "wrapper_masterside")} { :>
+    (* X_INTERFACE_INFO = "opalkelly.com:interface:pipein:1.0 pipein<=:$addressRemoveHexPrefix:><=:$secondaryUnderscoreNameTag:><=:$addDescriptionText:> EP_DATAOUT" *)
+    <=:$direction_1:> wire [31:0] <=:$portName_1:><=:$addDescriptionText:>,
+    (* X_INTERFACE_INFO = "opalkelly.com:interface:pipein:1.0 pipein<=:$addressRemoveHexPrefix:><=:$secondaryUnderscoreNameTag:><=:$addDescriptionText:> EP_WRITE" *)
+    <=:$direction_2:> wire        <=:$portName_2:><=:$addDescriptionText:>,
+
+        <: } elseif {$scriptMode == "core_top_ports"} { :>
+    .<=:$portName_1:>(<=:$portName_1:>),
+    .<=:$portName_2:>(<=:$portName_2:>),
+        <: } elseif {$scriptMode == "endpoint_instantiations"} { :>
+okPipeIn     pi<=:$addressRemoveHexPrefix:><=:$secondaryCharNameTag:>   (.okHE(okHE<=:$secondaryCharNameTag:>), .okEH(okEH<=:$secondaryCharNameTag:>x[ <=:$incrementingSection:>*65 +: 65 ]), .ep_addr(8'h<=:$addressRemoveHexPrefix:>), .ep_dataout(<=:$portName_1:>), .ep_write(<=:$portName_2:>));
+            <: incr incrementingSection :>
+        <: } elseif {$scriptMode == "tcl_command"} { :>
+CONFIG.<=:$secondaryParamNameTag:>PI.ADDR_<=:$i:> {<=:$address:>} \
+        <: } :>
+    <: } :>
+<: } :>
+<:  :>
+<: set endpointCount [set [set secondaryParamNameTag]BTPI.COUNT] :>
+<: if {$endpointCount != 0} { :>
+    <: if {($scriptMode == "template_slaveside") || ($scriptMode == "wrapper_masterside")} { :>
+//----------------------------------------------------------------------------------------------------------------------------------
+// <=:$secondaryComment:>Block Throttle PipeIns
+//----------------------------------------------------------------------------------------------------------------------------------
+        <: if {$scriptMode == "template_slaveside"} { :>
+            <: set direction_1 "input " :>
+            <: set direction_2 "input " :>
+            <: set direction_3 "input " :>
+            <: set direction_4 "output" :>
+        <: } elseif {$scriptMode == "wrapper_masterside"} { :>
+            <: set direction_1 "output" :>
+            <: set direction_2 "output" :>
+            <: set direction_3 "output" :>
+            <: set direction_4 "input " :>
+        <: } :>
+    <: } elseif {$scriptMode == "tcl_command"} { :>
+CONFIG.<=:$secondaryParamNameTag:>BTPI.COUNT {<=:$endpointCount:>} \
+    <: } :>
+    <: for { set i 0 } { $i < $endpointCount } { incr i } { :>
+        <: set address [set [set secondaryParamNameTag]BTPI.ADDR_$i] :>
+        <: set addressRemoveHexPrefix [string replace $address 0 1 ""] :>
+        <: set portName_1 btpi[set addressRemoveHexPrefix][set secondaryUnderscoreNameTag]_ep_dataout :>
+        <: set portName_2 btpi[set addressRemoveHexPrefix][set secondaryUnderscoreNameTag]_ep_write :>
+        <: set portName_3 btpi[set addressRemoveHexPrefix][set secondaryUnderscoreNameTag]_ep_blockstrobe :>
+        <: set portName_4 btpi[set addressRemoveHexPrefix][set secondaryUnderscoreNameTag]_ep_ready :>
+        <: if {($scriptMode == "template_slaveside") || ($scriptMode == "wrapper_masterside")} { :>
+    (* X_INTERFACE_INFO = "opalkelly.com:interface:btpipein:1.0 btpipein<=:$addressRemoveHexPrefix:><=:$secondaryUnderscoreNameTag:><=:$addDescriptionText:> EP_DATAOUT" *)
+    <=:$direction_1:> wire [31:0] <=:$portName_1:><=:$addDescriptionText:>,
+    (* X_INTERFACE_INFO = "opalkelly.com:interface:btpipein:1.0 btpipein<=:$addressRemoveHexPrefix:><=:$secondaryUnderscoreNameTag:><=:$addDescriptionText:> EP_WRITE" *)
+    <=:$direction_2:> wire        <=:$portName_2:><=:$addDescriptionText:>,
+    (* X_INTERFACE_INFO = "opalkelly.com:interface:btpipein:1.0 btpipein<=:$addressRemoveHexPrefix:><=:$secondaryUnderscoreNameTag:><=:$addDescriptionText:> EP_BLOCKSTROBE" *)
+    <=:$direction_3:> wire        <=:$portName_3:><=:$addDescriptionText:>,
+    (* X_INTERFACE_INFO = "opalkelly.com:interface:btpipein:1.0 btpipein<=:$addressRemoveHexPrefix:><=:$secondaryUnderscoreNameTag:><=:$addDescriptionText:> EP_READY" *)
+    <=:$direction_4:> wire        <=:$portName_4:><=:$addDescriptionText:>,
+
+        <: } elseif {$scriptMode == "core_top_ports"} { :>
+    .<=:$portName_1:>(<=:$portName_1:>),
+    .<=:$portName_2:>(<=:$portName_2:>),
+    .<=:$portName_3:>(<=:$portName_3:>),
+    .<=:$portName_4:>(<=:$portName_4:>),
+        <: } elseif {$scriptMode == "endpoint_instantiations"} { :>
+okBTPipeIn   btpi<=:$addressRemoveHexPrefix:><=:$secondaryCharNameTag:> (.okHE(okHE<=:$secondaryCharNameTag:>), .okEH(okEH<=:$secondaryCharNameTag:>x[ <=:$incrementingSection:>*65 +: 65 ]), .ep_addr(8'h<=:$addressRemoveHexPrefix:>), .ep_write(<=:$portName_2:>), .ep_blockstrobe(<=:$portName_3:>), .ep_dataout(<=:$portName_1:>), .ep_ready(<=:$portName_4:>));
+            <: incr incrementingSection :>
+        <: } elseif {$scriptMode == "tcl_command"} { :>
+CONFIG.<=:$secondaryParamNameTag:>BTPI.ADDR_<=:$i:> {<=:$address:>} \
+        <: } :>
+    <: } :>
+<: } :>
+<:  :>
+<: set endpointCount [set [set secondaryParamNameTag]PO.COUNT] :>
+<: if {$endpointCount != 0} { :>
+    <: if {($scriptMode == "template_slaveside") || ($scriptMode == "wrapper_masterside")} { :>
+//----------------------------------------------------------------------------------------------------------------------------------
+// <=:$secondaryComment:>PipeOuts
+//----------------------------------------------------------------------------------------------------------------------------------
+        <: if {$scriptMode == "template_slaveside"} { :>
+            <: set direction_1 "output" :>
+            <: set direction_2 "input " :>
+        <: } elseif {$scriptMode == "wrapper_masterside"} { :>
+            <: set direction_1 "input " :>
+            <: set direction_2 "output" :>
+        <: } :>
+    <: } elseif {$scriptMode == "tcl_command"} { :>
+CONFIG.<=:$secondaryParamNameTag:>PO.COUNT {<=:$endpointCount:>} \
+    <: } :>
+    <: for { set i 0 } { $i < $endpointCount } { incr i } { :>
+        <: set address [set [set secondaryParamNameTag]PO.ADDR_$i] :>
+        <: set addressRemoveHexPrefix [string replace $address 0 1 ""] :>
+        <: set portName_1 po[set addressRemoveHexPrefix][set secondaryUnderscoreNameTag]_ep_datain :>
+        <: set portName_2 po[set addressRemoveHexPrefix][set secondaryUnderscoreNameTag]_ep_read :>
+        <: if {($scriptMode == "template_slaveside") || ($scriptMode == "wrapper_masterside")} { :>
+    (* X_INTERFACE_INFO = "opalkelly.com:interface:pipeout:1.0 pipeout<=:$addressRemoveHexPrefix:><=:$secondaryUnderscoreNameTag:><=:$addDescriptionText:> EP_DATAIN" *)
+    <=:$direction_1:> wire [31:0] <=:$portName_1:><=:$addDescriptionText:>,
+    (* X_INTERFACE_INFO = "opalkelly.com:interface:pipeout:1.0 pipeout<=:$addressRemoveHexPrefix:><=:$secondaryUnderscoreNameTag:><=:$addDescriptionText:> EP_READ" *)
+    <=:$direction_2:> wire        <=:$portName_2:><=:$addDescriptionText:>,
+
+        <: } elseif {$scriptMode == "core_top_ports"} { :>
+    .<=:$portName_1:>(<=:$portName_1:>),
+    .<=:$portName_2:>(<=:$portName_2:>),
+        <: } elseif {$scriptMode == "endpoint_instantiations"} { :>
+okPipeOut    po<=:$addressRemoveHexPrefix:><=:$secondaryCharNameTag:>   (.okHE(okHE<=:$secondaryCharNameTag:>), .okEH(okEH<=:$secondaryCharNameTag:>x[ <=:$incrementingSection:>*65 +: 65 ]), .ep_addr(8'h<=:$addressRemoveHexPrefix:>), .ep_datain(<=:$portName_1:>), .ep_read(<=:$portName_2:>));
+            <: incr incrementingSection :>
+        <: } elseif {$scriptMode == "tcl_command"} { :>
+CONFIG.<=:$secondaryParamNameTag:>PO.ADDR_<=:$i:> {<=:$address:>} \
+        <: } :>
+    <: } :>
+<: } :>
+<:  :>
+<: set endpointCount [set [set secondaryParamNameTag]BTPO.COUNT] :>
+<: if {$endpointCount != 0} { :>
+    <: if {($scriptMode == "template_slaveside") || ($scriptMode == "wrapper_masterside")} { :>
+//----------------------------------------------------------------------------------------------------------------------------------
+// <=:$secondaryComment:>Block Throttle PipeOuts
+//----------------------------------------------------------------------------------------------------------------------------------
+        <: if {$scriptMode == "template_slaveside"} { :>
+            <: set direction_1 "output" :>
+            <: set direction_2 "input " :>
+            <: set direction_3 "input " :>
+            <: set direction_4 "output" :>
+        <: } elseif {$scriptMode == "wrapper_masterside"} { :>
+            <: set direction_1 "input " :>
+            <: set direction_2 "output" :>
+            <: set direction_3 "output" :>
+            <: set direction_4 "input " :>
+        <: } :>
+    <: } elseif {$scriptMode == "tcl_command"} { :>
+CONFIG.<=:$secondaryParamNameTag:>BTPO.COUNT {<=:$endpointCount:>} \
+    <: } :>
+    <: for { set i 0 } { $i < $endpointCount } { incr i } { :>
+        <: set address [set [set secondaryParamNameTag]BTPO.ADDR_$i] :>
+        <: set addressRemoveHexPrefix [string replace $address 0 1 ""] :>
+        <: set portName_1 btpo[set addressRemoveHexPrefix][set secondaryUnderscoreNameTag]_ep_datain :>
+        <: set portName_2 btpo[set addressRemoveHexPrefix][set secondaryUnderscoreNameTag]_ep_read :>
+        <: set portName_3 btpo[set addressRemoveHexPrefix][set secondaryUnderscoreNameTag]_ep_blockstrobe :>
+        <: set portName_4 btpo[set addressRemoveHexPrefix][set secondaryUnderscoreNameTag]_ep_ready :>
+        <: if {($scriptMode == "template_slaveside") || ($scriptMode == "wrapper_masterside")} { :>
+    (* X_INTERFACE_INFO = "opalkelly.com:interface:btpipeout:1.0 btpipeout<=:$addressRemoveHexPrefix:><=:$secondaryUnderscoreNameTag:><=:$addDescriptionText:> EP_DATAIN" *)
+    <=:$direction_1:> wire [31:0] <=:$portName_1:><=:$addDescriptionText:>,
+    (* X_INTERFACE_INFO = "opalkelly.com:interface:btpipeout:1.0 btpipeout<=:$addressRemoveHexPrefix:><=:$secondaryUnderscoreNameTag:><=:$addDescriptionText:> EP_READ" *)
+    <=:$direction_2:> wire        <=:$portName_2:><=:$addDescriptionText:>,
+    (* X_INTERFACE_INFO = "opalkelly.com:interface:btpipeout:1.0 btpipeout<=:$addressRemoveHexPrefix:><=:$secondaryUnderscoreNameTag:><=:$addDescriptionText:> EP_BLOCKSTROBE" *)
+    <=:$direction_3:> wire        <=:$portName_3:><=:$addDescriptionText:>,
+    (* X_INTERFACE_INFO = "opalkelly.com:interface:btpipeout:1.0 btpipeout<=:$addressRemoveHexPrefix:><=:$secondaryUnderscoreNameTag:><=:$addDescriptionText:> EP_READY" *)
+    <=:$direction_4:> wire        <=:$portName_4:><=:$addDescriptionText:>,
+
+        <: } elseif {$scriptMode == "core_top_ports"} { :>
+    .<=:$portName_1:>(<=:$portName_1:>),
+    .<=:$portName_2:>(<=:$portName_2:>),
+    .<=:$portName_3:>(<=:$portName_3:>),
+    .<=:$portName_4:>(<=:$portName_4:>),
+        <: } elseif {$scriptMode == "endpoint_instantiations"} { :>
+okBTPipeOut  btpo<=:$addressRemoveHexPrefix:><=:$secondaryCharNameTag:> (.okHE(okHE<=:$secondaryCharNameTag:>), .okEH(okEH<=:$secondaryCharNameTag:>x[ <=:$incrementingSection:>*65 +: 65 ]), .ep_addr(8'h<=:$addressRemoveHexPrefix:>), .ep_read(<=:$portName_2:>),  .ep_blockstrobe(<=:$portName_3:>), .ep_datain(<=:$portName_1:>), .ep_ready(<=:$portName_4:>));
+            <: incr incrementingSection :>
+        <: } elseif {$scriptMode == "tcl_command"} { :>
+CONFIG.<=:$secondaryParamNameTag:>BTPO.ADDR_<=:$i:> {<=:$address:>} \
+        <: } :>
+    <: } :>
+<: } :>
+<:  :>
+<: set regBridgeEn [get_parameter_property [set secondaryParamNameTag]RB.EN] :>
+<: if {$regBridgeEn} { :>
+    <: if {($scriptMode == "template_slaveside") || ($scriptMode == "wrapper_masterside")} { :>
+//----------------------------------------------------------------------------------------------------------------------------------
+// <=:$secondaryComment:>Register Bridge
+//----------------------------------------------------------------------------------------------------------------------------------
+        <: if {$scriptMode == "template_slaveside"} { :>
+            <: set direction_1 "input " :>
+            <: set direction_2 "input " :>
+            <: set direction_3 "input " :>
+            <: set direction_4 "input " :>
+            <: set direction_5 "output" :>
+        <: } elseif {$scriptMode == "wrapper_masterside"} { :>
+            <: set direction_1 "output" :>
+            <: set direction_2 "output" :>
+            <: set direction_3 "output" :>
+            <: set direction_4 "output " :>
+            <: set direction_5 "input " :>
+        <: } :>
+    <: } elseif {$scriptMode == "tcl_command"} { :>
+CONFIG.<=:$secondaryParamNameTag:>RB.EN {true} \
+        <: continue :>
+    <: } :>
+    <: set portName_1 regbridge[set secondaryUnderscoreNameTag]_ep_write :>
+    <: set portName_2 regbridge[set secondaryUnderscoreNameTag]_ep_read :>
+    <: set portName_3 regbridge[set secondaryUnderscoreNameTag]_ep_address :>
+    <: set portName_4 regbridge[set secondaryUnderscoreNameTag]_ep_dataout :>
+    <: set portName_5 regbridge[set secondaryUnderscoreNameTag]_ep_datain :>
+    <: if {($scriptMode == "template_slaveside") || ($scriptMode == "wrapper_masterside")} { :>
+    (* X_INTERFACE_INFO = "opalkelly.com:interface:register_bridge:1.0 register_bridge<=:$secondaryUnderscoreNameTag:><=:$addDescriptionText:> EP_WRITE" *)
+    <=:$direction_1:> wire        <=:$portName_1:><=:$addDescriptionText:>,
+    (* X_INTERFACE_INFO = "opalkelly.com:interface:register_bridge:1.0 register_bridge<=:$secondaryUnderscoreNameTag:><=:$addDescriptionText:> EP_READ" *)
+    <=:$direction_2:> wire        <=:$portName_2:><=:$addDescriptionText:>,
+    (* X_INTERFACE_INFO = "opalkelly.com:interface:register_bridge:1.0 register_bridge<=:$secondaryUnderscoreNameTag:><=:$addDescriptionText:> EP_ADDRESS" *)
+    <=:$direction_3:> wire [31:0] <=:$portName_3:><=:$addDescriptionText:>,
+    (* X_INTERFACE_INFO = "opalkelly.com:interface:register_bridge:1.0 register_bridge<=:$secondaryUnderscoreNameTag:><=:$addDescriptionText:> EP_DATAOUT" *)
+    <=:$direction_4:> wire [31:0] <=:$portName_4:><=:$addDescriptionText:>,
+    (* X_INTERFACE_INFO = "opalkelly.com:interface:register_bridge:1.0 register_bridge<=:$secondaryUnderscoreNameTag:><=:$addDescriptionText:> EP_DATAIN" *)
+    <=:$direction_5:> wire [31:0] <=:$portName_5:><=:$addDescriptionText:>,
+
+    <: } elseif {$scriptMode == "core_top_ports"} { :>
+    .<=:$portName_1:>(<=:$portName_1:>),
+    .<=:$portName_2:>(<=:$portName_2:>),
+    .<=:$portName_3:>(<=:$portName_3:>),
+    .<=:$portName_4:>(<=:$portName_4:>),
+    .<=:$portName_5:>(<=:$portName_5:>),
+    <: } elseif {$scriptMode == "endpoint_instantiations"} { :>
+okRegisterBridge register_bridge<=:$secondaryUnderscoreNameTag:> (.okHE(okHE<=:$secondaryCharNameTag:>), .okEH(okEH<=:$secondaryCharNameTag:>x[ <=:$incrementingSection:>*65 +: 65 ]), .ep_write(<=:$portName_1:>), .ep_read(<=:$portName_2:>), .ep_address(<=:$portName_3:>), .ep_dataout(<=:$portName_4:>), .ep_datain(<=:$portName_5:>));
+        <: incr incrementingSection :>
+    <: } :>
+<: } :>
+<:  :>
+<: if {($scriptMode == "wrapper_masterside") || ($scriptMode == "core_top_ports")} { :>
+    <: set portName_1 okUH[set secondaryCharNameTag] :>
+    <: set portName_2 okHU[set secondaryCharNameTag] :>
+    <: set portName_3 okUHU[set secondaryCharNameTag] :>
+    <: set portName_4 okAA :>
+    <: set portName_5 ok_done :>
+    <: set portName_6 okClk[set secondaryCharNameTag] :>
+    <: if {$scriptMode == "wrapper_masterside"} { :>
+//----------------------------------------------------------------------------------------------------------------------------------
+// <=:$secondaryComment:>Host Interface
+//----------------------------------------------------------------------------------------------------------------------------------
+    (* X_INTERFACE_INFO = "opalkelly.com:interface:host_interface:1.0 host_interface<=:$secondaryUnderscoreNameTag:> okUH" *)
+    input  wire [4 : 0] <=:$portName_1:>,
+    (* X_INTERFACE_INFO = "opalkelly.com:interface:host_interface:1.0 host_interface<=:$secondaryUnderscoreNameTag:> okHU" *)
+    output wire [2 : 0] <=:$portName_2:>,
+    (* X_INTERFACE_INFO = "opalkelly.com:interface:host_interface:1.0 host_interface<=:$secondaryUnderscoreNameTag:> okUHU" *)
+    inout  wire [31 : 0] <=:$portName_3:>,
+    (* X_INTERFACE_INFO = "opalkelly.com:interface:host_interface:1.0 host_interface<=:$secondaryUnderscoreNameTag:> okAA" *)
+        <: if {$secondaryComment != "Secondary "} { :>
+    inout  wire <=:$portName_4:>,
+        <: } else { :>
+    output wire <=:$portName_5:>,
+        <: } :>
+    output wire <=:$portName_6:><=:$closingComma:>
+    <: } elseif {$scriptMode == "core_top_ports"} { :>
+    .<=:$portName_1:>(<=:$portName_1:>),
+    .<=:$portName_2:>(<=:$portName_2:>),
+    .<=:$portName_3:>(<=:$portName_3:>),
+        <: if {$secondaryComment != "Secondary "} { :>
+    .<=:$portName_4:>(<=:$portName_4:>),
+        <: } else { :>
+    .<=:$portName_5:>(<=:$portName_5:>),
+        <: } :>
+    .<=:$portName_6:>(<=:$portName_6:>)<=:$closingComma:>   
+    <: } :>
+<: } :>
+<: } :>

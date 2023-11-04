@@ -1,0 +1,20 @@
+<: set board [get_parameter_property "BOARD"]:>
+<: set boardfile [get_property PROJECT_PARAM.BOARD] :>
+<: if {$board != "XEM8320-AU25P"} { ttcl_return; }:>
+<: setFileName "xem8320" :>
+<: setFileExtension ".xdc" :>
+<: setOutputDirectory "./gateware":>
+<: :>
+<: if { $boardfile == ""} { :>
+# LEDS #####################################################################
+set_property PACKAGE_PIN G19 [get_ports {led_out[0]}]
+set_property PACKAGE_PIN B16 [get_ports {led_out[1]}]
+set_property PACKAGE_PIN F22 [get_ports {led_out[2]}]
+set_property PACKAGE_PIN E22 [get_ports {led_out[3]}]
+set_property PACKAGE_PIN M24 [get_ports {led_out[4]}]
+set_property PACKAGE_PIN G22 [get_ports {led_out[5]}]
+<: } :>
+<: set IOSTANDARD [get_parameter_property "IOSTANDARD"]:>
+set_property IOSTANDARD <=:$IOSTANDARD:> [get_ports {led_out[*]}]
+set_property DRIVE 8 [get_ports {led_out[*]}]
+set_false_path -to [get_ports {led_out[*]}]

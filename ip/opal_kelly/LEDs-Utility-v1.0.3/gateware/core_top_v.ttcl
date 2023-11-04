@@ -1,0 +1,26 @@
+<#: gateware/variables.ttcl :>
+<: set ComponentName [getComponentNameString] :>
+<: setFileName [ttcl_string_concat $ComponentName ""] :>
+<: setFileExtension ".v" :>
+<: setOutputDirectory "./gateware":>
+<: :>
+<#: gateware/copyright.ttcl :>
+
+`default_nettype none
+
+module <=:$ComponentName:>(
+  led_in,
+  <=:$netName:>
+);
+
+input wire [<=:[expr $ledWidth - 1]:> : 0] led_in;
+(* X_INTERFACE_INFO = "opalkelly.com:interface:<=:$interfaceName:>:1.0 <=:$netName:> <=:[string toupper $netName]:>" *)
+<=:$direction:> wire [<=:[expr $ledWidth - 1]:> : 0] <=:$netName:>;
+
+  led inst (
+    .led_in(led_in),
+    .<=:$netName:>(<=:$netName:>)
+  );
+  
+endmodule
+`default_nettype wire

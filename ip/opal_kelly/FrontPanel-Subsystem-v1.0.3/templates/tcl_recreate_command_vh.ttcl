@@ -1,0 +1,20 @@
+<#: gateware/common/variables.ttcl :>
+<: set ComponentName [getComponentNameString] :>
+<: setFileName [ttcl_string_concat $ComponentName "_tcl_recreate_command"] :>
+<: setFileExtension ".vh" :>
+<: setOutputDirectory "./templates":>
+<:  :>
+//----------------------------------------------------------------------------------------------------------
+// Generated TCL Command to Recreate IP 
+//----------------------------------------------------------------------------------------------------------
+// Relevant Documentation Resources:
+//   - "Configuration Parameters" Technical Reference for more information about the CONFIG parameters.
+//   - "Regenerate Configuration through TCL" How-To Guide for an example of utilizing this command.
+//
+
+create_ip -name frontpanel -vendor opalkelly.com -library ip -version <=:$verVal:> -module_name <=:$ComponentName:>
+set_property -dict [list \
+<: # scriptMode is how we pass variables into param_loop.ttcl :>
+<: set scriptMode "tcl_command":>
+<#: gateware/common/param_loop.ttcl :>
+] [get_ips <=:$ComponentName:>]

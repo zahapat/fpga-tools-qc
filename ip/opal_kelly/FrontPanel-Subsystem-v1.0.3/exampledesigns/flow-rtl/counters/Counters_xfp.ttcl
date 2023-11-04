@@ -1,0 +1,333 @@
+<#: exampledesigns/common/board_variables.ttcl :>
+<: if {$flow != "RTL" || $selection != "Counters"} { ttcl_return; }:>
+<: setFileName "Counters" :>
+<: setFileExtension ".xfp" :>
+<: setOutputDirectory "./exampledesign":>
+<: :>
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<!--
+Counters
+FrontPanel Example
+
+Copyright (c) 2004, Opal Kelly Incorporated
+-->
+
+<resource version="2.3.0.1">
+
+<object class="okPanel" name="panel1">
+	<title>Counters Example</title>
+	<size>320,210</size>
+
+	<!-- PLL22150 settings
+	     These will only be visible when the attached device has 
+	     a 22150 PLL (XEM3001).
+	 -->
+	<object class="okPLL22150">
+		<label>PLL1</label>
+		<position>170,0</position>
+		<size>40,15</size>
+		<p>400</p>
+		<q>48</q>
+		<divider1 source="vco">8</divider1>
+		<output0 source="div1byn">on</output0>
+		<output1 source="ref">on</output1>
+	</object>
+	<object class="okPLL22150">
+		<label>PLL2</label>
+		<position>220,0</position>
+		<size>40,15</size>
+		<p>400</p>
+		<q>48</q>
+		<divider1 source="vco">15</divider1>
+		<output0 source="div1byn">on</output0>
+		<output1 source="ref">on</output1>
+	</object>
+
+	<!-- PLL22393 settings
+	     These will only be visible when the attached device has 
+	     a 22393 PLL (XEM3010).
+	 -->
+	<object class="okPLL22393">
+		<label>PLL1</label>
+		<position>170,0</position>
+		<size>40,15</size>
+		<pll0 p="400" q="48"/>
+		<output0 source="pll0_0" divider="8">on</output0>
+		<output1 source="ref" divider="1">on</output1>
+	</object>
+	<object class="okPLL22393">
+		<label>PLL2</label>
+		<position>220,0</position>
+		<size>40,15</size>
+		<pll0 p="400" q="48"/>
+		<output0 source="pll0_0" divider="16">on</output0>
+		<output1 source="ref" divider="2">on</output1>
+	</object>
+
+	<!-- Counter #1 Controls -->
+	<object class="okStaticBox">
+		<label>Counter #1</label>
+		<position>10,10</position>
+		<size>300,90</size>
+	</object>
+   
+	<object class="okPushbutton">
+		<label>_Reset</label>
+		<position>20,30</position>
+		<size>75,20</size>
+		<endpoint>0x00</endpoint>
+		<bit>0</bit>
+		<tooltip>Reset Counter #1</tooltip>
+	</object>
+
+	<object class="okPushbutton">
+		<label>Disable</label>
+		<position>105,30</position>
+		<size>75,20</size>
+		<endpoint>0x00</endpoint>
+		<bit>1</bit>
+		<tooltip>Momentarily disable counter #1</tooltip>
+	</object>
+
+	<!-- LEDs -->
+	<object class="okLED">
+		<position>20,60</position>
+		<size>25,25</size>
+		<label align="bottom">7</label>
+		<style>SQUARE</style>
+		<color>#00ff00</color>
+		<endpoint>0x20</endpoint>
+		<bit>7</bit>
+	</object>
+	<object class="okLED">
+		<position>40,60</position>
+		<size>25,25</size>
+		<label align="bottom">6</label>
+		<style>SQUARE</style>
+		<color>#00ff00</color>
+		<endpoint>0x20</endpoint>
+		<bit>6</bit>
+	</object>
+	<object class="okLED">
+		<position>60,60</position>
+		<size>25,25</size>
+		<label align="bottom">5</label>
+		<style>SQUARE</style>
+		<color>#00ff00</color>
+		<endpoint>0x20</endpoint>
+		<bit>5</bit>
+	</object>
+	<object class="okLED">
+		<position>80,60</position>
+		<size>25,25</size>
+		<label align="bottom">4</label>
+		<style>SQUARE</style>
+		<color>#00ff00</color>
+		<endpoint>0x20</endpoint>
+		<bit>4</bit>
+	</object>
+	<object class="okLED">
+		<position>100,60</position>
+		<size>25,25</size>
+		<label align="bottom">3</label>
+		<style>SQUARE</style>
+		<color>#00ff00</color>
+		<endpoint>0x20</endpoint>
+		<bit>3</bit>
+	</object>
+	<object class="okLED">
+		<position>120,60</position>
+		<size>25,25</size>
+		<label align="bottom">2</label>
+		<style>SQUARE</style>
+		<color>#00ff00</color>
+		<endpoint>0x20</endpoint>
+		<bit>2</bit>
+	</object>
+	<object class="okLED">
+		<position>140,60</position>
+		<size>25,25</size>
+		<label align="bottom">1</label>
+		<style>SQUARE</style>
+		<color>#00ff00</color>
+		<endpoint>0x20</endpoint>
+		<bit>1</bit>
+	</object>
+	<object class="okLED">
+		<position>160,60</position>
+		<size>25,25</size>
+		<label align="bottom">0</label>
+		<style>SQUARE</style>
+		<color>#00ff00</color>
+		<endpoint>0x20</endpoint>
+		<bit>0</bit>
+	</object>
+
+	<!-- HEX -->
+	<object class="okHex">
+		<label>x[7:4]</label>
+		<position>220,35</position>
+		<size>38,50</size>
+		<endpoint>0x20</endpoint>
+		<bit>4</bit>
+		<tooltip>Counter #1 (high nibble)</tooltip>
+	</object>
+	<object class="okHex">
+		<label>x[3:0]</label>
+		<position>260,35</position>
+		<size>38,50</size>
+		<endpoint>0x20</endpoint>
+		<bit>0</bit>
+		<tooltip>Counter #1 (low nibble)</tooltip>
+	</object>
+	
+	<!-- Trigger Sound -->
+	<object class="okTriggerSound">
+		<label>Counter 1 == 0x00</label>
+	   <endpoint>0x60</endpoint>
+	   <bit>0</bit>
+	   <soundfile>pongblip.wav</soundfile>
+	</object>
+	<object class="okTriggerSound">
+		<label>Counter 1 == 0x80</label>
+	   <endpoint>0x60</endpoint>
+	   <bit>1</bit>
+	   <soundfile>carchirp.wav</soundfile>
+	</object>
+	<object class="okTriggerSound">
+		<label>Counter 2 == 0x00</label>
+	   <endpoint>0x61</endpoint>
+	   <bit>0</bit>
+	   <soundfile>moonblast.wav</soundfile>
+	</object>
+	
+	<!-- Counter #2 Controls -->
+   <object class="okStaticBox">
+      <label>Counter #2</label>
+      <position>10,110</position>
+      <size>300,90</size>
+   </object>
+
+	<object class="okTriggerButton">
+		<label>- Reset -</label>
+		<position>20,130</position>
+		<size>75,20</size>
+		<endpoint>0x40</endpoint>
+		<bit>0</bit>
+		<tooltip>Reset Counter #2</tooltip>
+	</object>
+
+	<!-- Check box -->
+	<object class="okToggleCheck">
+		<label>Autocount</label>
+		<position>20,165</position>
+		<endpoint>0x00</endpoint>
+		<bit>2</bit>
+		<tooltip>Enable autocount.</tooltip>
+	</object>
+
+	<object class="okTriggerButton">
+	   <label>- _Up -</label>
+	   <position>110,130</position>
+	   <size>75,20</size>
+	   <endpoint>0x40</endpoint>
+	   <bit>1</bit>
+	   <tooltip>Count up by one.</tooltip>
+	</object>
+
+	<object class="okTriggerButton">
+	   <label>- _Down -</label>
+	   <position>110,160</position>
+	   <size>75,20</size>
+	   <endpoint>0x40</endpoint>
+	   <bit>2</bit>
+	   <tooltip>Count down by one.</tooltip>
+	</object>
+
+	<!-- HEX -->
+	<object class="okHex">
+		<label>y[7:4]</label>
+		<position>220,135</position>
+		<size>35,50</size>
+		<endpoint>0x21</endpoint>
+		<bit>4</bit>
+		<tooltip>Counter #2 (high nibble)</tooltip>
+	</object>
+	<object class="okHex">
+		<label>y[3:0]</label>
+		<position>260,135</position>
+		<size>35,50</size>
+		<endpoint>0x21</endpoint>
+		<bit>0</bit>
+		<tooltip>Counter #2 (low nibble)</tooltip>
+	</object>
+	
+</object>
+
+<object class="okPanel" name="panel2">
+	<title>Pushbuttons</title>
+	<size>100,40</size>
+	<style>wxNO_3D|wxDEFAULT_DIALOG_STYLE</style>
+
+	<object class="okLED">
+		<position>10,10</position>
+		<size>25,25</size>
+		<label align="bottom">3</label>
+		<style>SQUARE</style>
+		<color>#00a0ff</color>
+		<endpoint>0x22</endpoint>
+		<bit>3</bit>
+	</object>
+	<object class="okLED">
+		<position>30,10</position>
+		<size>25,25</size>
+		<label align="bottom">2</label>
+		<style>SQUARE</style>
+		<color>#00a0ff</color>
+		<endpoint>0x22</endpoint>
+		<bit>2</bit>
+	</object>
+	<object class="okLED">
+		<position>50,10</position>
+		<size>25,25</size>
+		<label align="bottom">1</label>
+		<style>SQUARE</style>
+		<color>#00a0ff</color>
+		<endpoint>0x22</endpoint>
+		<bit>1</bit>
+	</object>
+	<object class="okLED">
+		<position>70,10</position>
+		<size>25,25</size>
+		<label align="bottom">0</label>
+		<style>SQUARE</style>
+		<color>#00a0ff</color>
+		<endpoint>0x22</endpoint>
+		<bit>0</bit>
+	</object>
+</object>
+
+<object class="okPanel" name="panel3">
+	<title>Trigger Log</title>
+	<size>320,240</size>
+	<style>wxNO_3D|wxDEFAULT_DIALOG_STYLE</style>
+
+	<object class="okTriggerLog">
+		<position>10,10</position>
+		<size>300,220</size>
+		<trigger>
+			<endpoint>0x60</endpoint><bit>0</bit>
+			<message>Counter 1 == 0x00</message>
+		</trigger>
+		<trigger>
+			<endpoint>0x60</endpoint><bit>1</bit>
+			<message>Counter 1 == 0x80</message>
+		</trigger>
+		<trigger>
+			<endpoint>0x61</endpoint><bit>0</bit>
+			<message>Counter 2 == 0x00</message>
+		</trigger>
+	</object>
+</object>
+
+</resource>

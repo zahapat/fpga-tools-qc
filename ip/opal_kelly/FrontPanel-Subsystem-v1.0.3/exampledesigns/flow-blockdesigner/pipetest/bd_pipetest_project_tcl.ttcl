@@ -1,0 +1,128 @@
+<#: exampledesigns/common/board_variables.ttcl :>
+<: if {$flow != "Block Designer" || $selection != "PipeTest"} { ttcl_return; }:>
+<: setFileName "bd_pipetest_project" :>
+<: setFileExtension ".tcl" :>
+<: setOutputDirectory "./exampledesign":>
+<: :>
+create_bd_design pipetest
+
+# Create interface ports
+create_bd_intf_port -mode Master -vlnv opalkelly.com:interface:<=:$ledInterfaceName:>_rtl:1.0 board_leds
+create_bd_intf_port -mode Slave -vlnv opalkelly.com:interface:host_interface_rtl:1.0 host_interface
+<: if {$isXEM8350} { :>
+create_bd_intf_port -mode Slave -vlnv opalkelly.com:interface:host_interface_s_rtl:1.0 host_interface_s
+<: } :>
+
+# Create instance: CAPABILITY, and set properties
+set CAPABILITY [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlconstant CAPABILITY ]
+set_property -dict [ list \
+CONFIG.CONST_VAL {0x00000001} \
+CONFIG.CONST_WIDTH {32} \
+] $CAPABILITY
+
+# Create instance: frontpanel_pipetest, and set properties
+set frontpanel_pipetest [ create_bd_cell -type ip -vlnv opalkelly.com:ip:frontpanel frontpanel_pipetest ]
+set_property -dict [ list \
+CONFIG.BOARD       {<=:$board:>} \
+CONFIG.WI.COUNT    {4} \
+CONFIG.WI.ADDR_0   {0x00} \
+CONFIG.WI.ADDR_1   {0x01} \
+CONFIG.WI.ADDR_2   {0x02} \
+CONFIG.WI.ADDR_3   {0x03} \
+CONFIG.WO.COUNT    {2} \
+CONFIG.WO.ADDR_0   {0x21} \
+CONFIG.WO.ADDR_1   {0x3e} \
+CONFIG.BTPI.COUNT  {1} \
+CONFIG.BTPI.ADDR_0 {0x80} \
+CONFIG.BTPO.COUNT  {1} \
+CONFIG.BTPO.ADDR_0 {0xa0} \
+<: if { $boardFile != ""} { :>
+CONFIG.host_interface_BOARD_INTERFACE {host_interface} \
+<: } :>
+<: if {$isXEM8350} { :>
+CONFIG.S.EN          {true} \
+CONFIG.S.WI.COUNT    {4} \
+CONFIG.S.WI.ADDR_0   {0x00} \
+CONFIG.S.WI.ADDR_1   {0x01} \
+CONFIG.S.WI.ADDR_2   {0x02} \
+CONFIG.S.WI.ADDR_3   {0x03} \
+CONFIG.S.WO.COUNT    {1} \
+CONFIG.S.WO.ADDR_0   {0x21} \
+CONFIG.S.BTPI.COUNT  {1} \
+CONFIG.S.BTPI.ADDR_0 {0x80} \
+CONFIG.S.BTPO.COUNT  {1} \
+CONFIG.S.BTPO.ADDR_0 {0xa0} \
+<: if { $boardFile != ""} { :>
+CONFIG.host_interface_s_BOARD_INTERFACE {host_interface_s} \
+<: } :>
+<: } :>
+] $frontpanel_pipetest
+
+# Create instance: leds_pipetest, and set properties
+set leds_pipetest [ create_bd_cell -type ip -vlnv opalkelly.com:ip:leds leds_pipetest ]
+set_property -dict [ list \
+CONFIG.BOARD       {<=:$board:>} \
+<: if {($boardFile != "") && ($driverType == "tristate")} { :>
+CONFIG.LED_OUT_TRISTATE_BOARD_INTERFACE {board_leds} \
+<: } elseif {($boardFile != "")} {:>
+CONFIG.LED_OUT_BOARD_INTERFACE {board_leds} \
+<: } :>
+] $leds_pipetest
+
+<: if {$isXEM8350} { :>
+# Create instance: combine_leds, and set properties
+set combine_leds [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlconcat combine_leds ]
+set_property -dict [ list \
+CONFIG.IN0_WIDTH {4} \
+CONFIG.IN1_WIDTH {4} \
+] $combine_leds
+<: } :>
+
+create_bd_cell -type module -reference pipe_in_check pipe_in_check
+create_bd_cell -type module -reference pipe_out_check pipe_out_check
+
+# Create interface connections
+connect_bd_intf_net -intf_net frontpanel_pipetest_btpipein80 [get_bd_intf_pins frontpanel_pipetest/btpipein80] [get_bd_intf_pins pipe_in_check/btpipein80_datastream_in]
+connect_bd_intf_net -intf_net frontpanel_pipetest_btpipeouta0 [get_bd_intf_pins frontpanel_pipetest/btpipeouta0] [get_bd_intf_pins pipe_out_check/btpipeouta0_datastream_out]
+connect_bd_intf_net -intf_net frontpanel_pipetest_wirein01 [get_bd_intf_pins frontpanel_pipetest/wirein01] [get_bd_intf_pins pipe_out_check/wirein01_throttle_val]
+connect_bd_intf_net -intf_net frontpanel_pipetest_wirein02 [get_bd_intf_pins frontpanel_pipetest/wirein02] [get_bd_intf_pins pipe_in_check/wirein02_throttle_val]
+connect_bd_intf_net -intf_net frontpanel_pipetest_wireout21 [get_bd_intf_pins frontpanel_pipetest/wireout21] [get_bd_intf_pins pipe_in_check/wireout21_error_count]
+connect_bd_intf_net -intf_net frontpanel_pipetest_host_interface [get_bd_intf_ports host_interface] [get_bd_intf_pins frontpanel_pipetest/host_interface]
+connect_bd_intf_net -intf_net leds_pipetest_led_out [get_bd_intf_ports board_leds] [get_bd_intf_pins leds_pipetest/<=:$ledNetName:>]
+
+# Create port connections
+connect_bd_net -net CAPABILITY_dout [get_bd_pins CAPABILITY/dout] [get_bd_pins frontpanel_pipetest/wo3e_ep_datain]
+connect_bd_net -net frontpanel_pipetest_okClk [get_bd_pins frontpanel_pipetest/okClk] [get_bd_pins pipe_in_check/clk] [get_bd_pins pipe_out_check/clk]
+connect_bd_net -net frontpanel_pipetest_wi00_ep_dataout [get_bd_pins frontpanel_pipetest/wi00_ep_dataout] [get_bd_pins pipe_in_check/wi00_ep_dataout_control] [get_bd_pins pipe_out_check/wi00_ep_dataout_control]
+connect_bd_net -net frontpanel_pipetest_wi03_ep_dataout [get_bd_pins frontpanel_pipetest/wi03_ep_dataout] [get_bd_pins pipe_in_check/wi03_ep_dataout_fixed_pattern] [get_bd_pins pipe_out_check/wi03_ep_dataout_fixed_pattern]
+
+<: if {$isXEM8350} { :>
+create_bd_cell -type module -reference pipe_in_check pipe_in_check_s
+create_bd_cell -type module -reference pipe_out_check pipe_out_check_s
+
+# Create interface connections
+connect_bd_intf_net -intf_net frontpanel_pipetest_btpipein80_s [get_bd_intf_pins frontpanel_pipetest/btpipein80_s] [get_bd_intf_pins pipe_in_check_s/btpipein80_datastream_in]
+connect_bd_intf_net -intf_net frontpanel_pipetest_btpipeouta0_s [get_bd_intf_pins frontpanel_pipetest/btpipeouta0_s] [get_bd_intf_pins pipe_out_check_s/btpipeouta0_datastream_out]
+connect_bd_intf_net -intf_net frontpanel_pipetest_wirein01_s [get_bd_intf_pins frontpanel_pipetest/wirein01_s] [get_bd_intf_pins pipe_out_check_s/wirein01_throttle_val]
+connect_bd_intf_net -intf_net frontpanel_pipetest_wirein02_s [get_bd_intf_pins frontpanel_pipetest/wirein02_s] [get_bd_intf_pins pipe_in_check_s/wirein02_throttle_val]
+connect_bd_intf_net -intf_net frontpanel_pipetest_wireout21_s [get_bd_intf_pins frontpanel_pipetest/wireout21_s] [get_bd_intf_pins pipe_in_check_s/wireout21_error_count]
+connect_bd_intf_net -intf_net frontpanel_pipetest_host_interface_s [get_bd_intf_ports host_interface_s] [get_bd_intf_pins frontpanel_pipetest/host_interface_s]
+
+# Create port connections
+connect_bd_net -net frontpanel_pipetest_okClks [get_bd_pins frontpanel_pipetest/okClks] [get_bd_pins pipe_in_check_s/clk] [get_bd_pins pipe_out_check_s/clk]
+connect_bd_net -net frontpanel_pipetest_wi00_s_ep_dataout [get_bd_pins frontpanel_pipetest/wi00_s_ep_dataout] [get_bd_pins pipe_in_check_s/wi00_ep_dataout_control] [get_bd_pins pipe_out_check_s/wi00_ep_dataout_control]
+connect_bd_net -net frontpanel_pipetest_wi03_s_ep_dataout [get_bd_pins frontpanel_pipetest/wi03_s_ep_dataout] [get_bd_pins pipe_in_check_s/wi03_ep_dataout_fixed_pattern] [get_bd_pins pipe_out_check_s/wi03_ep_dataout_fixed_pattern]
+connect_bd_net -net pipe_in_check_receive_error_count [get_bd_pins pipe_in_check/receive_error_count] [get_bd_pins combine_leds/In0]
+connect_bd_net -net pipe_in_check_s_receive_error_count [get_bd_pins pipe_in_check_s/receive_error_count] [get_bd_pins combine_leds/In1]
+connect_bd_net -net combine_leds_dout [get_bd_pins leds_pipetest/led_in] [get_bd_pins combine_leds/dout]
+<: } else { :>
+connect_bd_net -net pipe_in_check_receive_error_count [get_bd_pins leds_pipetest/led_in] [get_bd_pins pipe_in_check/receive_error_count]
+<: } :>
+
+regenerate_bd_layout
+validate_bd_design
+save_bd_design
+
+# Create Wrapper and set as top
+set wrapperfile [make_wrapper -files [get_files pipetest.bd] -top -import]
+set_property top pipetest_wrapper [current_fileset]

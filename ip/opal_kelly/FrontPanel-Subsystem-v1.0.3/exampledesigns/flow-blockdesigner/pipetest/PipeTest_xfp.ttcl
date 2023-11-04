@@ -1,0 +1,186 @@
+<#: exampledesigns/common/board_variables.ttcl :>
+<: if {$flow != "Block Designer" || $selection != "PipeTest"} { ttcl_return; }:>
+<: setFileName "PipeTest" :>
+<: setFileExtension ".xfp" :>
+<: setOutputDirectory "./exampledesign":>
+<: :>
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<!--
+PipeTest
+FrontPanel Example
+
+Copyright (c) 2019, Opal Kelly Incorporated
+-->
+
+<resource version="2.3.0.1">
+
+<object class="okProfile">
+	<object class="okScriptFile">
+		<file>PipeTest.lua</file>
+	</object>
+
+	<object class="okInitScript">
+		<functionname>OnInit</functionname>
+	</object>
+</object>
+
+
+<object class="okPanel" name="panel1">
+	<title>PipeTest Example</title>
+	<size>330,335</size>
+
+	<!-- Read Length Controls -->
+	<object class="okStaticText">
+		<label>Read Length Bytes</label>
+		<position>10,10</position>
+		<size>100,20</size>
+	</object>
+
+	<object class="okDigitEntry" name="readLengthBytes">
+		<position>10,30</position>
+		<size>150,30</size>
+		<tooltip>Read Length Bytes Setting</tooltip>
+		<minvalue>0</minvalue>
+		<maxvalue>16777215</maxvalue>
+		<radix>16</radix>
+		<value>0x00010000</value>
+	</object>
+
+	<!-- Write Length Controls -->
+	<object class="okStaticText">
+		<label>Write Length Bytes</label>
+		<position>170,10</position>
+		<size>100,20</size>
+	</object>
+
+	<object class="okDigitEntry" name="writeLengthBytes">
+		<position>170,30</position>
+		<size>150,30</size>
+		<tooltip>Write Length Bytes Setting</tooltip>
+		<minvalue>0</minvalue>
+		<maxvalue>16777215</maxvalue>
+		<radix>16</radix>
+		<value>0x00010000</value>
+	</object>
+
+
+	<!-- Throttle Out Controls -->
+	<object class="okStaticText">
+		<label>Throttle Out</label>
+		<position>10,70</position>
+		<size>75,20</size>
+	</object>
+
+	<object class="okDigitEntry" name="throttleOut">
+		<position>10,90</position>
+		<size>150,30</size>
+		<tooltip>Throttle Out Setting</tooltip>
+		<minvalue>0</minvalue>
+		<maxvalue>4294967295</maxvalue>
+		<radix>16</radix>
+		<value>0xFFFFFFFF</value>
+	</object>
+
+	<!-- Throttle In Controls -->
+	<object class="okStaticText">
+		<label>Throttle In</label>
+		<position>170,70</position>
+		<size>75,20</size>
+	</object>
+
+	<object class="okDigitEntry" name="throttleIn">
+		<position>170,90</position>
+		<size>150,30</size>
+		<tooltip>Throttle In Setting</tooltip>
+		<minvalue>0</minvalue>
+		<maxvalue>4294967295</maxvalue>
+		<radix>16</radix>
+		<value>0xFFFFFFFF</value>
+	</object>
+
+	<!-- Pipetest settings -->
+	<object class="okStaticText">
+		<label>Set Pattern</label>
+		<position>10,130</position>
+		<size>60,20</size>
+	</object>
+
+	<object class="okCombobox" name="pattern">
+		<position>10,150</position>
+		<size>150,20</size>
+		<tooltip>Set Pattern</tooltip>
+		<options>
+			<item value="0">Counter</item>
+		</options>
+	</object>
+
+	<object class="okStaticText">
+		<label>Set Error Injection</label>
+		<position>170,130</position>
+		<size>100,20</size>
+	</object>
+
+	<object class="okCombobox" name="injectError">
+		<position>170,150</position>
+		<size>150,20</size>
+		<tooltip>Set Error Injection</tooltip>
+		<options>
+			<item value="0">No Injection</item>
+			<item value="1">Inject 1 Error</item>
+		</options>
+	</object>
+
+	<!-- Do the transfer -->
+	<object class="okPushbutton">
+		<position>10,190</position>
+		<size>150,30</size>
+		<label>Read From Pipe Out</label>
+		<tooltip>Read From Pipe Out</tooltip>
+		<functionname>OnPipeOutButton</functionname>
+	</object>
+
+	<object class="okPushbutton">
+		<position>170,190</position>
+		<size>150,30</size>
+		<label>Write To Pipe In</label>
+		<tooltip>Write To Pipe In</tooltip>
+		<functionname>OnPipeInButton</functionname>
+	</object>
+
+	<!-- Errors -->
+	<object class="okStaticText">
+		<label>Read Errors</label>
+		<position>10,235</position>
+		<size>150,20</size>
+	</object>
+
+	<object class="okDigitDisplay" name="readErrors">
+		<position>10,255</position>
+		<size>150,30</size>
+		<maxvalue>4294967295</maxvalue>
+		<radix>16</radix>
+	</object>
+
+	<object class="okStaticText">
+		<label>Write Errors</label>
+		<position>170,235</position>
+		<size>150,20</size>
+	</object>
+
+	<object class="okDigitDisplay">
+		<position>170,255</position>
+		<size>150,30</size>
+		<maxvalue>4294967295</maxvalue>
+		<radix>16</radix>
+		<endpoint>0x21</endpoint>
+		<bit>0</bit>
+	</object>
+
+	<!-- Status -->
+	<object class="okStaticText" name="status">
+		<position>10,295</position>
+		<size>300,30</size>
+	</object>
+</object>
+
+</resource>

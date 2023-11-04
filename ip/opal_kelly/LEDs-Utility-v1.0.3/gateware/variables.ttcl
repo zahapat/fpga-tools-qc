@@ -1,0 +1,11 @@
+<: set driverType [get_parameter_property "DRIVERTYPE"]:>
+<: set ledWidth [get_parameter_property WIDTH] :>
+<: if { ($driverType == "standard") || ($driverType == "inverted")} { :>
+    <: set direction output :>
+    <: set netName led_out :>
+    <: set interfaceName led :>
+<: } elseif {($driverType == "tristate")} { :>
+    <: set direction inout :>
+    <: set netName led_out_tristate :>
+    <: set interfaceName led_tristate :>
+<: } :>

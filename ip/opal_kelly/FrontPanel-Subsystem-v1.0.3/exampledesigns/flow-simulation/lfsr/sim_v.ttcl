@@ -1,0 +1,428 @@
+<#: exampledesigns/common/board_variables.ttcl :>
+<: if {$flow != "Simulation" || $selection != "LFSR"} { ttcl_return; }:>
+<: setFileName "sim" :>
+<: setFileExtension ".v" :>
+<: setOutputDirectory "./exampledesign":>
+<: :>
+//////////////////////////////////////////////////////////////////////////////////
+// Company: Opal Kelly, Inc.
+// Engineer: Alex McConnell
+// 
+// Create Date:    09:44:28 01/06/2015 
+// Design Name: Simulation sample for USB3 in Verilog
+// Module Name:    sim 
+// Project Name: 
+// Target Devices: 
+// Tool versions: 
+// Description: 
+//
+// Dependencies: 
+//
+// Revision: 
+// Revision 0.01 - File Created
+// Additional Comments: 
+//
+//////////////////////////////////////////////////////////////////////////////////
+`timescale 1ns / 1ps
+`default_nettype none
+
+module sim(
+	input  wire [4:0]  okUH,
+	output wire [2:0]  okHU,
+	inout  wire [31:0] okUHU,
+	inout  wire        okAA,
+<: if {$isXEM8350} { :>
+	input  wire [4:0]  okUHs,
+	output wire [2:0]  okHUs,
+	inout  wire [31:0] okUHUs,
+<: } :>
+	
+	output reg  [7:0]  led
+    );
+
+	parameter MODE_LFSR = 2'b01;
+	parameter MODE_COUNTER = 2'b10;
+	parameter MODE_OFF = 2'b00;
+	parameter MODE_CONTINUOUS = 2'b01;
+	parameter MODE_PIPED = 2'b10;
+	 
+	// Target interface bus
+	wire okClk;
+	 
+	// Endpoint connections
+	wire [31:0] wi00_ep_dataout;
+	wire [31:0] wi01_ep_dataout;
+	reg  [31:0] wo20_ep_datain;
+
+	wire [31:0] ti40_ep_trigger_mode;
+
+	reg  [31:0] poa0_ep_datain;
+	wire        poa0_ep_read;
+
+	wire [31:0] pi80_ep_dataout;
+	wire        pi80_ep_write;
+
+	wire        regbridge_ep_write;
+	wire        regbridge_ep_read;
+	wire [31:0] regbridge_ep_address;
+	wire [31:0] regbridge_ep_dataout;
+	wire [31:0] regbridge_ep_datain;
+	
+	// Design behavior buses and wires
+	reg  [31:0]   lfsr;
+	wire          reset;
+	reg  [31:0]   ep01_ref;
+	reg  [1 :0]   LFSR_MODE;
+	reg  [2 :0]   REFRESH_MODE;
+
+	wire          clk_en;
+	reg  [1023:0] led_data;
+	reg  [15:0]   led_store;
+	reg  [31:0]   led_temp;
+	 
+	//*********************Begin Design*********************//
+	 
+	// Wires update on okClk.
+	// Keep the design synchronous by deriving reset from an okWireIn endpoint
+	assign reset = wi00_ep_dataout[0];
+
+	// Select mode
+	always @(posedge okClk) begin
+		case (ti40_ep_trigger_mode[4:0])
+			5'b00001: LFSR_MODE <= MODE_LFSR;
+			5'b00010: LFSR_MODE <= MODE_COUNTER;
+			5'b00100: REFRESH_MODE <= MODE_OFF;
+			5'b01000: REFRESH_MODE <= MODE_CONTINUOUS;
+			5'b10000: REFRESH_MODE <= MODE_COUNTER;
+			default:
+				begin
+					LFSR_MODE <= LFSR_MODE;
+					REFRESH_MODE <= REFRESH_MODE;
+				end
+		endcase
+	end
+	 
+	// LFSR/Counter
+	always @(posedge okClk) begin
+	 	if(reset) begin
+	 		lfsr <= 32'h0000_0000;
+	 		ep01_ref <= 32'h0000_0000;
+	 		poa0_ep_datain <= 32'h0000_0000;
+	 		LFSR_MODE <= MODE_OFF;
+	 		REFRESH_MODE <= MODE_OFF;
+	 	end
+	 	case(REFRESH_MODE)
+	 		MODE_OFF:
+	 			begin
+	 				lfsr <= lfsr;
+	 			end
+	 		MODE_CONTINUOUS:
+	 			begin
+				 	case(LFSR_MODE)
+						1: 
+							begin
+								if (wi01_ep_dataout != ep01_ref) begin
+							 		lfsr <= wi01_ep_dataout;
+							 		ep01_ref <= wi01_ep_dataout;
+							 	end else begin
+									lfsr <= {lfsr[30:0], lfsr[31] ^ lfsr[21] ^ lfsr[1]};
+								end
+							end
+						2:
+							begin
+								lfsr <= lfsr + 1'b1;
+							end
+						default: lfsr <= lfsr;
+					endcase
+				end
+			MODE_PIPED:
+				begin
+					// When prompted, PipeOut the current LFSR value
+					case(LFSR_MODE)
+						MODE_LFSR:
+							begin
+								if(poa0_ep_read == 1'b1) begin
+									poa0_ep_datain <= lfsr;
+									lfsr <= {lfsr[30:0], lfsr[31] ^ lfsr[21] ^ lfsr[1]};
+								end
+							end
+						MODE_COUNTER:
+							begin
+								if(poa0_ep_read == 1'b1) begin
+									poa0_ep_datain <= lfsr;
+									lfsr <= lfsr + 1'b1;
+								end
+							end
+						default: lfsr <= lfsr;
+					endcase
+				end
+		endcase
+
+		wo20_ep_datain <= lfsr;
+	end
+
+	// When prompted, PipeOut the current lfsr value
+	always @(posedge okClk) begin
+	 	if (poa0_ep_read == 1'b1) begin
+	 		poa0_ep_datain <= lfsr;
+	 	end
+	end
+
+	// LEDs get lower bytes of PipeIn XOR'd with upper bytes
+	// When prompted, update the values used by LEDs
+	always @(posedge okClk) begin
+		if(reset) begin
+			led_temp = 32'h0000_0000;
+			led_data = 1024'h0;
+		end
+		led_temp = led_data[1023:992];
+		led_data = led_data << 32;
+		led_data[32:0] = led_temp;
+	 	if(pi80_ep_write == 1'b1) begin
+	 		led_data[31:0] = pi80_ep_dataout;
+		end
+	end
+
+	Clock_Div slow(.okClk(okClk), .clk_en(clk_en));
+
+	always @(posedge okClk) begin
+		if(reset) begin
+			led_store <= 16'h0000;
+			led <= ~8'h00;
+		end
+		if(|led_data[15:0] == 1'b1) begin
+			led_store <= led_data[15:0];
+		end
+		if(clk_en == 1'b1) begin
+			led <= ~(led_store[15:8] ^ led_store[7:0]);
+		end
+	end
+
+	// Instantiate the RAM
+
+	pseudoRAM RAM_block(
+		.regbridge_ep_write(regbridge_ep_write),
+		.regbridge_ep_read(regbridge_ep_read),
+		.regbridge_ep_address(regbridge_ep_address),
+		.regbridge_ep_dataout(regbridge_ep_dataout),
+		.regbridge_ep_datain(regbridge_ep_datain),
+		.okClk(okClk)
+	);
+	 
+<: if {$isXEM8350} { :>
+//-----------------------------------------------------------------------
+// Secondary Host Interface
+//-----------------------------------------------------------------------
+
+	wire okClks;
+	wire [112:0]    okHEs;
+	wire [64:0]     okEHs;
+	wire [65*4-1:0] okEHxs;
+    
+	// Endpoint connections
+	wire [31:0] wi00_s_ep_dataout;
+	wire [31:0] wi01_s_ep_dataout;
+	reg  [31:0] wo20_s_ep_datain;
+
+	wire [31:0] ti40_s_ep_trigger_mode;
+
+	reg  [31:0] poa0_s_ep_datain;
+	wire        poa0_s_ep_read;
+
+	wire        regbridge_s_ep_write;
+	wire        regbridge_s_ep_read;
+	wire [31:0] regbridge_s_ep_address;
+	wire [31:0] regbridge_s_ep_dataout;
+	wire [31:0] regbridge_s_ep_datain;
+	
+	// Design behavior buses and wires
+	reg  [31:0]   lfsr_s;
+	wire          reset_s;
+	reg  [31:0]   ep01_ref_s;
+	reg  [1 :0]   LFSR_MODE_S;
+	reg  [2 :0]   REFRESH_MODE_S;
+    
+	assign reset_s = wi00_s_ep_dataout[0];
+    
+	always @(posedge okClks) begin
+		case (ti40_s_ep_trigger_mode[4:0])
+			5'b00001: LFSR_MODE_S <= MODE_LFSR;
+			5'b00010: LFSR_MODE_S <= MODE_COUNTER;
+			5'b00100: REFRESH_MODE_S <= MODE_OFF;
+			5'b01000: REFRESH_MODE_S <= MODE_CONTINUOUS;
+			5'b10000: REFRESH_MODE_S <= MODE_COUNTER;
+			default:
+				begin
+					LFSR_MODE_S <= LFSR_MODE_S;
+					REFRESH_MODE_S <= REFRESH_MODE_S;
+				end
+		endcase
+	end
+    
+	always @(posedge okClks) begin
+	 	if(reset_s) begin
+	 		lfsr_s <= 32'h0000_0000;
+	 		ep01_ref_s <= 32'h0000_0000;
+	 		poa0_s_ep_datain <= 32'h0000_0000;
+	 		LFSR_MODE_S <= MODE_OFF;
+	 		REFRESH_MODE_S <= MODE_OFF;
+	 	end
+	 	case(REFRESH_MODE_S)
+	 		MODE_OFF:
+	 			begin
+	 				lfsr_s <= lfsr_s;
+	 			end
+	 		MODE_CONTINUOUS:
+	 			begin
+				 	case(LFSR_MODE)
+						1: 
+							begin
+								if (wi01_s_ep_dataout != ep01_ref_s) begin
+							 		lfsr_s <= wi01_s_ep_dataout;
+							 		ep01_ref_s <= wi01_s_ep_dataout;
+							 	end else begin
+									lfsr_s <= {lfsr_s[30:0], lfsr_s[31] ^ lfsr_s[21] ^ lfsr_s[1]};
+								end
+							end
+						2:
+							begin
+								lfsr_s <= lfsr_s + 1'b1;
+							end
+						default: lfsr_s <= lfsr_s;
+					endcase
+				end
+			MODE_PIPED:
+				begin
+					// When prompted, PipeOut the current LFSR value
+					case(LFSR_MODE)
+						MODE_LFSR:
+							begin
+								if(poa0_s_ep_read == 1'b1) begin
+									poa0_s_ep_datain <= lfsr_s;
+									lfsr_s <= {lfsr_s[30:0], lfsr_s[31] ^ lfsr_s[21] ^ lfsr_s[1]};
+								end
+							end
+						MODE_COUNTER:
+							begin
+								if(poa0_s_ep_read == 1'b1) begin
+									poa0_s_ep_datain <= lfsr_s;
+									lfsr_s <= lfsr_s + 1'b1;
+								end
+							end
+						default: lfsr_s <= lfsr_s;
+					endcase
+				end
+		endcase
+
+		wo20_s_ep_datain <= lfsr_s;
+	end
+    
+	always @(posedge okClks) begin
+	 	if (poa0_s_ep_read == 1'b1) begin
+	 		poa0_s_ep_datain <= lfsr_s;
+	 	end
+	end
+    
+	pseudoRAM RAM_block_secondary(
+		.regbridge_ep_write(regbridge_s_ep_write),
+		.regbridge_ep_read(regbridge_s_ep_read),
+		.regbridge_ep_address(regbridge_s_ep_address),
+		.regbridge_ep_dataout(regbridge_s_ep_dataout),
+		.regbridge_ep_datain(regbridge_s_ep_datain),
+		.okClk(okClks)
+	);
+
+<: } :>
+
+    frontpanel_sim_lfsr frontpanel_sim_lfsr_inst (
+      .okUH(okUH),                                  // input wire [4 : 0] okUH
+      .okHU(okHU),                                  // output wire [2 : 0] okHU
+      .okUHU(okUHU),                                // inout wire [31 : 0] okUHU
+      .okAA(okAA),                                  // inout wire okAA
+      .okClk(okClk),                                // output wire okClk
+<: if {$isXEM8350} { :>
+      .okUHs(okUHs),                                    // input wire [4 : 0] okUHs
+      .okHUs(okHUs),                                    // output wire [2 : 0] okHUs
+      .okUHUs(okUHUs),                                  // inout wire [31 : 0] okUHUs
+      .ok_done(),                                // output wire ok_done
+      .okClks(okClks), 
+      .wi00_s_ep_dataout(wi00_s_ep_dataout),            // output wire [31 : 0] wi00_s_ep_dataout
+      .wi01_s_ep_dataout(wi01_s_ep_dataout),            // output wire [31 : 0] wi01_s_ep_dataout
+      .wo20_s_ep_datain(wo20_s_ep_datain),              // input wire [31 : 0] wo20_s_ep_datain
+      .ti40_s_ep_trigger(ti40_s_ep_trigger_mode),            // output wire [31 : 0] ti40_s_ep_trigger
+      .ti40_s_ep_clk(okClks),                    // input wire ti40_s_ep_clk
+      .poa0_s_ep_datain(poa0_s_ep_datain),              // input wire [31 : 0] poa0_s_ep_datain
+      .poa0_s_ep_read(poa0_s_ep_read),                  // output wire poa0_s_ep_read
+      .regbridge_s_ep_write(regbridge_s_ep_write),      // output wire regbridge_s_ep_write
+      .regbridge_s_ep_read(regbridge_s_ep_read),        // output wire regbridge_s_ep_read
+      .regbridge_s_ep_address(regbridge_s_ep_address),  // output wire [31 : 0] regbridge_s_ep_address
+      .regbridge_s_ep_dataout(regbridge_s_ep_dataout),  // output wire [31 : 0] regbridge_s_ep_dataout
+      .regbridge_s_ep_datain(regbridge_s_ep_datain),    // input wire [31 : 0] regbridge_s_ep_datain
+<: } :>
+      .wi00_ep_dataout(wi00_ep_dataout),            // output wire [31 : 0] wi00_ep_dataout
+      .wi01_ep_dataout(wi01_ep_dataout),            // output wire [31 : 0] wi01_ep_dataout
+      .wo20_ep_datain(wo20_ep_datain),              // input wire [31 : 0] wo20_ep_datain
+      .ti40_ep_trigger(ti40_ep_trigger_mode),            // output wire [31 : 0] ti40_ep_trigger
+      .ti40_ep_clk(okClk),                    // input wire ti40_ep_clk
+      .pi80_ep_dataout(pi80_ep_dataout),            // output wire [31 : 0] pi80_ep_dataout
+      .pi80_ep_write(pi80_ep_write),                // output wire pi80_ep_write
+      .poa0_ep_datain(poa0_ep_datain),              // input wire [31 : 0] poa0_ep_datain
+      .poa0_ep_read(poa0_ep_read),                  // output wire poa0_ep_read
+      .regbridge_ep_write(regbridge_ep_write),      // output wire regbridge_ep_write
+      .regbridge_ep_read(regbridge_ep_read),        // output wire regbridge_ep_read
+      .regbridge_ep_address(regbridge_ep_address),  // output wire [31 : 0] regbridge_ep_address
+      .regbridge_ep_dataout(regbridge_ep_dataout),  // output wire [31 : 0] regbridge_ep_dataout
+      .regbridge_ep_datain(regbridge_ep_datain)    // input wire [31 : 0] regbridge_ep_datain
+    );
+
+endmodule
+
+module Clock_Div(
+	input  wire okClk,
+	output reg  clk_en
+	);
+
+	reg [31:0] clock_count = 32'h0000_00000;
+
+	always @(posedge okClk) begin
+		clock_count <= clock_count + 1'b1;
+		clk_en <= ~|(clock_count & 32'h0000_00f0);
+	end
+	
+endmodule
+
+module pseudoRAM(
+	input  wire        regbridge_ep_write,
+	input  wire        regbridge_ep_read,
+	input  wire [31:0] regbridge_ep_address,
+	input  wire [31:0] regbridge_ep_dataout,
+	output reg  [31:0] regbridge_ep_datain,
+	input  wire        okClk
+	);
+
+	reg  [31:0] block_ram [1023:0];
+	reg  [31:0] i;
+
+	// Initial not synthesizable, included for easier simulation checking
+	initial begin
+		regbridge_ep_datain = 32'h0000_0000;
+		for(i=0; i<1024; i=i+1'b1) begin
+			block_ram[i] = 32'h0000_0000;
+		end
+	end
+
+	// When write indicated by regbridge_ep_write, use regbridge_ep_address to write data to that address
+	// When read indicated by regbridge_ep_read use regbridge_ep_address to read data from that address
+	// Limit the number of bits in the address to prevent out-of-range writes
+	// At random as determined by the test fixture (using signal insertError),
+	//     insert an error in the block RAM
+	always @(posedge okClk) begin
+		if(regbridge_ep_write == 1'b1) begin
+			block_ram[regbridge_ep_address[9:0]] <= regbridge_ep_dataout;
+		end else if(regbridge_ep_read == 1'b1) begin
+			regbridge_ep_datain <= block_ram[regbridge_ep_address[9:0]];
+		end
+	end
+
+endmodule
+`default_nettype wire

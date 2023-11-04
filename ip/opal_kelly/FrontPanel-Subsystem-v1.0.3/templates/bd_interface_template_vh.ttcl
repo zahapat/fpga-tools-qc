@@ -1,0 +1,18 @@
+<: set ComponentName [getComponentNameString] :>
+<: setFileName [ttcl_string_concat $ComponentName "_bd_interface_template"] :>
+<: setFileExtension ".vh" :>
+<: setOutputDirectory "./templates":>
+<: :>
+//----------------------------------------------------------------------------------------------------------------------------------
+// Generated Port Definitions for Creating Endpoint Interfaces in RTL for use in the IPI Block Designer
+//----------------------------------------------------------------------------------------------------------------------------------
+// Relevant Documentation Resources:
+//   - "IPI Block Designer" Getting Started tutorial for an example of utilizing these port definitions.
+//   - "Port Naming Convention" Technical Reference and "Naming Convention Benefits" Discussion.
+//   - "Share Ports in IPI" Technical Reference for an example on sharing ports with multiple RTL modules.
+//
+// Substitute the appended "DESCRIPTION" tag with the utility the endpoint is providing to your RTL module.
+
+<: # scriptMode is how we pass variables into param_loop.ttcl :>
+<: set scriptMode "template_slaveside":>
+<#: gateware/common/param_loop.ttcl :>

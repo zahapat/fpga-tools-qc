@@ -1,0 +1,81 @@
+<#: exampledesigns/common/board_variables.ttcl :>
+<: if {$flow != "Simulation" || $selection != "LFSR"} { ttcl_return; }:>
+<: setFileName "sim_lfsr_project" :>
+<: setFileExtension ".tcl" :>
+<: setOutputDirectory "./exampledesign":>
+<: :>
+
+# We don't have any design sources that can be the top-level. All our sources
+# are in the simulation file set. This command stops the project from searching
+# for a top level in design sources.
+set_property source_mgmt_mode DisplayOnly [current_project]
+
+# Set the top in the simulation file group
+set_property top SIM_TEST [get_filesets sim_1]
+set_property top_lib xil_defaultlib [get_filesets sim_1]
+
+create_ip -name frontpanel -vendor opalkelly.com -library ip -version 1.0 -module_name frontpanel_sim_lfsr
+set_property -dict [list \
+CONFIG.BOARD {<=:$board:>} \
+CONFIG.WI.COUNT {2} \
+CONFIG.WI.ADDR_0 {0x00} \
+CONFIG.WI.ADDR_1 {0x01} \
+CONFIG.WO.COUNT {1} \
+CONFIG.WO.ADDR_0 {0x20} \
+CONFIG.TI.COUNT {1} \
+CONFIG.TI.ADDR_0 {0x40} \
+CONFIG.PI.COUNT {1} \
+CONFIG.PI.ADDR_0 {0x80} \
+CONFIG.PO.COUNT {1} \
+CONFIG.PO.ADDR_0 {0xa0} \
+CONFIG.RB.EN {true} \
+<: if {$isXEM8350} { :>
+CONFIG.S.EN {true} \
+CONFIG.S.WI.COUNT {2} \
+CONFIG.S.WI.ADDR_0 {0x00} \
+CONFIG.S.WI.ADDR_1 {0x01} \
+CONFIG.S.WO.COUNT {1} \
+CONFIG.S.WO.ADDR_0 {0x20} \
+CONFIG.S.TI.COUNT {1} \
+CONFIG.S.TI.ADDR_0 {0x40} \
+CONFIG.S.PO.COUNT {1} \
+CONFIG.S.PO.ADDR_0 {0xa0} \
+CONFIG.S.RB.EN {true} \
+<: } :>
+] [get_ips frontpanel_sim_lfsr]
+
+launch_simulation
+
+# Remove all the automatically added waves to clear the stage for our own
+remove_wave [get_waves *]
+
+add_wave_divider "Wire/Trigger Data"
+add_wave -radix hex /SIM_TEST/ep01value
+add_wave -radix hex /SIM_TEST/ep20value
+
+add_wave_divider "Pipe Data"
+add_wave -radix hex /SIM_TEST/pipeIn
+add_wave -radix hex /SIM_TEST/pipeOut
+
+add_wave_divider "Hardware signals"
+add_wave -radix hex /SIM_TEST/dut/lfsr
+add_wave -radix hex /SIM_TEST/dut/led
+add_wave -radix hex /SIM_TEST/dut/regbridge_ep_dataout
+add_wave -radix hex /SIM_TEST/dut/regbridge_ep_datain
+
+<: if {$isXEM8350} { :>
+add_wave_divider "Secondary Host Interface"
+add_wave_divider "Wire/Trigger Data"
+add_wave -radix hex /SIM_TEST/ep01value_s 
+add_wave -radix hex /SIM_TEST/ep20value_s
+
+add_wave_divider "Pipe Data"
+add_wave -radix hex /SIM_TEST/pipeOut_s
+
+add_wave_divider "Hardware signals"
+add_wave -radix hex /SIM_TEST/dut/lfsr_s
+add_wave -radix hex /SIM_TEST/dut/regbridge_s_ep_dataout
+add_wave -radix hex /SIM_TEST/dut/regbridge_s_ep_datain
+<: } :>
+
+run 30 us;

@@ -1,0 +1,22 @@
+<: set board [get_parameter_property "BOARD"]:>
+<: set boardfile [get_property PROJECT_PARAM.BOARD] :>
+<: if {($board != "XEM7320-A75") && ($board != "XEM7320-A200")} { ttcl_return; }:>
+<: setFileName "xem7320" :>
+<: setFileExtension ".xdc" :>
+<: setOutputDirectory "./gateware":>
+<: :>
+<: if { $boardfile == ""} { :>
+# LEDS #####################################################################
+set_property PACKAGE_PIN A13 [get_ports {led_out_tristate[0]}]
+set_property PACKAGE_PIN B13 [get_ports {led_out_tristate[1]}]
+set_property PACKAGE_PIN A14 [get_ports {led_out_tristate[2]}]
+set_property PACKAGE_PIN A15 [get_ports {led_out_tristate[3]}]
+set_property PACKAGE_PIN B15 [get_ports {led_out_tristate[4]}]
+set_property PACKAGE_PIN A16 [get_ports {led_out_tristate[5]}]
+set_property PACKAGE_PIN B16 [get_ports {led_out_tristate[6]}]
+set_property PACKAGE_PIN B17 [get_ports {led_out_tristate[7]}]
+<: } :>
+set_property IOSTANDARD LVCMOS15 [get_ports {led_out_tristate[*]}]
+set_property DRIVE 8 [get_ports {led_out_tristate[*]}]
+set_false_path -to [get_ports {led_out_tristate[*]}]
+set_false_path -from [get_ports {led_out_tristate[*]}]

@@ -1,0 +1,22 @@
+<: set ComponentName [getComponentNameString] :>
+<: setFileName [ttcl_string_concat $ComponentName "_simulation"] :>
+<: setFileExtension ".v" :>
+<: setOutputDirectory "./gateware/simulation":>
+<: :>
+<#: gateware/common/copyright.ttcl :>
+
+`default_nettype none
+
+module <=:$ComponentName:>(
+<: # scriptMode is how we pass variables into param_loop.ttcl :>
+<: set scriptMode "wrapper_masterside":>
+<#: gateware/common/param_loop.ttcl :>
+);
+
+<=:$ComponentName:>_wrapper_simulation inst (
+<: set scriptMode "core_top_ports":>
+<#: gateware/common/param_loop.ttcl :>
+);
+
+endmodule
+`default_nettype wire

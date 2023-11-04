@@ -1,0 +1,53 @@
+<#: gateware/variables.ttcl :>
+<: set ComponentName [getComponentNameString] :>
+<: setFileName [ttcl_string_concat $ComponentName "_driver"] :>
+<: setFileExtension ".v" :>
+<: setOutputDirectory "./gateware":>
+<: :>
+<#: gateware/copyright.ttcl :>
+
+`default_nettype none
+
+module led (
+    input  wire [<=:[expr $ledWidth - 1]:>:0] led_in,
+    <=:$direction:>  wire [<=:[expr $ledWidth - 1]:>:0] <=:$netName:>
+);
+
+<: if { $driverType == "standard"} { :>
+genvar i;
+generate
+    for (i = 0; i < <=:$ledWidth:>; i = i + 1) begin
+        OBUF OBUF_inst (
+          .O (<=:$netName:>[i]),  // Buffer output (connect directly to top-level port)
+          .I (led_in[i])   // Buffer input
+        );
+    end
+endgenerate
+<: } :>
+<: if { $driverType == "inverted"} { :>
+genvar i;
+generate
+    for (i = 0; i < <=:$ledWidth:>; i = i + 1) begin
+        OBUF OBUF_inst (
+          .O (<=:$netName:>[i]),  // Buffer output (connect directly to top-level port)
+          .I (~led_in[i])  // Buffer input
+        );
+    end
+endgenerate
+<: } :>
+<: if { $driverType == "tristate"} { :>
+genvar i;
+generate
+    for (i = 0; i < <=:$ledWidth:>; i = i + 1) begin
+        IOBUF IOBUF_i (
+          .O (),           // Buffer output
+          .IO(<=:$netName:>[i]), // Buffer inout port (connect directly to top-level port)
+          .I (1'b0),       // Buffer input
+          .T (~led_in[i])  // 3-state enable input, high=input, low=output
+        );
+    end
+endgenerate
+<: } :>
+
+endmodule
+`default_nettype wire

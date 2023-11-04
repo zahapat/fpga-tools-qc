@@ -1,0 +1,18 @@
+<: set creationDate [clock format [clock seconds] -format {%a %D at %T %Z}] :>
+<: set ipVersion [get_ipdefs opalkelly.com:ip:leds:*] :>
+<: set ipRevision [get_property CORE_REVISION $ipVersion] :>
+<: set toolVersion [lindex [split [version] "\n"] 0] :>
+<: set board [get_parameter_property "BOARD"]:>
+<: set projectPart [get_project_property "PART"] :>
+<: # getFileName and getFileExtension are proc calls that return the text :>
+<: # from after the setFileName and setFileExtension calls from the file :>
+<: # that inlines this file. :>
+//------------------------------------------------------------------------
+// File: <=: [getFileName] :><=: [getFileExtension] :>
+// Creation Date: <=: $creationDate :>
+// IP Version: <=: $ipVersion :> (Rev: <=: $ipRevision :>)
+// Tool Version: <=: $toolVersion :>
+// Opal Kelly Board: <=: $board :> (Part: <=: $projectPart :>)
+// 
+// Copyright (c) 2022-2023 Opal Kelly Incorporated
+//------------------------------------------------------------------------

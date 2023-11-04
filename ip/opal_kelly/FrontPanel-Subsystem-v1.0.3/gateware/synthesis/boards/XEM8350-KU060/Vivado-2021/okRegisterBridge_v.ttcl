@@ -1,0 +1,79 @@
+<#: gateware/common/variables.ttcl :>
+<: if {(($board != "XEM8350-KU060") && ($board != "XEM8350-KU060-3E")) || ($currentToolVersionNumber < 2021)} { ttcl_return; }:>
+<: setFileName "okRegisterBridge" :>
+<: setFileExtension ".v" :>
+<: setOutputDirectory "./gateware/synthesis/FrontPanel":>
+<: :>
+// Copyright 1986-2021 Xilinx, Inc. All Rights Reserved.
+// --------------------------------------------------------------------------------
+// Tool Version: Vivado v.2021.1.1 (win64) Build 3286242 Wed Jul 28 13:10:47 MDT 2021
+// Date        : Fri Jan 21 16:16:03 2022
+// Host        : DESKTOP-BKQQ4IB running 64-bit major release  (build 9200)
+// Command     : write_verilog encrypted/okRegisterBridge.v -force
+// Design      : okRegisterBridge
+// Purpose     : This is a Verilog netlist of the current design or from a specific cell of the design. The output is an
+//               IEEE 1364-2001 compliant Verilog HDL file that contains netlist information obtained from the input
+//               design files.
+// Device      : xcku060-ffva1517-1-c
+// --------------------------------------------------------------------------------
+`timescale 1 ps / 1 ps
+`pragma protect begin_protected
+`pragma protect version = 1
+`pragma protect encrypt_agent = "XILINX"
+`pragma protect encrypt_agent_info = "Xilinx Encryption Tool 2021.1.1"
+`pragma protect key_keyowner="Xilinx", key_keyname="xilinxt_2021_01", key_method="rsa"
+`pragma protect encoding = (enctype="BASE64", line_length=76, bytes=256)
+`pragma protect key_block
+WjQzdVmyR0sQO8d+4VI152q5RmfrZ83ZuO+Cqg7TcUYmpHIl6FWreMLrSAwsnAjS5AVYll2N9Feo
+YGhE4y+C/K7qNXRd0QeptUPm3Lp4U8b7xHoNSomfV+GYC+vHTJ6jYaM8of8/6LpDnHueFFgBWJvb
+/LmdnSrWIJ3Dtc1L+yXZUr3xVAnmxsjXb04IgJAtN1u5VtmG9ON6YIS65KjZO+L8WAWooeWqO9Rt
+XDQ+dUxWpows/bcBFVm9AfEfN//nIj3L21XoQzaGb6aGUQVSR2Y/XzJTRqM6ypXdg/pzOU/ZM3oe
+oaQSd1pM+LYEOqZFL0HlDdNYhtrM4DzsWvQ1UQ==
+
+`pragma protect data_method = "AES128-CBC"
+`pragma protect encoding = (enctype = "BASE64", line_length = 76, bytes = 2432)
+`pragma protect data_block
+ObvyfwYYxIlnm2vYiFLyR9WUdI32YNm73PL16cK3KVFRjgucyPVnX5r9PNTgkzoAx7w6PsrFfS9h
+nV95RGck7lo6xrjbQndfYKfqpq9EL1TTMVclnjVGpnN3l0OolfL2IXdSj5IUztFYJDJh+QHMLe/3
+x41IbfFtZHl97qE6ucOw6ljA2gzV5PUZ7R9/hmXhPTDhoWLnX/yY6HEuNC46WtsH6UEDG4d8Yxpf
+K4Fo6BXYmKytHvW5OiJ77gAD+Y4hKdwjub9vmTU4E6wsSWSgE+IPa+mWrwfKTpMrQk8S5ecNxUKE
+y3bX7eQoGht7ob7g8Icl2yQCPLgtfPst2n+lZKzl2rIZ4/clVQRsJmpoPihMoLgmtkSYf1MvHm5T
+cx8Hp3ClzqIghwy5Hs6QoYO5pwSb4LaKsaa/y+9jGAEWJ3Ksgj63eiVAsPQSXerTLo/CobVhwD5C
+4DpJ3ZkFDHJ1fqHUjYvU0K1HYVmp/N0pnIwVVGsY0lqAOZAjRZUd7DQ/qtbM4HSf3uz6WoTWZsFt
+SpNxSCPSq23uerWheXrdLxb+E3gmOegVopQrBqE/Bzs1ikyMXbiBvMhtkK3SlHLjvAtKEO74a37H
+LgZC23vA0maviHweLN0+xVsTQ71u4Y2wzW9GdAweIlzFu1wreiFP94eaDs46uD7Q4wzQNsawRf3N
+faGOot1Jo1/OzF/AtAIzm9GChyCt2N/Cot3fvF7jc94G8MhbSkJVIAiMyqYd99stAhX0ab4OYI0i
+qxMQOgZWcjp9bCYEjSS+jxijxkLPI5wc4U/4sShDCmkIaVJ1oHXZWYiVmtrWLqcxxAlkmLyXhAar
+hmW0dtZl53T2cAswUP+NSAW/LYDV+6dJGnuW6VqE+JtwDIsb+riFDhNV4FIcHNRtF17enFVvhDnM
+bYlhALgsEFaK838rC2qDHID4rAqTaJg5CR5nvEbgF3v/B6VAiWLUhMoW8zNOpBlUvaxkecohJNBJ
+2Vj3kW5ssaGqHDbrh6jvDYWYBhTdIUaLDAEgGOESeVFI4CfDM+AmVY+NSCbDqjxi7rZ5VPLIrW8s
+A5m4BCYg7kVShR6VJx+TS3mB8Lmmf7YsXEBOZmJAgfxNeGNyVVla53Up4zJHY6qtZh8D5t8XwXTe
+AjCtp+qul7o9WQEVUoSgKaHFJHnZVUDjfzndxAs1kAZG305ewUd7BzMv3oWyuqHdwDF3K1t5XAaL
+SQzkbiykh7ch5bQsjxo29mUjokhMNfY8egOyZh7hQgAl7/APTh6SakaU9TAC7+GYerkaqHI2xgtz
+5e0+C0lOUt77TX5LTUL1eZfJesjAhGOEZ320BDJ9wS2bGRVbpARnfFexB6AnN44X1K8EloMb+yyL
+MXALjTePO4B33/166V7Eza8nkegGMUpcv6dfgmnOWffD6uhteNGKWrshFbEVHN70Oi0UZi90vIf2
+IPtb5KE2ziCe75z+fkmY5C3B6riQI5VEwsclPiA72tLMVJjmiYVZlRbh2DeobxA34SiZkT8yca/l
+9QNVuLkiFyBW4nVeS1cdpQU4KBMsZUeBhJ4bHg9ixILDx05n3+YBjkXrLCuc5S2SfkwxGv9nPvSl
+Xo80Z7LjhrlMxwmUudeG1Go/18TmGFqJIk7nqFXLH1g+6LZm10TAxQc1a99n1XMCAzWKx9E9305U
+mH8giebNl15PpvmH12Id7VIieQg7w3NnPoOm3Z8R0940inb3sS1atg43goi6OLrA/BT4iWlpUeCQ
+Dwi2frSuDk8Vg1c10hfVdnmsS82GJPCE5sJOZqXeVYWa2erO8SnizLqbZJmUevGBjgtlrgo6rkDE
+YmQzbf6jIVUFRQABQxh7ioDIqd6s4lB3ajnU0iN7AwQRGzpDUFDvpk6uvTzm7P6OMgkVLtbNKx8c
+9tqouq3Ii1PsUxeZYe/8O5yDne21Ur5ru33cx+HgcWwN6p8fJlksAjWv+T3IIZM19XKyY9HKwmOA
+TnsFDEQMheiDB5SnI7WE6Ze/bvXrk/BpJu1o6wAZcjJ7HA8NIgpRrisbpEtCpWuI4jXaDVz/bD0f
+gdr68Lot5bz/s+4KcXC6Z/uZdV2AY9pWZBVAT/yXqHBw6yACwQ4LfFdG0fIXQVvD3XAWNqWZ/qsy
+RmNp6qBCJ2t/Pq7sVzH71Gwoer/lemGPmXIkAgTlXwCW7nA94r56eGeHrvZ9AL2UXBxZVDBEwsrv
+utNRG5kmqIoDd9dN0QhRV3t2coT2SEocoTSEgzXoP25zFtjz0zyoJTPirYDgdW3W9c0ExhKOL7xV
+6W7C9l6sVW200sb4SZECDDbOBYJZxoy3XMrxD9QZrztkUDzqx8VtqB1bWr0gUZAjLb8ONIWfjlt/
+jOGqLWvGky6e9FilHJDM50ergeNI3ieu9dSDivGjaCLgqG8QZ4kXWvOWUTvom1lpKWKc3KIUBvAA
+uwnxhoZJCooFAuVMT2X+2Oc5BDEbtHh3aoq3hu4fBc65L0r91wcyf6mhVrEjVV9ZyjXhvlKn4+M4
+kw3lTqFCGMneK7tuV9zjYElABYJrWab9ZgAdcSiKfKXOwZm3v8H//GzA3mM28dNRzTDL0+BaQhZI
+C+/z3qweLHm0XKy6RixSvHlnre5K6IgAmMHod3h1Nm7EdfiFcEZpu97DRHhKOlr7MQpTbO/nlq7g
+xZjU8snXT5IF/25vpZ/BP79E6wz4SGlPQVJu+jaJgrPb1LxUvP769oFJ3olDnnFilC0uW5gboFP1
+YSr8mOLo5Nvg7UBh8nlCxnJktbigvuJp2S1HSEm2UC1PkKxWqQz6531mj7V9EmRz8wUHzIb63i5C
+OQMX2qaHsUKA+fiFofjoDdjByVcUB73HohioCkMEx/wsxJtyTuYCBnvytit/kiNyY9mTr0dXcCZ6
+f+pzAIsf5Pi6ldPaTNxZJlOQB19jLOhd0lb2sh/jhOc3hbQ1pmiWVV6wteEBqMOF9omisqZsLxCc
+RJ7sdHYhUW7rQhHkHoy38/b38CJOV6i/VUd17vU7XzaLSCoXXiv0d+kGlaBjdft4QEtkjJ3ZGI0O
+sL+MyvrDBt3NdzlixLloQVajW03jjuhjm+knAnnsqthRiOaUWZYDknIntYw+go609Rry12/znFX2
+XtR+O2762NgG4QRmam/Dt+JDXor9oKtOeIg8I/qlZdfnwb3naGXmxQUBjAi64ZbA+x7gaiXutJZ+
+j6wAponcpm46OgPEUS/wzIcCx2xLBM8rCQQ+qTFquZQuBISa3HQ=
+`pragma protect end_protected
