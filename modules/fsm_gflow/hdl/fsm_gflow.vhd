@@ -65,6 +65,8 @@
 
             to_math_alpha : out std_logic_vector(1 downto 0);
             to_math_sx_xz : out std_logic_vector(1 downto 0);
+
+            state_gflow : out natural;
             actual_qubit_valid : out std_logic;
             actual_qubit : out std_logic_vector(1 downto 0);
             actual_qubit_time_stamp : out std_logic_vector(st_transaction_data_max_width);
@@ -77,10 +79,14 @@
 
         -- The main signal that holds the actual qubit state within the cluster
         signal int_state_gflow : natural range 0 to QUBITS_CNT-1 := 0;
+        signal int_state_gflow_two_qubits : natural range 0 to QUBITS_CNT-1 := 0;
+        signal actual_state_gflow : natural range 0 to QUBITS_CNT-1 := 0;
+        signal actual_state_gflow_two_qubits : natural range 0 to QUBITS_CNT-1 := 0;
 
         constant CLK_PERIODS_PC_DELAY : natural := natural(real(CLK_HZ)/1.0e6) * PCD_DELAY_US;
         subtype st_periods_pcd_delay is natural range 0 to CLK_PERIODS_PC_DELAY-1;
         signal s_cnt_pcd_delay : st_periods_pcd_delay := 0;
+        signal s_cnt_pcd_delay_two_qubits : st_periods_pcd_delay := 0;
 
         -- Angles alpha (binary represenatation):
         type t_qx_angle_alpha is array(4-1 downto 0) of std_logic_vector(1 downto 0);
@@ -122,16 +128,15 @@
 
         -- MAX 8 QUBITS
         type t_periods_q_2d is array (8-1 downto 0) of natural; 
-        -- Indices: 3, 2, 1, 0
         constant MAX_PERIODS_Q : t_periods_q_2d := (
-            get_slowest_photon_delay_us(PHOTON_8H_DELAY_NS, PHOTON_8V_DELAY_NS), -- i7
-            get_slowest_photon_delay_us(PHOTON_7H_DELAY_NS, PHOTON_7V_DELAY_NS), -- i6
-            get_slowest_photon_delay_us(PHOTON_6H_DELAY_NS, PHOTON_6V_DELAY_NS), -- i5
-            get_slowest_photon_delay_us(PHOTON_5H_DELAY_NS, PHOTON_5V_DELAY_NS), -- i4
-            get_slowest_photon_delay_us(PHOTON_4H_DELAY_NS, PHOTON_4V_DELAY_NS), -- i3
-            get_slowest_photon_delay_us(PHOTON_3H_DELAY_NS, PHOTON_3V_DELAY_NS), -- i2
-            get_slowest_photon_delay_us(PHOTON_2H_DELAY_NS, PHOTON_2V_DELAY_NS), -- i1
-            get_slowest_photon_delay_us(PHOTON_1H_DELAY_NS, PHOTON_1V_DELAY_NS)  -- i0 (never used)
+            get_slowest_photon_delay_us(PHOTON_8H_DELAY_NS, PHOTON_8V_DELAY_NS), -- index 7
+            get_slowest_photon_delay_us(PHOTON_7H_DELAY_NS, PHOTON_7V_DELAY_NS), -- index 6
+            get_slowest_photon_delay_us(PHOTON_6H_DELAY_NS, PHOTON_6V_DELAY_NS), -- index 5
+            get_slowest_photon_delay_us(PHOTON_5H_DELAY_NS, PHOTON_5V_DELAY_NS), -- index 4
+            get_slowest_photon_delay_us(PHOTON_4H_DELAY_NS, PHOTON_4V_DELAY_NS), -- index 3
+            get_slowest_photon_delay_us(PHOTON_3H_DELAY_NS, PHOTON_3V_DELAY_NS), -- index 2
+            get_slowest_photon_delay_us(PHOTON_2H_DELAY_NS, PHOTON_2V_DELAY_NS), -- index 1
+            get_slowest_photon_delay_us(PHOTON_1H_DELAY_NS, PHOTON_1V_DELAY_NS)  -- index 0 (never used)
         );
         signal s_periods_q : t_periods_q_2d := (others => 0);
 
@@ -179,6 +184,7 @@
         time_stamp_buffer <= slv_time_stamp_buffer_2d;
         time_stamp_buffer_overflows <= slv_time_stamp_buffer_overflows_2d;
         alpha_buffer <= slv_alpha_buffer_2d;
+        state_gflow <= to_integer(unsigned(std_logic_vector(to_unsigned(actual_state_gflow, QUBITS_CNT)) xor std_logic_vector(to_unsigned(actual_state_gflow_two_qubits, QUBITS_CNT)))); -- One of them is constantly zero
 
         -- Scalable hardware description of a FSM-like logic: more than 2 qubits
         gen_gflow_more_qubits : if (QUBITS_CNT > 2) generate
@@ -186,6 +192,8 @@
             begin
                 if rising_edge(clk) then
                     if rst = RST_VAL then
+                        int_state_gflow <= 0;
+                        actual_state_gflow <= 0;
                         actual_qubit_valid <= '0';
                         time_stamp_counter_overflow <= '0';
                         s_gflow_success_flag <= '0';
@@ -205,6 +213,7 @@
                     else
                         -- Default values
                         actual_qubit_valid <= '0';
+                        actual_state_gflow <= int_state_gflow;
                         time_stamp_counter_overflow <= '0';
                         s_gflow_success_done <= '0';
 
@@ -227,14 +236,6 @@
                         if int_state_gflow = 0 then
                             s_gflow_success_done <= '0';
 
-                            actual_qubit <= qubits_sampled(QUBITS_CNT*2-1 - 0*2 downto QUBITS_CNT*2-1 - 0*2-1);
-                            slv_qubit_buffer_2d(QUBITS_CNT-1) <= qubits_sampled(QUBITS_CNT*2-1 - 0*2 downto QUBITS_CNT*2-1 - 0*2-1);
-
-                            to_math_alpha <= QX_BASIS_ALPHA((0) mod 4);
-                            slv_alpha_buffer_2d(QUBITS_CNT-1) <= QX_BASIS_ALPHA((0) mod 4);
-
-                            slv_to_math_sx_sz <= "00";
-
                             -- If success from photon 4, then let this state transmit the pulse, otherwise wait for new clicks
                             if s_gflow_success_flag = '1' then
 
@@ -249,13 +250,23 @@
                                 end if;
 
                             else
+                                -- After waiting, only then continue the control operation, otherwise qubit 1 will interfere with yet uprocessed data from qubit 4
+                                actual_qubit <= qubits_sampled(QUBITS_CNT*2-1 - 0*2 downto QUBITS_CNT*2-1 - 0*2-1);
+                                slv_qubit_buffer_2d(0) <= qubits_sampled(QUBITS_CNT*2-1 - 0*2 downto QUBITS_CNT*2-1 - 0*2-1);
+
+                                to_math_alpha <= QX_BASIS_ALPHA((0) mod 4);
+                                slv_alpha_buffer_2d(0) <= QX_BASIS_ALPHA((0) mod 4);
+
+                                slv_to_math_sx_sz <= "00";
+
                                 -- Detect Qubit 1 and proceed to Qubit 2
-                                if qubits_sampled_valid(QUBITS_CNT-1) = '0' then
-                                    int_state_gflow <= int_state_gflow;
-                                else
+                                -- if qubits_sampled_valid(QUBITS_CNT-1) = '0' then
+                                --     int_state_gflow <= int_state_gflow;
+                                -- else
+                                if qubits_sampled_valid(QUBITS_CNT-1) = '1' then
                                     actual_qubit_valid <= '1';
-                                    slv_time_stamp_buffer_2d(QUBITS_CNT-1) <= std_logic_vector(uns_actual_time_stamp_counter);
-                                    slv_time_stamp_buffer_overflows_2d(QUBITS_CNT-1) <= std_logic_vector(uns_actual_time_overflow_counter);
+                                    slv_time_stamp_buffer_2d(0) <= std_logic_vector(uns_actual_time_stamp_counter);
+                                    slv_time_stamp_buffer_overflows_2d(0) <= std_logic_vector(uns_actual_time_overflow_counter);
                                     -- Next state
                                     int_state_gflow <= int_state_gflow + 1;
                                 end if;
@@ -271,10 +282,10 @@
                             for i in 1 to QUBITS_CNT-2 loop
                                 if QUBIT_ID(i) = int_state_gflow then
                                     actual_qubit <= qubits_sampled(QUBITS_CNT*2-1 - QUBIT_ID(i)*2 downto QUBITS_CNT*2-1 - QUBIT_ID(i)*2-1);
-                                    slv_qubit_buffer_2d(QUBITS_CNT-1-QUBIT_ID(i)) <= qubits_sampled(QUBITS_CNT*2-1 - QUBIT_ID(i)*2 downto QUBITS_CNT*2-1 - QUBIT_ID(i)*2-1);
+                                    slv_qubit_buffer_2d(QUBIT_ID(i)) <= qubits_sampled(QUBITS_CNT*2-1 - QUBIT_ID(i)*2 downto QUBITS_CNT*2-1 - QUBIT_ID(i)*2-1);
 
                                     to_math_alpha <= QX_BASIS_ALPHA((i) mod 4);
-                                    slv_alpha_buffer_2d(QUBITS_CNT-1-QUBIT_ID(i)) <= QX_BASIS_ALPHA((QUBIT_ID(i)) mod 4);
+                                    slv_alpha_buffer_2d(QUBIT_ID(i)) <= QX_BASIS_ALPHA((QUBIT_ID(i)) mod 4);
 
                                     if feedback_mod_valid = '1' then
                                         slv_to_math_sx_sz <= feedback_mod;
@@ -288,8 +299,8 @@
                                             int_state_gflow <= 0;
                                         else
                                             actual_qubit_valid <= '1';
-                                            slv_time_stamp_buffer_2d(QUBITS_CNT-1-QUBIT_ID(i)) <= std_logic_vector(uns_actual_time_stamp_counter);
-                                            slv_time_stamp_buffer_overflows_2d(QUBITS_CNT-1-QUBIT_ID(i)) <= std_logic_vector(uns_actual_time_overflow_counter);
+                                            slv_time_stamp_buffer_2d(QUBIT_ID(i)) <= std_logic_vector(uns_actual_time_stamp_counter);
+                                            slv_time_stamp_buffer_overflows_2d(QUBIT_ID(i)) <= std_logic_vector(uns_actual_time_overflow_counter);
                                             int_state_gflow <= int_state_gflow + 1;
                                         end if;
 
@@ -302,8 +313,8 @@
                                         if qubits_sampled_valid(QUBITS_CNT-1-QUBIT_ID(i)) = '1' then
                                             -- Leave the state early, reset counter, save time stamp
                                             actual_qubit_valid <= '1';
-                                            slv_time_stamp_buffer_2d(QUBITS_CNT-1-QUBIT_ID(i)) <= std_logic_vector(uns_actual_time_stamp_counter);
-                                            slv_time_stamp_buffer_overflows_2d(QUBITS_CNT-1-QUBIT_ID(i)) <= std_logic_vector(uns_actual_time_overflow_counter);
+                                            slv_time_stamp_buffer_2d(QUBIT_ID(i)) <= std_logic_vector(uns_actual_time_stamp_counter);
+                                            slv_time_stamp_buffer_overflows_2d(QUBIT_ID(i)) <= std_logic_vector(uns_actual_time_overflow_counter);
                                             s_periods_q(QUBITS_CNT-1-QUBIT_ID(i)) <= 0;
                                             int_state_gflow <= int_state_gflow + 1;
                                         else
@@ -323,10 +334,10 @@
                         -------------------------
                         if int_state_gflow = QUBITS_CNT-1 then
                             actual_qubit <= qubits_sampled(1 downto 0);
-                            slv_qubit_buffer_2d(0) <= qubits_sampled(1 downto 0);
+                            slv_qubit_buffer_2d(QUBITS_CNT-1) <= qubits_sampled(1 downto 0);
 
                             to_math_alpha <= QX_BASIS_ALPHA((QUBITS_CNT-1) mod 4);
-                            slv_alpha_buffer_2d(0) <= QX_BASIS_ALPHA((QUBITS_CNT-1) mod 4);
+                            slv_alpha_buffer_2d(QUBITS_CNT-1) <= QX_BASIS_ALPHA((QUBITS_CNT-1) mod 4);
 
                             if feedback_mod_valid = '1' then
                                 slv_to_math_sx_sz <= feedback_mod;
@@ -339,8 +350,8 @@
                                     int_state_gflow <= 0;
                                 else
                                     actual_qubit_valid <= '1';
-                                    slv_time_stamp_buffer_2d(0) <= std_logic_vector(uns_actual_time_stamp_counter);
-                                    slv_time_stamp_buffer_overflows_2d(0) <= std_logic_vector(uns_actual_time_overflow_counter);
+                                    slv_time_stamp_buffer_2d(QUBITS_CNT-1) <= std_logic_vector(uns_actual_time_stamp_counter);
+                                    slv_time_stamp_buffer_overflows_2d(QUBITS_CNT-1) <= std_logic_vector(uns_actual_time_overflow_counter);
                                     int_state_gflow <= 0;
                                     s_gflow_success_flag <= '1';
                                 end if;
@@ -354,8 +365,8 @@
                                 if qubits_sampled_valid(0) = '1' then
                                     -- Leave the state early, reset counter, save time stamp
                                     actual_qubit_valid <= '1';
-                                    slv_time_stamp_buffer_2d(0) <= std_logic_vector(uns_actual_time_stamp_counter);
-                                    slv_time_stamp_buffer_overflows_2d(0) <= std_logic_vector(uns_actual_time_overflow_counter);
+                                    slv_time_stamp_buffer_2d(QUBITS_CNT-1) <= std_logic_vector(uns_actual_time_stamp_counter);
+                                    slv_time_stamp_buffer_overflows_2d(QUBITS_CNT-1) <= std_logic_vector(uns_actual_time_overflow_counter);
                                     s_periods_q(0) <= 0;
                                     int_state_gflow <= 0;
                                     s_gflow_success_flag <= '1';
@@ -385,10 +396,12 @@
 
 
         gen_gflow_two_qubits : if (QUBITS_CNT = 2) generate
-            proc_fsm_gflow : process(clk)
+            proc_fsm_gflow_two_qubits : process(clk)
             begin
                 if rising_edge(clk) then
                     if rst = RST_VAL then
+                        int_state_gflow_two_qubits <= 0;
+                        actual_state_gflow_two_qubits <= 0;
                         actual_qubit_valid <= '0';
                         time_stamp_counter_overflow <= '0';
                         s_gflow_success_flag <= '0';
@@ -409,6 +422,7 @@
                         -- Default values
                         actual_qubit_valid <= '0';
                         time_stamp_counter_overflow <= '0';
+                        actual_state_gflow_two_qubits <= int_state_gflow_two_qubits;
                         s_gflow_success_done <= '0';
 
                         -- Time Stamp counter always inscrements each clock cycle and overflows
@@ -427,40 +441,42 @@
                         --------------------------
                         -- FIRST qubit detected --
                         --------------------------
-                        if int_state_gflow = 0 then
+                        if int_state_gflow_two_qubits = 0 then
                             s_gflow_success_done <= '0';
 
-                            actual_qubit <= qubits_sampled(QUBITS_CNT*2-1 - 0*2 downto QUBITS_CNT*2-1 - 0*2-1);
-                            slv_qubit_buffer_2d(QUBITS_CNT-1) <= qubits_sampled(QUBITS_CNT*2-1 - 0*2 downto QUBITS_CNT*2-1 - 0*2-1);
-
-                            to_math_alpha <= QX_BASIS_ALPHA((0) mod 4);
-                            slv_alpha_buffer_2d(QUBITS_CNT-1) <= QX_BASIS_ALPHA((0) mod 4);
-
-                            slv_to_math_sx_sz <= "00";
-
-                            -- If success from photon 4, then let this state transmit the pulse, otherwise wait for new clicks
+                            -- If success from the last photon detection state, then let this state transmit the pulse, otherwise wait for new clicks
                             if s_gflow_success_flag = '1' then
 
-                                -- Let the photon 4 transmit the PCD pulse
-                                if s_cnt_pcd_delay = st_periods_pcd_delay'high then
-                                    s_cnt_pcd_delay <= 0;
+                                -- Let the last qubit state transmit the PCD pulse
+                                if s_cnt_pcd_delay_two_qubits = st_periods_pcd_delay'high then
+                                    s_cnt_pcd_delay_two_qubits <= 0;
                                     s_gflow_success_flag <= '0';
                                     s_gflow_success_done <= '1';
                                 else
-                                    s_cnt_pcd_delay <= s_cnt_pcd_delay + 1;
+                                    s_cnt_pcd_delay_two_qubits <= s_cnt_pcd_delay_two_qubits + 1;
                                     s_gflow_success_flag <= s_gflow_success_flag;
                                 end if;
 
                             else
+                                -- After waiting, only then continue the control operation, otherwise qubit 1 will interfere with yet uprocessed data from qubit 4
+                                actual_qubit <= qubits_sampled(QUBITS_CNT*2-1 - 0*2 downto QUBITS_CNT*2-1 - 0*2-1);
+                                slv_qubit_buffer_2d(0) <= qubits_sampled(QUBITS_CNT*2-1 - 0*2 downto QUBITS_CNT*2-1 - 0*2-1);
+
+                                to_math_alpha <= QX_BASIS_ALPHA((0) mod 4);
+                                slv_alpha_buffer_2d(0) <= QX_BASIS_ALPHA((0) mod 4);
+
+                                slv_to_math_sx_sz <= "00";
+
                                 -- Detect Qubit 1 and proceed to Qubit 2
-                                if qubits_sampled_valid(QUBITS_CNT-1) = '0' then
-                                    int_state_gflow <= int_state_gflow;
-                                else
+                                -- if qubits_sampled_valid(QUBITS_CNT-1) = '0' then
+                                --     int_state_gflow_two_qubits <= int_state_gflow_two_qubits;
+                                -- else
+                                if qubits_sampled_valid(QUBITS_CNT-1) = '1' then
                                     actual_qubit_valid <= '1';
-                                    slv_time_stamp_buffer_2d(QUBITS_CNT-1) <= std_logic_vector(uns_actual_time_stamp_counter);
-                                    slv_time_stamp_buffer_overflows_2d(QUBITS_CNT-1) <= std_logic_vector(uns_actual_time_overflow_counter);
+                                    slv_time_stamp_buffer_2d(0) <= std_logic_vector(uns_actual_time_stamp_counter);
+                                    slv_time_stamp_buffer_overflows_2d(0) <= std_logic_vector(uns_actual_time_overflow_counter);
                                     -- Next state
-                                    int_state_gflow <= int_state_gflow + 1;
+                                    int_state_gflow_two_qubits <= int_state_gflow_two_qubits + 1;
                                 end if;
 
                             end if;
@@ -469,12 +485,12 @@
                         -------------------------
                         -- LAST qubit detected --
                         -------------------------
-                        if int_state_gflow = QUBITS_CNT-1 then
+                        if int_state_gflow_two_qubits = QUBITS_CNT-1 then
                             actual_qubit <= qubits_sampled(1 downto 0);
-                            slv_qubit_buffer_2d(0) <= qubits_sampled(1 downto 0);
+                            slv_qubit_buffer_2d(QUBITS_CNT-1) <= qubits_sampled(1 downto 0);
 
                             to_math_alpha <= QX_BASIS_ALPHA((QUBITS_CNT-1) mod 4);
-                            slv_alpha_buffer_2d(0) <= QX_BASIS_ALPHA((QUBITS_CNT-1) mod 4);
+                            slv_alpha_buffer_2d(QUBITS_CNT-1) <= QX_BASIS_ALPHA((QUBITS_CNT-1) mod 4);
 
                             if feedback_mod_valid = '1' then
                                 slv_to_math_sx_sz <= feedback_mod;
@@ -482,14 +498,14 @@
 
                             if s_periods_q(0) = MAX_PERIODS_Q(QUBITS_CNT-1) + TOTAL_DELAY_FPGA_AFTER+TOTAL_DELAY_FPGA_BEFORE-1 then
 
-                                -- Detect Qubit 4 and proceed to Qubit 1, save times tamp
+                                -- Detect Qubit 4 and proceed to Qubit 1, save time stamp
                                 if qubits_sampled_valid(0) = '0' then
-                                    int_state_gflow <= 0;
+                                    int_state_gflow_two_qubits <= 0;
                                 else
                                     actual_qubit_valid <= '1';
-                                    slv_time_stamp_buffer_2d(0) <= std_logic_vector(uns_actual_time_stamp_counter);
-                                    slv_time_stamp_buffer_overflows_2d(0) <= std_logic_vector(uns_actual_time_overflow_counter);
-                                    int_state_gflow <= 0;
+                                    slv_time_stamp_buffer_2d(QUBITS_CNT-1) <= std_logic_vector(uns_actual_time_stamp_counter);
+                                    slv_time_stamp_buffer_overflows_2d(QUBITS_CNT-1) <= std_logic_vector(uns_actual_time_overflow_counter);
+                                    int_state_gflow_two_qubits <= 0;
                                     s_gflow_success_flag <= '1';
                                 end if;
 
@@ -502,10 +518,10 @@
                                 if qubits_sampled_valid(0) = '1' then
                                     -- Leave the state early, reset counter, save time stamp
                                     actual_qubit_valid <= '1';
-                                    slv_time_stamp_buffer_2d(0) <= std_logic_vector(uns_actual_time_stamp_counter);
-                                    slv_time_stamp_buffer_overflows_2d(0) <= std_logic_vector(uns_actual_time_overflow_counter);
+                                    slv_time_stamp_buffer_2d(QUBITS_CNT-1) <= std_logic_vector(uns_actual_time_stamp_counter);
+                                    slv_time_stamp_buffer_overflows_2d(QUBITS_CNT-1) <= std_logic_vector(uns_actual_time_overflow_counter);
                                     s_periods_q(0) <= 0;
-                                    int_state_gflow <= 0;
+                                    int_state_gflow_two_qubits <= 0;
                                     s_gflow_success_flag <= '1';
                                 else
                                     s_periods_q(0) <= s_periods_q(0) + 1;
@@ -517,11 +533,11 @@
                         end if;
 
                         -- Define invalid states
-                        if int_state_gflow > QUBITS_CNT-1 then
-                            -- Reset the int_state_gflow
-                            int_state_gflow <= 0;
+                        if int_state_gflow_two_qubits > QUBITS_CNT-1 then
+                            -- Reset the int_state_gflow_two_qubits
+                            int_state_gflow_two_qubits <= 0;
 
-                            -- Set the error flag high that the int_state_gflow went beyond the maximum allowed value
+                            -- Set the error flag high that the int_state_gflow_two_qubits went beyond the maximum allowed value
                             flag_invalid_qubit_id <= '1';
                         end if;
 

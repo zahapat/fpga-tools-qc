@@ -26,8 +26,10 @@
 add_src_file lib_src ./packages/global_src/signals_pack.vhd
 add_src_file lib_src ./packages/global_src/types_pack.vhd
 add_src_file lib_src ./packages/global_src/const_pack.vhd
+add_src_file lib_src ./packages/global_src/generics.vhd
 
 #    * ModelSim
 add_sim_file ./packages/global_src/signals_pack.vhd
 add_sim_file ./packages/global_src/types_pack.vhd
 add_sim_file ./packages/global_src/const_pack.vhd
+add_sim_file ./packages/global_src/generics.vhd

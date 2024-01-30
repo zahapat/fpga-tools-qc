@@ -3,12 +3,14 @@
     library ieee;
     use ieee.std_logic_1164.all;
     use ieee.numeric_std.all;
+    use ieee.math_real.all;
 
     library UNISIM;
     use UNISIM.VComponents.all;
 
     library lib_src;
     use lib_src.types_pack.all;
+    use lib_src.generics.all;
 
     entity top_gflow is
         generic(
@@ -17,29 +19,42 @@
             CLK_SYS_HZ             : natural := 100e6;
             CLK_SAMPL_HZ           : natural := 250e6;
 
-            QUBITS_CNT             : positive := 4;
-
             INPUT_PADS_CNT         : positive := 8;
             OUTPUT_PADS_CNT        : positive := 1;
+            
+            QUBITS_CNT             : positive := INT_QUBITS_CNT;
 
-            -- Parameters in user GUI
-            EMULATE_INPUTS         : boolean := true;
-            PHOTON_1H_DELAY_NS     : real := 75.65;
-            PHOTON_1V_DELAY_NS     : real := 75.01;
-            PHOTON_2H_DELAY_NS     : real := -2117.95;
-            PHOTON_2V_DELAY_NS     : real := -2125.35;
-            PHOTON_3H_DELAY_NS     : real := -1030.35;
-            PHOTON_3V_DELAY_NS     : real := -1034.45;
-            PHOTON_4H_DELAY_NS     : real := -3177.95;
-            PHOTON_4V_DELAY_NS     : real := -3181.05;
-            PHOTON_5H_DELAY_NS     : real := -3177.95;
-            PHOTON_5V_DELAY_NS     : real := -3181.05;
-            PHOTON_6H_DELAY_NS     : real := -3177.95;
-            PHOTON_6V_DELAY_NS     : real := -3181.05;
-            PHOTON_7H_DELAY_NS     : real := -3177.95;
-            PHOTON_7V_DELAY_NS     : real := -3181.05;
-            PHOTON_8H_DELAY_NS     : real := -3177.95;
-            PHOTON_8V_DELAY_NS     : real := -3181.05;
+            -- Integer parameters from Makefile
+            INT_EMULATE_INPUTS           : integer := INT_EMULATE_INPUTS;
+            INT_WHOLE_PHOTON_2H_DELAY_NS : integer := INT_WHOLE_PHOTON_2H_DELAY_NS;
+            INT_DECIM_PHOTON_2H_DELAY_NS : integer := INT_DECIM_PHOTON_2H_DELAY_NS;
+            INT_WHOLE_PHOTON_2V_DELAY_NS : integer := INT_WHOLE_PHOTON_2V_DELAY_NS;
+            INT_DECIM_PHOTON_2V_DELAY_NS : integer := INT_DECIM_PHOTON_2V_DELAY_NS;
+            INT_WHOLE_PHOTON_3H_DELAY_NS : integer := INT_WHOLE_PHOTON_3H_DELAY_NS;
+            INT_DECIM_PHOTON_3H_DELAY_NS : integer := INT_DECIM_PHOTON_3H_DELAY_NS;
+            INT_WHOLE_PHOTON_3V_DELAY_NS : integer := INT_WHOLE_PHOTON_3V_DELAY_NS;
+            INT_DECIM_PHOTON_3V_DELAY_NS : integer := INT_DECIM_PHOTON_3V_DELAY_NS;
+            INT_WHOLE_PHOTON_4H_DELAY_NS : integer := INT_WHOLE_PHOTON_4H_DELAY_NS;
+            INT_DECIM_PHOTON_4H_DELAY_NS : integer := INT_DECIM_PHOTON_4H_DELAY_NS;
+            INT_WHOLE_PHOTON_4V_DELAY_NS : integer := INT_WHOLE_PHOTON_4V_DELAY_NS;
+            INT_DECIM_PHOTON_4V_DELAY_NS : integer := INT_DECIM_PHOTON_4V_DELAY_NS;
+            INT_WHOLE_PHOTON_5H_DELAY_NS : integer := INT_WHOLE_PHOTON_5H_DELAY_NS;
+            INT_DECIM_PHOTON_5H_DELAY_NS : integer := INT_DECIM_PHOTON_5H_DELAY_NS;
+            INT_WHOLE_PHOTON_5V_DELAY_NS : integer := INT_WHOLE_PHOTON_5V_DELAY_NS;
+            INT_DECIM_PHOTON_5V_DELAY_NS : integer := INT_DECIM_PHOTON_5V_DELAY_NS;
+            INT_WHOLE_PHOTON_6H_DELAY_NS : integer := INT_WHOLE_PHOTON_6H_DELAY_NS;
+            INT_DECIM_PHOTON_6H_DELAY_NS : integer := INT_DECIM_PHOTON_6H_DELAY_NS;
+            INT_WHOLE_PHOTON_6V_DELAY_NS : integer := INT_WHOLE_PHOTON_6V_DELAY_NS;
+            INT_DECIM_PHOTON_6V_DELAY_NS : integer := INT_DECIM_PHOTON_6V_DELAY_NS;
+            INT_WHOLE_PHOTON_7H_DELAY_NS : integer := INT_WHOLE_PHOTON_7H_DELAY_NS;
+            INT_DECIM_PHOTON_7H_DELAY_NS : integer := INT_DECIM_PHOTON_7H_DELAY_NS;
+            INT_WHOLE_PHOTON_7V_DELAY_NS : integer := INT_WHOLE_PHOTON_7V_DELAY_NS;
+            INT_DECIM_PHOTON_7V_DELAY_NS : integer := INT_DECIM_PHOTON_7V_DELAY_NS;
+            INT_WHOLE_PHOTON_8H_DELAY_NS : integer := INT_WHOLE_PHOTON_8H_DELAY_NS;
+            INT_DECIM_PHOTON_8H_DELAY_NS : integer := INT_DECIM_PHOTON_8H_DELAY_NS;
+            INT_WHOLE_PHOTON_8V_DELAY_NS : integer := INT_WHOLE_PHOTON_8V_DELAY_NS;
+            INT_DECIM_PHOTON_8V_DELAY_NS : integer := INT_DECIM_PHOTON_8V_DELAY_NS;
+            
 
             WRITE_ON_VALID         : boolean := true
         );
@@ -203,6 +218,7 @@
         signal sl_actual_qubit_valid       : std_logic := '0';
         signal slv_actual_qubit            : std_logic_vector(1 downto 0) := (others => '0');
         signal slv_actual_qubit_time_stamp : std_logic_vector(st_transaction_data_max_width) := (others => '0');
+        signal state_gflow             : natural range 0 to QUBITS_CNT-1 := 0;
 
         signal sl_pseudorandom_to_math  : std_logic := '0';
         signal slv_math_data_modulo     : std_logic_vector(1 downto 0) := (others => '0');
@@ -222,6 +238,36 @@
         -- Keep the input logic at all cost
         attribute DONT_TOUCH : string;
         attribute DONT_TOUCH of s_noisy_channels : signal is "TRUE";
+
+
+        -- Convert Integer generic values to real numbers
+        -- Prevent dividing by zero
+        impure function get_divisor (
+            constant DIVISOR : integer
+        ) return integer is
+        begin
+            if DIVISOR = 0 then
+                return 1;
+            else
+                return integer(10.0*(floor(log10(real(DIVISOR))) + 1.0));
+            end if;
+        end function;
+        constant PHOTON_1H_DELAY_NS : real := 75.65; -- #TODO
+        constant PHOTON_1V_DELAY_NS : real := 75.01; -- #TODO
+        constant PHOTON_2H_DELAY_NS : real := real(INT_WHOLE_PHOTON_2H_DELAY_NS) + real(INT_DECIM_PHOTON_2H_DELAY_NS) / real(get_divisor(INT_DECIM_PHOTON_2H_DELAY_NS));
+        constant PHOTON_2V_DELAY_NS : real := real(INT_WHOLE_PHOTON_2V_DELAY_NS) + real(INT_DECIM_PHOTON_2V_DELAY_NS) / real(get_divisor(INT_DECIM_PHOTON_2V_DELAY_NS));
+        constant PHOTON_3H_DELAY_NS : real := real(INT_WHOLE_PHOTON_3H_DELAY_NS) + real(INT_DECIM_PHOTON_3H_DELAY_NS) / real(get_divisor(INT_DECIM_PHOTON_3H_DELAY_NS));
+        constant PHOTON_3V_DELAY_NS : real := real(INT_WHOLE_PHOTON_3V_DELAY_NS) + real(INT_DECIM_PHOTON_3V_DELAY_NS) / real(get_divisor(INT_DECIM_PHOTON_3V_DELAY_NS));
+        constant PHOTON_4H_DELAY_NS : real := real(INT_WHOLE_PHOTON_4H_DELAY_NS) + real(INT_DECIM_PHOTON_4H_DELAY_NS) / real(get_divisor(INT_DECIM_PHOTON_4H_DELAY_NS));
+        constant PHOTON_4V_DELAY_NS : real := real(INT_WHOLE_PHOTON_4V_DELAY_NS) + real(INT_DECIM_PHOTON_4V_DELAY_NS) / real(get_divisor(INT_DECIM_PHOTON_4V_DELAY_NS));
+        constant PHOTON_5H_DELAY_NS : real := real(INT_WHOLE_PHOTON_5H_DELAY_NS) + real(INT_DECIM_PHOTON_5H_DELAY_NS) / real(get_divisor(INT_DECIM_PHOTON_5H_DELAY_NS));
+        constant PHOTON_5V_DELAY_NS : real := real(INT_WHOLE_PHOTON_5V_DELAY_NS) + real(INT_DECIM_PHOTON_5V_DELAY_NS) / real(get_divisor(INT_DECIM_PHOTON_5V_DELAY_NS));
+        constant PHOTON_6H_DELAY_NS : real := real(INT_WHOLE_PHOTON_6H_DELAY_NS) + real(INT_DECIM_PHOTON_6H_DELAY_NS) / real(get_divisor(INT_DECIM_PHOTON_6H_DELAY_NS));
+        constant PHOTON_6V_DELAY_NS : real := real(INT_WHOLE_PHOTON_6V_DELAY_NS) + real(INT_DECIM_PHOTON_6V_DELAY_NS) / real(get_divisor(INT_DECIM_PHOTON_6V_DELAY_NS));
+        constant PHOTON_7H_DELAY_NS : real := real(INT_WHOLE_PHOTON_7H_DELAY_NS) + real(INT_DECIM_PHOTON_7H_DELAY_NS) / real(get_divisor(INT_DECIM_PHOTON_7H_DELAY_NS));
+        constant PHOTON_7V_DELAY_NS : real := real(INT_WHOLE_PHOTON_7V_DELAY_NS) + real(INT_DECIM_PHOTON_7V_DELAY_NS) / real(get_divisor(INT_DECIM_PHOTON_7V_DELAY_NS));
+        constant PHOTON_8H_DELAY_NS : real := real(INT_WHOLE_PHOTON_8H_DELAY_NS) + real(INT_DECIM_PHOTON_8H_DELAY_NS) / real(get_divisor(INT_DECIM_PHOTON_8H_DELAY_NS));
+        constant PHOTON_8V_DELAY_NS : real := real(INT_WHOLE_PHOTON_8V_DELAY_NS) + real(INT_DECIM_PHOTON_8V_DELAY_NS) / real(get_divisor(INT_DECIM_PHOTON_8V_DELAY_NS));
 
     begin
 
@@ -364,7 +410,7 @@
         -- s_noisy_channels(15) = PHOTON 8H;
 
         -- Input Buffers
-        gen_emul_false : if EMULATE_INPUTS = false generate
+        gen_emul_false : if INT_EMULATE_INPUTS = 0 generate
             inst_xilinx_ibufs : entity lib_src.xilinx_ibufs(rtl)
             generic map (
                 PINS_CNT => INPUT_PADS_CNT
@@ -378,7 +424,7 @@
 
 
         -- If Necessary, uncomment this input emulator for evaluation
-        gen_emul_true : if EMULATE_INPUTS = true generate 
+        gen_emul_true : if INT_EMULATE_INPUTS /= 0 generate 
             inst_lfsr_inemul_q1_to_q4 : entity lib_src.lfsr_inemul(rtl)
             generic map (
                 RST_VAL               => RST_VAL,
@@ -765,7 +811,8 @@
 
             actual_qubit_valid        => sl_actual_qubit_valid,
             actual_qubit              => slv_actual_qubit,
-            actual_qubit_time_stamp   => slv_actual_qubit_time_stamp
+            actual_qubit_time_stamp   => slv_actual_qubit_time_stamp,
+            state_gflow               => state_gflow
         );
 
 
@@ -795,6 +842,7 @@
             CLK             => sys_clk,
             RST             => sl_rst_sysclk,
             QUBIT_VALID     => sl_actual_qubit_valid,
+            STATE_QUBIT     => state_gflow,
             S_X             => slv_sx_sz_to_math(0),
             S_Z             => slv_sx_sz_to_math(1),
             ALPHA_POSITIVE  => slv_alpha_to_math,

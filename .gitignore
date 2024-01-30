@@ -18,6 +18,7 @@ build_x64
 *.gdb
 *.str
 
+backup
 
 do/modules.tcl
 

@@ -3,7 +3,7 @@
 # -------------------------------------------------------------
 # Mandatory variables
 PROJ_NAME = $(shell basename $(CURDIR))
-PROJ_DIR = $(shell pwd)
+PROJ_DIR = $(dir $(abspath $(firstword $(MAKEFILE_LIST))))
 
 
 # Set subshell environment

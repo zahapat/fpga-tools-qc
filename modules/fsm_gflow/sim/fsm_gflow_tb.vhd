@@ -6,6 +6,9 @@
     use std.textio.all;
     use std.env.finish;
 
+    library lib_sim;
+    use lib_sim.essentials_tb.all;
+
     library lib_src;
     use lib_src.types_pack.all;
 
@@ -22,8 +25,8 @@
         -- constant QUBITS_CNT              : natural := 6;
         -- constant QUBITS_CNT              : natural := 8;
 
-        constant TOTAL_DELAY_FPGA_BEFORE : natural := 0;           -- delay before this module + delay after this module
-        constant TOTAL_DELAY_FPGA_AFTER  : natural := 0;           -- delay before + delay after
+        constant TOTAL_DELAY_FPGA_BEFORE : natural := 0;           -- delay before (clock cycles) this module + delay after this module
+        constant TOTAL_DELAY_FPGA_AFTER  : natural := 0;           -- delay before (clock cycles) + delay after
         constant PHOTON_1H_DELAY_NS      : real := 75.65;
         constant PHOTON_1V_DELAY_NS      : real := 75.01;       -- no delay
         constant PHOTON_2H_DELAY_NS      : real := -2117.95;    -- negative number = delay
@@ -70,6 +73,7 @@
         signal actual_qubit : std_logic_vector(1 downto 0) := (others => '0');
         signal actual_qubit_time_stamp : std_logic_vector(st_transaction_data_max_width);
         signal time_stamp_counter_overflow : std_logic := '0';
+        signal state_gflow : natural range 0 to QUBITS_CNT-1;
 
         -- Number od random inputs INST_B
         constant MAX_RANDOM_NUMBS : natural := 300;
@@ -169,6 +173,7 @@
             actual_qubit_valid => actual_qubit_valid,
             actual_qubit => actual_qubit,
             actual_qubit_time_stamp => actual_qubit_time_stamp,
+            state_gflow => state_gflow,
 
             time_stamp_counter_overflow => time_stamp_counter_overflow
         );
@@ -244,7 +249,7 @@
             -- FSM in state 2 -> 3
             wait for (MAX_PERIODS_Q(1))*1 ns;
             if (TOTAL_DELAY_FPGA_AFTER+TOTAL_DELAY_FPGA_BEFORE /= 0) then
-                for i in 0 to TOTAL_DELAY_FPGA_AFTER+TOTAL_DELAY_FPGA_BEFORE-1 loop
+                for i in 0 to TOTAL_DELAY_FPGA_AFTER+TOTAL_DELAY_FPGA_BEFORE loop
                     wait until rising_edge(clk);
                 end loop;
             end if;
@@ -257,7 +262,7 @@
 
             -- FSM in state 3 -> 4
             wait for (MAX_PERIODS_Q(2))*1 ns;
-            for i in 0 to TOTAL_DELAY_FPGA_AFTER+TOTAL_DELAY_FPGA_BEFORE-1 loop
+            for i in 0 to TOTAL_DELAY_FPGA_AFTER+TOTAL_DELAY_FPGA_BEFORE loop
                 wait until rising_edge(clk);
             end loop;
             qubits_sampled(3 downto 2) <= (others => '1');
@@ -270,7 +275,7 @@
             -- FSM in state 4 -> 1
             wait for (MAX_PERIODS_Q(3))*1 ns;
             if (TOTAL_DELAY_FPGA_AFTER+TOTAL_DELAY_FPGA_BEFORE /= 0) then
-                for i in 0 to TOTAL_DELAY_FPGA_AFTER+TOTAL_DELAY_FPGA_BEFORE-1 loop
+                for i in 0 to TOTAL_DELAY_FPGA_AFTER+TOTAL_DELAY_FPGA_BEFORE loop
                     wait until rising_edge(clk);
                 end loop;
             end if;
@@ -296,7 +301,7 @@
             -- FSM in state 2 -> 3
             wait for (MAX_PERIODS_Q(1))*1 ns;
             if (TOTAL_DELAY_FPGA_AFTER+TOTAL_DELAY_FPGA_BEFORE /= 0) then
-                for i in 0 to TOTAL_DELAY_FPGA_AFTER+TOTAL_DELAY_FPGA_BEFORE-1 loop
+                for i in 0 to TOTAL_DELAY_FPGA_AFTER+TOTAL_DELAY_FPGA_BEFORE loop
                     wait until rising_edge(clk);
                 end loop;
             end if;
@@ -310,7 +315,7 @@
             -- FSM in state 3 -> 1
             wait for (MAX_PERIODS_Q(2))*1 ns;
             if (TOTAL_DELAY_FPGA_AFTER+TOTAL_DELAY_FPGA_BEFORE /= 0) then
-                for i in 0 to TOTAL_DELAY_FPGA_AFTER+TOTAL_DELAY_FPGA_BEFORE-1 loop
+                for i in 0 to TOTAL_DELAY_FPGA_AFTER+TOTAL_DELAY_FPGA_BEFORE loop
                     wait until rising_edge(clk);
                 end loop;
             end if;

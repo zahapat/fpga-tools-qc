@@ -20,6 +20,7 @@
             CLK             : in  std_logic;
             RST             : in  std_logic;
             QUBIT_VALID     : in  std_logic;
+            STATE_QUBIT     : in  natural;
             S_X             : in  std_logic;     -- From TO_MATH_SX_SZ(0) in FSM
             S_Z             : in  std_logic;     -- From TO_MATH_SX_SZ(1) in FSM
             ALPHA_POSITIVE  : in  std_logic_vector(1 downto 0);  -- is unsigned 00, 01, 10, 11
@@ -37,6 +38,10 @@
         -- Propagate valid signal
         signal sl_valid_factors : std_logic := '0';
         signal sl_data_valid : std_logic := '0';
+
+        -- Gflow state indicating the actual qubit state being processed
+        signal natural_state_gflow : natural range 0 to QUBITS_CNT-1;
+        signal natural_state_gflow_p1 : natural range 0 to QUBITS_CNT-1;
 
         -- Delay alpha_positive
         signal sl_alpha_positive_p1 : std_logic_vector(ALPHA_POSITIVE'high downto 0) := (others => '0');
@@ -78,7 +83,7 @@
                 if QUBIT_VALID = '1' then
                     -- Using comparators, assign the value to the respective data slot
                     for i in 0 to QUBITS_CNT-1 loop
-                        if std_logic_vector(to_unsigned(i, ALPHA_POSITIVE'length)) = ALPHA_POSITIVE then
+                        if i = STATE_QUBIT then
                             slv_random_buffer_2d(i) <= RAND_BIT;
                         end if;
                     end loop;
@@ -102,6 +107,7 @@
 
                         -- Pass valid signal synchronously
                         sl_valid_factors <= QUBIT_VALID;
+                        natural_state_gflow <= STATE_QUBIT;
 
                         -- Delay signal ALPHA_POSITIVE
                         sl_alpha_positive_p1 <= ALPHA_POSITIVE;
@@ -143,6 +149,7 @@
 
             -- Pass valid signal
             sl_valid_factors <= QUBIT_VALID;
+            natural_state_gflow <= STATE_QUBIT;
 
             -- Delay signal ALPHA_POSITIVE
             sl_alpha_positive_p1 <= ALPHA_POSITIVE;
@@ -190,11 +197,12 @@
                 else
                     -- Send data valid after signal successfully propagated the module
                     sl_data_valid <= sl_valid_factors;
+                    natural_state_gflow_p1 <= natural_state_gflow;
 
                     -- Delay signal ALPHA_POSITIVE
                     sl_alpha_positive_p2 <= sl_alpha_positive_p1;
 
-                    -- Calculate the Modulo                                            3 bits signed (2 magnitude bits)          4 bits signed positive (3 magnitude bits)
+                    -- Calculate the Modulo                                     3 bits signed (2 magnitude bits)          4 bits signed positive (3 magnitude bits)
                     s_modulo <= std_logic_vector(signed(AUX_BITS_CORRECTION + signed(s_alpha_multiplied_signed)) + signed('0' & s_added_random_multiplied_unsigned));
                 end if;
             end if;
@@ -217,8 +225,8 @@
                     if sl_data_valid = '1' then
                         -- Using comparators, assign the value to the respective data slot
                         for i in 0 to QUBITS_CNT-1 loop
-                            if std_logic_vector(to_unsigned(i, sl_alpha_positive_p2'length)) = sl_alpha_positive_p2 then
-                                slv_modulo_buffer_2d(QUBITS_CNT-1-i) <= s_modulo(1 downto 0);
+                            if i = natural_state_gflow_p1 then
+                                slv_modulo_buffer_2d(i) <= s_modulo(1 downto 0);
                             end if;
                         end loop;
                     end if;

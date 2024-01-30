@@ -3,7 +3,7 @@
 # -------------------------------------------------------------
 #  Mandatory variables
 PROJ_NAME = $(shell basename $(CURDIR))
-PROJ_DIR = $(shell pwd)
+PROJ_DIR = $(dir $(abspath $(firstword $(MAKEFILE_LIST))))
 
 
 
@@ -12,6 +12,48 @@ PROJ_DIR = $(shell pwd)
 # -------------------------------------------------------------
 .ONESHELL:
 
+# Generate a vhdl/verilog file with Generic variables
+generics :
+	py -3 ./scripts/generics/genGenericsMain.py \
+		--generic1_name=$(GEN1_NAME)   --generic1_val=$(GEN1_VAL)\
+		--generic2_name=$(GEN2_NAME)   --generic2_val=$(GEN2_VAL)\
+		--generic3_name=$(GEN3_NAME)   --generic3_val=$(GEN3_VAL)\
+		--generic4_name=$(GEN4_NAME)   --generic4_val=$(GEN4_VAL)\
+		--generic5_name=$(GEN5_NAME)   --generic5_val=$(GEN5_VAL)\
+		--generic6_name=$(GEN6_NAME)   --generic6_val=$(GEN6_VAL)\
+		--generic7_name=$(GEN7_NAME)   --generic7_val=$(GEN7_VAL)\
+		--generic8_name=$(GEN8_NAME)   --generic8_val=$(GEN8_VAL)\
+		--generic9_name=$(GEN9_NAME)   --generic9_val=$(GEN9_VAL)\
+		--generic10_name=$(GEN10_NAME) --generic10_val=$(GEN10_VAL)\
+		--generic11_name=$(GEN11_NAME) --generic11_val=$(GEN11_VAL)\
+		--generic12_name=$(GEN12_NAME) --generic12_val=$(GEN12_VAL)\
+		--generic13_name=$(GEN13_NAME) --generic13_val=$(GEN13_VAL)\
+		--generic14_name=$(GEN14_NAME) --generic14_val=$(GEN14_VAL)\
+		--generic15_name=$(GEN15_NAME) --generic15_val=$(GEN15_VAL)\
+		--generic16_name=$(GEN16_NAME) --generic16_val=$(GEN16_VAL)\
+		--generic17_name=$(GEN17_NAME) --generic17_val=$(GEN17_VAL)\
+		--generic18_name=$(GEN18_NAME) --generic18_val=$(GEN18_VAL)\
+		--generic19_name=$(GEN19_NAME) --generic19_val=$(GEN19_VAL)\
+		--generic20_name=$(GEN20_NAME) --generic20_val=$(GEN20_VAL)\
+		--generic21_name=$(GEN21_NAME) --generic21_val=$(GEN21_VAL)\
+		--generic22_name=$(GEN22_NAME) --generic22_val=$(GEN22_VAL)\
+		--generic23_name=$(GEN23_NAME) --generic23_val=$(GEN23_VAL)\
+		--generic24_name=$(GEN24_NAME) --generic24_val=$(GEN24_VAL)\
+		--generic25_name=$(GEN25_NAME) --generic25_val=$(GEN25_VAL)\
+		--generic26_name=$(GEN26_NAME) --generic26_val=$(GEN26_VAL)\
+		--generic27_name=$(GEN27_NAME) --generic27_val=$(GEN27_VAL)\
+		--generic28_name=$(GEN28_NAME) --generic28_val=$(GEN28_VAL)\
+		--generic29_name=$(GEN29_NAME) --generic29_val=$(GEN29_VAL)\
+		--generic30_name=$(GEN30_NAME) --generic30_val=$(GEN30_VAL)\
+		--proj_name=$(PROJ_NAME) \
+		--proj_dir=$(PROJ_DIR) \
+		--output_dir=$(OUTPUT_DIR)
+
+essentials :
+	py -3 ./scripts/essentials/genEssentialsMain.py \
+		--proj_name=$(PROJ_NAME) \
+		--proj_dir=$(PROJ_DIR) \
+		--output_dir=$(OUTPUT_DIR)
 
 # Redis server
 redis_start:

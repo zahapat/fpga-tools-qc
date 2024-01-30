@@ -123,7 +123,8 @@
 
 
         type t_state_write_data_transac is (
-            WAIT_AND_SEND_DATA,
+            WAIT_AND_SEND_DATA_QUBIT1_TO_QUBIT4,
+            WAIT_AND_SEND_DATA_QUBIT5_TO_QUBIT8,
             SEND_TIME_QUBIT1,
             SEND_TIME_QUBIT1_OVERFLOWS,
             SEND_TIME_QUBIT2,
@@ -131,9 +132,17 @@
             SEND_TIME_QUBIT3,
             SEND_TIME_QUBIT3_OVERFLOWS,
             SEND_TIME_QUBIT4,
-            SEND_TIME_QUBIT4_OVERFLOWS
+            SEND_TIME_QUBIT4_OVERFLOWS,
+            SEND_TIME_QUBIT5,
+            SEND_TIME_QUBIT5_OVERFLOWS,
+            SEND_TIME_QUBIT6,
+            SEND_TIME_QUBIT6_OVERFLOWS,
+            SEND_TIME_QUBIT7,
+            SEND_TIME_QUBIT7_OVERFLOWS,
+            SEND_TIME_QUBIT8,
+            SEND_TIME_QUBIT8_OVERFLOWS
         );
-        signal state_write_data_transac : t_state_write_data_transac := WAIT_AND_SEND_DATA;
+        signal state_write_data_transac : t_state_write_data_transac := WAIT_AND_SEND_DATA_QUBIT1_TO_QUBIT4;
 
     begin
 
@@ -254,37 +263,37 @@
 
                         -- Controller for sending data over USB3
                         case state_write_data_transac is
-                            when WAIT_AND_SEND_DATA =>
+                            when WAIT_AND_SEND_DATA_QUBIT1_TO_QUBIT4 =>
 
                                 -- Sample the data buffer values on valid, set write en, proceed
                                 if wr_valid_gflow_success_done = '1' then
                                     -- Define All bits!
-                                    slv_wr_data_stream_32b(31 downto 30) <= wr_data_qubit_buffer(3); -- Qubit 1
-                                    slv_wr_data_stream_32b(29 downto 28) <= wr_data_qubit_buffer(2);
-                                    slv_wr_data_stream_32b(27 downto 26) <= wr_data_qubit_buffer(1);
-                                    slv_wr_data_stream_32b(25 downto 24) <= wr_data_qubit_buffer(0);
+                                    slv_wr_data_stream_32b(31 downto 30) <= wr_data_qubit_buffer(0); -- Qubit 1
+                                    slv_wr_data_stream_32b(29 downto 28) <= wr_data_qubit_buffer(1);
+                                    slv_wr_data_stream_32b(27 downto 26) <= wr_data_qubit_buffer(2);
+                                    slv_wr_data_stream_32b(25 downto 24) <= wr_data_qubit_buffer(3);
 
-                                    slv_wr_data_stream_32b(23 downto 22) <= wr_data_alpha_buffer(3);
-                                    slv_wr_data_stream_32b(21 downto 20) <= wr_data_alpha_buffer(2);
-                                    slv_wr_data_stream_32b(19 downto 18) <= wr_data_alpha_buffer(1);
-                                    slv_wr_data_stream_32b(17 downto 16) <= wr_data_alpha_buffer(0);
+                                    slv_wr_data_stream_32b(23 downto 22) <= wr_data_alpha_buffer(0);
+                                    slv_wr_data_stream_32b(21 downto 20) <= wr_data_alpha_buffer(1);
+                                    slv_wr_data_stream_32b(19 downto 18) <= wr_data_alpha_buffer(2);
+                                    slv_wr_data_stream_32b(17 downto 16) <= wr_data_alpha_buffer(3);
 
-                                    slv_wr_data_stream_32b(15) <= wr_data_random_buffer(3);
-                                    slv_wr_data_stream_32b(14) <= wr_data_random_buffer(2);
-                                    slv_wr_data_stream_32b(13) <= wr_data_random_buffer(1);
-                                    slv_wr_data_stream_32b(12) <= wr_data_random_buffer(0);
+                                    slv_wr_data_stream_32b(15) <= wr_data_random_buffer(0);
+                                    slv_wr_data_stream_32b(14) <= wr_data_random_buffer(1);
+                                    slv_wr_data_stream_32b(13) <= wr_data_random_buffer(2);
+                                    slv_wr_data_stream_32b(12) <= wr_data_random_buffer(3);
 
-                                    slv_wr_data_stream_32b(11 downto 10) <= wr_data_modulo_buffer(3);
-                                    slv_wr_data_stream_32b(9 downto 8) <= wr_data_modulo_buffer(2);
-                                    slv_wr_data_stream_32b(7 downto 6) <= wr_data_modulo_buffer(1);
-                                    slv_wr_data_stream_32b(5 downto 4) <= wr_data_modulo_buffer(0);
+                                    slv_wr_data_stream_32b(11 downto 10) <= wr_data_modulo_buffer(0);
+                                    slv_wr_data_stream_32b(9 downto 8) <= wr_data_modulo_buffer(1);
+                                    slv_wr_data_stream_32b(7 downto 6) <= wr_data_modulo_buffer(2);
+                                    slv_wr_data_stream_32b(5 downto 4) <= wr_data_modulo_buffer(3);
 
                                     -- Encoded command for the C++ backend: Get & Parse Data + Append to a file
                                     -- Command x"0" is forbidden
                                     slv_wr_data_stream_32b(3 downto 0) <= x"1";
 
                                     sl_wr_en_flag_pulsed <= '1';
-                                    state_write_data_transac <= SEND_TIME_QUBIT1;
+                                    state_write_data_transac <= WAIT_AND_SEND_DATA_QUBIT5_TO_QUBIT8;
 
                                 elsif sl_one_second_flag = '1' then
                                     -- Define All bits!
@@ -299,16 +308,48 @@
 
                                     -- Remain in this state
                                     sl_wr_en_flag_pulsed <= '1';
-                                    state_write_data_transac <= WAIT_AND_SEND_DATA;
+                                    state_write_data_transac <= WAIT_AND_SEND_DATA_QUBIT1_TO_QUBIT4;
                                 else
                                     sl_wr_en_flag_pulsed <= '0';
-                                    state_write_data_transac <= WAIT_AND_SEND_DATA;
+                                    state_write_data_transac <= WAIT_AND_SEND_DATA_QUBIT1_TO_QUBIT4;
                                 end if;
+
+
+                            when WAIT_AND_SEND_DATA_QUBIT5_TO_QUBIT8 =>
+
+                                    -- Define All bits!
+                                    slv_wr_data_stream_32b(31 downto 30) <= wr_data_qubit_buffer(4); -- Qubit 5
+                                    slv_wr_data_stream_32b(29 downto 28) <= wr_data_qubit_buffer(5);
+                                    slv_wr_data_stream_32b(27 downto 26) <= wr_data_qubit_buffer(6);
+                                    slv_wr_data_stream_32b(25 downto 24) <= wr_data_qubit_buffer(7);
+
+                                    slv_wr_data_stream_32b(23 downto 22) <= wr_data_alpha_buffer(4);
+                                    slv_wr_data_stream_32b(21 downto 20) <= wr_data_alpha_buffer(5);
+                                    slv_wr_data_stream_32b(19 downto 18) <= wr_data_alpha_buffer(6);
+                                    slv_wr_data_stream_32b(17 downto 16) <= wr_data_alpha_buffer(7);
+
+                                    slv_wr_data_stream_32b(15) <= wr_data_random_buffer(4);
+                                    slv_wr_data_stream_32b(14) <= wr_data_random_buffer(5);
+                                    slv_wr_data_stream_32b(13) <= wr_data_random_buffer(6);
+                                    slv_wr_data_stream_32b(12) <= wr_data_random_buffer(7);
+
+                                    slv_wr_data_stream_32b(11 downto 10) <= wr_data_modulo_buffer(4);
+                                    slv_wr_data_stream_32b(9 downto 8) <= wr_data_modulo_buffer(5);
+                                    slv_wr_data_stream_32b(7 downto 6) <= wr_data_modulo_buffer(6);
+                                    slv_wr_data_stream_32b(5 downto 4) <= wr_data_modulo_buffer(7);
+
+                                    -- Encoded command for the C++ backend: Get & Parse Data + Append to a file
+                                    -- Command x"0" is forbidden
+                                    slv_wr_data_stream_32b(3 downto 0) <= x"5";
+
+                                    sl_wr_en_flag_pulsed <= '1';
+                                    state_write_data_transac <= SEND_TIME_QUBIT1;
+
 
                             when SEND_TIME_QUBIT1 => 
                                 -- Send time stamp of qubit 1 measured, set write en, proceed
                                 -- Define All bits!
-                                slv_wr_data_stream_32b(31 downto 4) <= slv_time_stamp_buffer_2d(3);
+                                slv_wr_data_stream_32b(31 downto 4) <= slv_time_stamp_buffer_2d(0);
 
                                 -- Encoded command for the C++ backend: Get Time + Append to a file
                                 -- Command x"0" is forbidden
@@ -317,10 +358,11 @@
                                 sl_wr_en_flag_pulsed <= '1';
                                 state_write_data_transac <= SEND_TIME_QUBIT1_OVERFLOWS;
 
+
                             when SEND_TIME_QUBIT1_OVERFLOWS => 
                                 -- Send time stamp of qubit 1 measured, set write en, proceed
                                 -- Define All bits!
-                                slv_wr_data_stream_32b(31 downto 4) <= slv_time_stamp_buffer_overflows_2d(3);
+                                slv_wr_data_stream_32b(31 downto 4) <= slv_time_stamp_buffer_overflows_2d(0);
 
                                 -- Encoded command for the C++ backend: Get Time + Append to a file
                                 -- Command x"0" is forbidden
@@ -329,32 +371,9 @@
                                 sl_wr_en_flag_pulsed <= '1';
                                 state_write_data_transac <= SEND_TIME_QUBIT2;
 
+
                             when SEND_TIME_QUBIT2 => 
                                 -- Send time stamp of qubit 2 measured, set write en, proceed
-                                -- Define All bits!
-                                slv_wr_data_stream_32b(31 downto 4) <= slv_time_stamp_buffer_2d(2);
-
-                                -- Encoded command for the C++ backend: Get Time + Append to a file
-                                -- Command x"0" is forbidden
-                                slv_wr_data_stream_32b(3 downto 0) <= x"2";
-
-                                sl_wr_en_flag_pulsed <= '1';
-                                state_write_data_transac <= SEND_TIME_QUBIT2_OVERFLOWS;
-
-                            when SEND_TIME_QUBIT2_OVERFLOWS => 
-                                -- Send time stamp of qubit 1 measured, set write en, proceed
-                                -- Define All bits!
-                                slv_wr_data_stream_32b(31 downto 4) <= slv_time_stamp_buffer_overflows_2d(2);
-
-                                -- Encoded command for the C++ backend: Get Time + Append to a file
-                                -- Command x"0" is forbidden
-                                slv_wr_data_stream_32b(3 downto 0) <= x"2";
-
-                                sl_wr_en_flag_pulsed <= '1';
-                                state_write_data_transac <= SEND_TIME_QUBIT3;
-
-                            when SEND_TIME_QUBIT3 => 
-                                -- Send time stamp of qubit 3 measured, set write en, proceed
                                 -- Define All bits!
                                 slv_wr_data_stream_32b(31 downto 4) <= slv_time_stamp_buffer_2d(1);
 
@@ -363,9 +382,10 @@
                                 slv_wr_data_stream_32b(3 downto 0) <= x"2";
 
                                 sl_wr_en_flag_pulsed <= '1';
-                                state_write_data_transac <= SEND_TIME_QUBIT3_OVERFLOWS;
+                                state_write_data_transac <= SEND_TIME_QUBIT2_OVERFLOWS;
 
-                            when SEND_TIME_QUBIT3_OVERFLOWS => 
+
+                            when SEND_TIME_QUBIT2_OVERFLOWS => 
                                 -- Send time stamp of qubit 1 measured, set write en, proceed
                                 -- Define All bits!
                                 slv_wr_data_stream_32b(31 downto 4) <= slv_time_stamp_buffer_overflows_2d(1);
@@ -375,12 +395,39 @@
                                 slv_wr_data_stream_32b(3 downto 0) <= x"2";
 
                                 sl_wr_en_flag_pulsed <= '1';
+                                state_write_data_transac <= SEND_TIME_QUBIT3;
+
+
+                            when SEND_TIME_QUBIT3 => 
+                                -- Send time stamp of qubit 3 measured, set write en, proceed
+                                -- Define All bits!
+                                slv_wr_data_stream_32b(31 downto 4) <= slv_time_stamp_buffer_2d(2);
+
+                                -- Encoded command for the C++ backend: Get Time + Append to a file
+                                -- Command x"0" is forbidden
+                                slv_wr_data_stream_32b(3 downto 0) <= x"2";
+
+                                sl_wr_en_flag_pulsed <= '1';
+                                state_write_data_transac <= SEND_TIME_QUBIT3_OVERFLOWS;
+
+
+                            when SEND_TIME_QUBIT3_OVERFLOWS => 
+                                -- Send time stamp of qubit 1 measured, set write en, proceed
+                                -- Define All bits!
+                                slv_wr_data_stream_32b(31 downto 4) <= slv_time_stamp_buffer_overflows_2d(2);
+
+                                -- Encoded command for the C++ backend: Get Time + Append to a file
+                                -- Command x"0" is forbidden
+                                slv_wr_data_stream_32b(3 downto 0) <= x"2";
+
+                                sl_wr_en_flag_pulsed <= '1';
                                 state_write_data_transac <= SEND_TIME_QUBIT4;
+
 
                             when SEND_TIME_QUBIT4 => 
                                 -- Send time stamp of qubit 4 measured, set write en, proceed
                                 -- Define All bits!
-                                slv_wr_data_stream_32b(31 downto 4) <= slv_time_stamp_buffer_2d(0);
+                                slv_wr_data_stream_32b(31 downto 4) <= slv_time_stamp_buffer_2d(3);
 
                                 -- Encoded command for the C++ backend: Get Time + Append to a file
                                 -- Command x"0" is forbidden
@@ -389,21 +436,127 @@
                                 sl_wr_en_flag_pulsed <= '1';
                                 state_write_data_transac <= SEND_TIME_QUBIT4_OVERFLOWS;
 
+
                             when SEND_TIME_QUBIT4_OVERFLOWS => 
                                 -- Send time stamp of qubit 1 measured, set write en, proceed
                                 -- Define All bits!
-                                slv_wr_data_stream_32b(31 downto 4) <= slv_time_stamp_buffer_overflows_2d(0);
+                                slv_wr_data_stream_32b(31 downto 4) <= slv_time_stamp_buffer_overflows_2d(3);
+
+                                -- Encoded command for the C++ backend: Get Time + Append to a file + New line char
+                                -- Command x"0" is forbidden
+                                slv_wr_data_stream_32b(3 downto 0) <= x"2";
+
+                                sl_wr_en_flag_pulsed <= '1';
+                                state_write_data_transac <= SEND_TIME_QUBIT5;
+
+
+                            when SEND_TIME_QUBIT5 => 
+                                -- Send time stamp of qubit 4 measured, set write en, proceed
+                                -- Define All bits!
+                                slv_wr_data_stream_32b(31 downto 4) <= slv_time_stamp_buffer_2d(4);
+
+                                -- Encoded command for the C++ backend: Get Time + Append to a file
+                                -- Command x"0" is forbidden
+                                slv_wr_data_stream_32b(3 downto 0) <= x"2";
+
+                                sl_wr_en_flag_pulsed <= '1';
+                                state_write_data_transac <= SEND_TIME_QUBIT5_OVERFLOWS;
+
+
+                            when SEND_TIME_QUBIT5_OVERFLOWS => 
+                                -- Send time stamp of qubit 1 measured, set write en, proceed
+                                -- Define All bits!
+                                slv_wr_data_stream_32b(31 downto 4) <= slv_time_stamp_buffer_overflows_2d(4);
+
+                                -- Encoded command for the C++ backend: Get Time + Append to a file + New line char
+                                -- Command x"0" is forbidden
+                                slv_wr_data_stream_32b(3 downto 0) <= x"2";
+
+                                sl_wr_en_flag_pulsed <= '1';
+                                state_write_data_transac <= SEND_TIME_QUBIT6;
+
+
+                            when SEND_TIME_QUBIT6 => 
+                                -- Send time stamp of qubit 4 measured, set write en, proceed
+                                -- Define All bits!
+                                slv_wr_data_stream_32b(31 downto 4) <= slv_time_stamp_buffer_2d(5);
+
+                                -- Encoded command for the C++ backend: Get Time + Append to a file
+                                -- Command x"0" is forbidden
+                                slv_wr_data_stream_32b(3 downto 0) <= x"2";
+
+                                sl_wr_en_flag_pulsed <= '1';
+                                state_write_data_transac <= SEND_TIME_QUBIT6_OVERFLOWS;
+
+
+                            when SEND_TIME_QUBIT6_OVERFLOWS => 
+                                -- Send time stamp of qubit 1 measured, set write en, proceed
+                                -- Define All bits!
+                                slv_wr_data_stream_32b(31 downto 4) <= slv_time_stamp_buffer_overflows_2d(5);
+
+                                -- Encoded command for the C++ backend: Get Time + Append to a file + New line char
+                                -- Command x"0" is forbidden
+                                slv_wr_data_stream_32b(3 downto 0) <= x"2";
+
+                                sl_wr_en_flag_pulsed <= '1';
+                                state_write_data_transac <= SEND_TIME_QUBIT7;
+
+
+                            when SEND_TIME_QUBIT7 => 
+                                -- Send time stamp of qubit 4 measured, set write en, proceed
+                                -- Define All bits!
+                                slv_wr_data_stream_32b(31 downto 4) <= slv_time_stamp_buffer_2d(6);
+
+                                -- Encoded command for the C++ backend: Get Time + Append to a file
+                                -- Command x"0" is forbidden
+                                slv_wr_data_stream_32b(3 downto 0) <= x"2";
+
+                                sl_wr_en_flag_pulsed <= '1';
+                                state_write_data_transac <= SEND_TIME_QUBIT7_OVERFLOWS;
+
+
+                            when SEND_TIME_QUBIT7_OVERFLOWS => 
+                                -- Send time stamp of qubit 1 measured, set write en, proceed
+                                -- Define All bits!
+                                slv_wr_data_stream_32b(31 downto 4) <= slv_time_stamp_buffer_overflows_2d(6);
+
+                                -- Encoded command for the C++ backend: Get Time + Append to a file + New line char
+                                -- Command x"0" is forbidden
+                                slv_wr_data_stream_32b(3 downto 0) <= x"2";
+
+                                sl_wr_en_flag_pulsed <= '1';
+                                state_write_data_transac <= SEND_TIME_QUBIT8;
+
+
+                            when SEND_TIME_QUBIT8 => 
+                                -- Send time stamp of qubit 4 measured, set write en, proceed
+                                -- Define All bits!
+                                slv_wr_data_stream_32b(31 downto 4) <= slv_time_stamp_buffer_2d(7);
+
+                                -- Encoded command for the C++ backend: Get Time + Append to a file
+                                -- Command x"0" is forbidden
+                                slv_wr_data_stream_32b(3 downto 0) <= x"2";
+
+                                sl_wr_en_flag_pulsed <= '1';
+                                state_write_data_transac <= SEND_TIME_QUBIT8_OVERFLOWS;
+
+
+                            when SEND_TIME_QUBIT8_OVERFLOWS => 
+                                -- Send time stamp of qubit 1 measured, set write en, proceed
+                                -- Define All bits!
+                                slv_wr_data_stream_32b(31 downto 4) <= slv_time_stamp_buffer_overflows_2d(7);
 
                                 -- Encoded command for the C++ backend: Get Time + Append to a file + New line char
                                 -- Command x"0" is forbidden
                                 slv_wr_data_stream_32b(3 downto 0) <= x"3";
 
                                 sl_wr_en_flag_pulsed <= '1';
-                                state_write_data_transac <= WAIT_AND_SEND_DATA;
+                                state_write_data_transac <= WAIT_AND_SEND_DATA_QUBIT1_TO_QUBIT4;
+
 
                             when others =>
                                 sl_wr_en_flag_pulsed <= '0';
-                                state_write_data_transac <= WAIT_AND_SEND_DATA;
+                                state_write_data_transac <= WAIT_AND_SEND_DATA_QUBIT1_TO_QUBIT4;
 
                         end case;
                     end if;

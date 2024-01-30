@@ -10,6 +10,7 @@
 add_sim_file ./packages/global_sim/signals_pack_tb.vhd
 add_sim_file ./packages/global_sim/types_pack_tb.vhd
 add_sim_file ./packages/global_sim/const_pack_tb.vhd
+add_sim_file ./packages/global_sim/essentials_tb.vhd
 
 
 

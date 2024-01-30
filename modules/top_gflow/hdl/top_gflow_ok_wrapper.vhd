@@ -6,10 +6,11 @@
 
     library UNISIM;
     use UNISIM.VComponents.all;
-    
+
     library lib_src;
     use lib_src.FRONTPANEL.all;
     use lib_src.types_pack.all;
+    use lib_src.generics.all;
 
     entity top_gflow_ok_wrapper is
         generic(
@@ -26,24 +27,28 @@
             INPUT_PADS_CNT         : positive := 8;
             OUTPUT_PADS_CNT        : positive := 1;
 
-            -- Parameters in user GUI
-            EMULATE_INPUTS         : boolean := true;
-            PHOTON_1H_DELAY_NS     : real := 75.65;
-            PHOTON_1V_DELAY_NS     : real := 75.01;
-            PHOTON_2H_DELAY_NS     : real := -2117.95;
-            PHOTON_2V_DELAY_NS     : real := -2125.35;
-            PHOTON_3H_DELAY_NS     : real := -1030.35;
-            PHOTON_3V_DELAY_NS     : real := -1034.45;
-            PHOTON_4H_DELAY_NS     : real := -3177.95;
-            PHOTON_4V_DELAY_NS     : real := -3181.05;
-            PHOTON_5H_DELAY_NS     : real := -3177.95;
-            PHOTON_5V_DELAY_NS     : real := -3181.05;
-            PHOTON_6H_DELAY_NS     : real := -3177.95;
-            PHOTON_6V_DELAY_NS     : real := -3181.05;
-            PHOTON_7H_DELAY_NS     : real := -3177.95;
-            PHOTON_7V_DELAY_NS     : real := -3181.05;
-            PHOTON_8H_DELAY_NS     : real := -3177.95;
-            PHOTON_8V_DELAY_NS     : real := -3181.05;
+            -- Integer parameters from Makefile
+            INT_EMULATE_INPUTS           : integer := INT_EMULATE_INPUTS;
+            INT_WHOLE_PHOTON_2H_DELAY_NS : integer := INT_WHOLE_PHOTON_2H_DELAY_NS;
+            INT_DECIM_PHOTON_2H_DELAY_NS : integer := INT_DECIM_PHOTON_2H_DELAY_NS;
+            INT_WHOLE_PHOTON_2V_DELAY_NS : integer := INT_WHOLE_PHOTON_2V_DELAY_NS;
+            INT_DECIM_PHOTON_2V_DELAY_NS : integer := INT_DECIM_PHOTON_2V_DELAY_NS;
+            INT_WHOLE_PHOTON_3H_DELAY_NS : integer := INT_WHOLE_PHOTON_3H_DELAY_NS;
+            INT_DECIM_PHOTON_3H_DELAY_NS : integer := INT_DECIM_PHOTON_3H_DELAY_NS;
+            INT_WHOLE_PHOTON_3V_DELAY_NS : integer := INT_WHOLE_PHOTON_3V_DELAY_NS;
+            INT_DECIM_PHOTON_3V_DELAY_NS : integer := INT_DECIM_PHOTON_3V_DELAY_NS;
+            INT_WHOLE_PHOTON_4H_DELAY_NS : integer := INT_WHOLE_PHOTON_4H_DELAY_NS;
+            INT_DECIM_PHOTON_4H_DELAY_NS : integer := INT_DECIM_PHOTON_4H_DELAY_NS;
+            INT_WHOLE_PHOTON_4V_DELAY_NS : integer := INT_WHOLE_PHOTON_4V_DELAY_NS;
+            INT_DECIM_PHOTON_4V_DELAY_NS : integer := INT_DECIM_PHOTON_4V_DELAY_NS;
+            INT_WHOLE_PHOTON_5H_DELAY_NS : integer := INT_WHOLE_PHOTON_5H_DELAY_NS;
+            INT_DECIM_PHOTON_5H_DELAY_NS : integer := INT_DECIM_PHOTON_5H_DELAY_NS;
+            INT_WHOLE_PHOTON_5V_DELAY_NS : integer := INT_WHOLE_PHOTON_5V_DELAY_NS;
+            INT_DECIM_PHOTON_5V_DELAY_NS : integer := INT_DECIM_PHOTON_5V_DELAY_NS;
+            INT_WHOLE_PHOTON_6H_DELAY_NS : integer := INT_WHOLE_PHOTON_6H_DELAY_NS;
+            INT_DECIM_PHOTON_6H_DELAY_NS : integer := INT_DECIM_PHOTON_6H_DELAY_NS;
+            INT_WHOLE_PHOTON_6V_DELAY_NS : integer := INT_WHOLE_PHOTON_6V_DELAY_NS;
+            INT_DECIM_PHOTON_6V_DELAY_NS : integer := INT_DECIM_PHOTON_6V_DELAY_NS;
 
             WRITE_ON_VALID         : boolean := true
         );
@@ -133,6 +138,20 @@
             locked            : out    std_logic
         );
         end component;
+
+
+        -- Combine whole number and decimal separated numbers into a single real number
+        -- Get divisor, prevent division by zero
+        impure function get_divisor (
+            constant DIVISOR : integer
+        ) return integer is
+        begin
+            if DIVISOR = 0 then
+                return 1;
+            else
+                return integer(10.0*(floor(log10(real(DIVISOR))) + 1.0));
+            end if;
+        end function;
 
     begin
 
@@ -292,24 +311,27 @@
             INPUT_PADS_CNT => INPUT_PADS_CNT,
             OUTPUT_PADS_CNT => OUTPUT_PADS_CNT,
 
-            -- Parameters in user GUI
-            EMULATE_INPUTS => EMULATE_INPUTS,
-            PHOTON_1H_DELAY_NS => PHOTON_1H_DELAY_NS,
-            PHOTON_1V_DELAY_NS => PHOTON_1V_DELAY_NS,
-            PHOTON_2H_DELAY_NS => PHOTON_2H_DELAY_NS,
-            PHOTON_2V_DELAY_NS => PHOTON_2V_DELAY_NS,
-            PHOTON_3H_DELAY_NS => PHOTON_3H_DELAY_NS,
-            PHOTON_3V_DELAY_NS => PHOTON_3V_DELAY_NS,
-            PHOTON_4H_DELAY_NS => PHOTON_4H_DELAY_NS,
-            PHOTON_4V_DELAY_NS => PHOTON_4V_DELAY_NS,
-            PHOTON_5H_DELAY_NS => PHOTON_5H_DELAY_NS,
-            PHOTON_5V_DELAY_NS => PHOTON_5V_DELAY_NS,
-            PHOTON_6H_DELAY_NS => PHOTON_6H_DELAY_NS,
-            PHOTON_6V_DELAY_NS => PHOTON_6V_DELAY_NS,
-            PHOTON_7H_DELAY_NS => PHOTON_7H_DELAY_NS,
-            PHOTON_7V_DELAY_NS => PHOTON_7V_DELAY_NS,
-            PHOTON_8H_DELAY_NS => PHOTON_8H_DELAY_NS,
-            PHOTON_8V_DELAY_NS => PHOTON_8V_DELAY_NS,
+            INT_EMULATE_INPUTS => INT_EMULATE_INPUTS,
+            INT_WHOLE_PHOTON_2H_DELAY_NS => INT_WHOLE_PHOTON_2H_DELAY_NS,
+            INT_DECIM_PHOTON_2H_DELAY_NS => INT_DECIM_PHOTON_2H_DELAY_NS,
+            INT_WHOLE_PHOTON_2V_DELAY_NS => INT_WHOLE_PHOTON_2V_DELAY_NS,
+            INT_DECIM_PHOTON_2V_DELAY_NS => INT_DECIM_PHOTON_2V_DELAY_NS,
+            INT_WHOLE_PHOTON_3H_DELAY_NS => INT_WHOLE_PHOTON_3H_DELAY_NS,
+            INT_DECIM_PHOTON_3H_DELAY_NS => INT_DECIM_PHOTON_3H_DELAY_NS,
+            INT_WHOLE_PHOTON_3V_DELAY_NS => INT_WHOLE_PHOTON_3V_DELAY_NS,
+            INT_DECIM_PHOTON_3V_DELAY_NS => INT_DECIM_PHOTON_3V_DELAY_NS,
+            INT_WHOLE_PHOTON_4H_DELAY_NS => INT_WHOLE_PHOTON_4H_DELAY_NS,
+            INT_DECIM_PHOTON_4H_DELAY_NS => INT_DECIM_PHOTON_4H_DELAY_NS,
+            INT_WHOLE_PHOTON_4V_DELAY_NS => INT_WHOLE_PHOTON_4V_DELAY_NS,
+            INT_DECIM_PHOTON_4V_DELAY_NS => INT_DECIM_PHOTON_4V_DELAY_NS,
+            INT_WHOLE_PHOTON_5H_DELAY_NS => INT_WHOLE_PHOTON_5H_DELAY_NS,
+            INT_DECIM_PHOTON_5H_DELAY_NS => INT_DECIM_PHOTON_5H_DELAY_NS,
+            INT_WHOLE_PHOTON_5V_DELAY_NS => INT_WHOLE_PHOTON_5V_DELAY_NS,
+            INT_DECIM_PHOTON_5V_DELAY_NS => INT_DECIM_PHOTON_5V_DELAY_NS,
+            INT_WHOLE_PHOTON_6H_DELAY_NS => INT_WHOLE_PHOTON_6H_DELAY_NS,
+            INT_DECIM_PHOTON_6H_DELAY_NS => INT_DECIM_PHOTON_6H_DELAY_NS,
+            INT_WHOLE_PHOTON_6V_DELAY_NS => INT_WHOLE_PHOTON_6V_DELAY_NS,
+            INT_DECIM_PHOTON_6V_DELAY_NS => INT_DECIM_PHOTON_6V_DELAY_NS,
 
             WRITE_ON_VALID => WRITE_ON_VALID
         )

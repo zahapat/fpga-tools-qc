@@ -30,6 +30,7 @@
         signal CLK             : std_logic := '1';
         signal RST             : std_logic := RST_VAL;
         signal QUBIT_VALID     : std_logic := '0';
+        signal STATE_QUBIT     : natural;
         signal S_X             : std_logic := '0';
         signal S_Z             : std_logic := '0';
         signal ALPHA_POSITIVE  : std_logic_vector(1 downto 0) := (others => '0');
@@ -77,6 +78,7 @@
             CLK             => CLK,
             RST             => RST,
             QUBIT_VALID     => QUBIT_VALID,
+            STATE_QUBIT     => STATE_QUBIT,
             S_X             => S_X,
             S_Z             => S_Z,
             ALPHA_POSITIVE  => ALPHA_POSITIVE,
