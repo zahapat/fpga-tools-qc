@@ -78,33 +78,33 @@ def generate_hardware():
     print("makefile_arguments = ", makefile_arguments)
 
     command_open_cmd = "start /wait cmd /k"
-    command_make_1 = "make reset" # type make only once!
+    command_make_1 = "reset" # type make only once!
     command_make_2 = "src"
-    command_make_3 = "generics"+str(makefile_arguments)
+    command_make_3 = "generics"
     command_make_4 = "all"
-    command_make_5 = "cmd_timeout"
+    command_make_5 = "timer"
 
     if makefile_arguments == "":
         os.system(
             # Do not change
-            command_open_cmd + " " +
+            command_open_cmd + " make " +
 
-            command_make_1 + " \ " +
-            command_make_2 + " \ " +
-            command_make_4 + " \ " +
+            command_make_1 + " " +
+            command_make_2 + " " +
+            command_make_4 + " " +
             command_make_5
         )
 
     else:
         os.system(
             # Do not change
-            command_open_cmd + " " +
+            command_open_cmd + " make " +
 
-            command_make_1 + " \ " +
-            command_make_2 + " \ " +
-            command_make_3 + " \ " +
-            command_make_4 + " \ " +
-            command_make_5
+            command_make_1 + " " +
+            command_make_2 + " " +
+            command_make_3 + " " +
+            command_make_4 + " " +
+            command_make_5 + str(makefile_arguments)
         )
 
     # If bitfile has been successfully generated, call make command to copy it to the respective folders

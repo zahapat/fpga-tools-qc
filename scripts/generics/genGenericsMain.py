@@ -46,6 +46,7 @@ def get_arg_generic(currentArg, currentArgValue):
 # ----- Main Function -----
 def main(argv):
 
+    # Generic name and values are global lists
     global generic_names
     global generic_vals
 

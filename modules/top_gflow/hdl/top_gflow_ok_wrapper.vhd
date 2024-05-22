@@ -142,16 +142,16 @@
 
         -- Combine whole number and decimal separated numbers into a single real number
         -- Get divisor, prevent division by zero
-        impure function get_divisor (
-            constant DIVISOR : integer
-        ) return integer is
-        begin
-            if DIVISOR = 0 then
-                return 1;
-            else
-                return integer(10.0*(floor(log10(real(DIVISOR))) + 1.0));
-            end if;
-        end function;
+        -- impure function get_divisor (
+        --     constant DIVISOR : integer
+        -- ) return integer is
+        -- begin
+        --     if DIVISOR = 0 then
+        --         return 1;
+        --     else
+        --         return integer(10.0*(floor(log10(real(DIVISOR))) + 1.0));
+        --     end if;
+        -- end function;
 
     begin
 

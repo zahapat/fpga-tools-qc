@@ -1,4 +1,5 @@
 # ----- Libraries -----
+import re
 import os
 import sys
 import getopt
@@ -7,14 +8,41 @@ import getopt
 import guiLayout
 
 # ----- Functions -----
+generic_names = []
+generic_vals = []
 def usage():
     print('PY: Correct usage:')
     print('PY: Example #1: python3 guiMain.py -h')
     print('PY: Example #2: python3 guiMain.py --help')
 
 
+def get_arg_generic(currentArg, currentArgValue):
+
+    # Generic name and values are global lists
+    global generic_names
+    global generic_vals
+
+    # Check if this arg is generic value or name
+    if re.search('--generic.+', currentArg):
+        argument_is_generic_name = str(currentArg).find("_name")
+        argument_is_generic_val = str(currentArg).find("_val")
+        if argument_is_generic_name != -1:
+            # Append global generic names
+            generic_names.append(currentArgValue), generic_vals
+        elif argument_is_generic_val != -1:
+            # Append global generic values
+            generic_names, generic_vals.append(currentArgValue)
+        else:
+            # Some error
+            print("PY: Strange behaviour in 'get_arg_generic'.")
+
+
 # ----- Main Function -----
 def main(argv):
+
+    # Generic name and values are global lists
+    global generic_names
+    global generic_vals
 
     # Trim first argument (0) from the list of commandline arguments (which is the file name)
     argumentsList = argv[1:]
@@ -31,40 +59,16 @@ def main(argv):
         "geometry=",
         "proj_name=",
         "proj_dir=",
-
-        "generic1_name=",
-        "generic1_val=",
-        "generic2_name=",
-        "generic2_val=",
-        "generic3_name=",
-        "generic3_val=",
-        "generic4_name=",
-        "generic4_val=",
-        "generic5_name=",
-        "generic5_val=",
-        "generic6_name=",
-        "generic6_val=",
-        "generic7_name=",
-        "generic7_val=",
-        "generic8_name=",
-        "generic8_val=",
-        "generic9_name=",
-        "generic9_val=",
-        "generic10_name=",
-        "generic10_val=",
-        "generic11_name=",
-        "generic11_val=",
-        "generic12_name=",
-        "generic12_val=",
-        "generic13_name=",
-        "generic13_val=",
-        "generic14_name=",
-        "generic14_val=",
-        "generic15_name=",
-        "generic15_val=",
-
         "output_dir="
     ]
+
+    for variable_argument in argumentsList:
+        if re.search('--generic.+', variable_argument):
+            allowed_variable_option = str(variable_argument).rsplit("=", 1)
+            allowed_variable_option = str(allowed_variable_option[0] + "=").replace('--', '')
+            longOptions.append(allowed_variable_option)
+
+    print("PY: Arguments long options list: ", longOptions)
 
     # Default values of arguments needed to be passed to this script
     verbose = False
@@ -73,9 +77,6 @@ def main(argv):
 
     proj_name = ""
     proj_dir = ""
-
-    generic_names = []
-    generic_vals = []
 
     output_dir = "./scripts/gui"
 
@@ -104,145 +105,9 @@ def main(argv):
                 print('PY: geometry: ', geometry)
 
 
-
-
             # ----- Constants for generating the file -----
-            # Generic 1
-            elif currentArg in ("--generic1_name"):
-                if currentArgValue != "":
-                    generic_names.append(currentArgValue)
-            elif currentArg in ("--generic1_val"):
-                if currentArgValue != "":
-                    generic_vals.append(currentArgValue)
-
-            # Generic 2
-            elif currentArg in ("--generic2_name"):
-                if currentArgValue != "":
-                    generic_names.append(currentArgValue)
-            elif currentArg in ("--generic2_val"):
-                if currentArgValue != "":
-                    generic_vals.append(currentArgValue)
-
-            # Generic 3
-            elif currentArg in ("--generic3_name"):
-                if currentArgValue != "":
-                    generic_names.append(currentArgValue)
-            elif currentArg in ("--generic3_val"):
-                if currentArgValue != "":
-                    generic_vals.append(currentArgValue)
-
-            # Generic 4
-            elif currentArg in ("--generic4_name"):
-                if currentArgValue != "":
-                    generic_names.append(currentArgValue)
-            elif currentArg in ("--generic4_val"):
-                if currentArgValue != "":
-                    generic_vals.append(currentArgValue)
-
-            # Generic 5
-            elif currentArg in ("--generic5_name"):
-                if currentArgValue != "":
-                    generic_names.append(currentArgValue)
-            elif currentArg in ("--generic5_val"):
-                if currentArgValue != "":
-                    generic_vals.append(currentArgValue)
-
-            # Generic 6
-            elif currentArg in ("--generic6_name"):
-                if currentArgValue != "":
-                    generic_names.append(currentArgValue)
-            elif currentArg in ("--generic6_val"):
-                if currentArgValue != "":
-                    generic_vals.append(currentArgValue)
-
-            # Generic 7
-            elif currentArg in ("--generic7_name"):
-                if currentArgValue != "":
-                    generic_names.append(currentArgValue)
-            elif currentArg in ("--generic7_val"):
-                if currentArgValue != "":
-                    generic_vals.append(currentArgValue)
-
-            # Generic 8
-            elif currentArg in ("--generic8_name"):
-                if currentArgValue != "":
-                    generic_names.append(currentArgValue)
-            elif currentArg in ("--generic8_val"):
-                if currentArgValue != "":
-                    generic_vals.append(currentArgValue)
-
-            # Generic 9
-            elif currentArg in ("--generic9_name"):
-                if currentArgValue != "":
-                    generic_names.append(currentArgValue)
-            elif currentArg in ("--generic9_val"):
-                if currentArgValue != "":
-                    generic_vals.append(currentArgValue)
-
-            # Generic 10
-            elif currentArg in ("--generic10_name"):
-                if currentArgValue != "":
-                    generic_names.append(currentArgValue)
-            elif currentArg in ("--generic10_val"):
-                if currentArgValue != "":
-                    generic_vals.append(currentArgValue)
-
-            # Generic 11
-            elif currentArg in ("--generic11_name"):
-                if currentArgValue != "":
-                    generic_names.append(currentArgValue)
-            elif currentArg in ("--generic11_val"):
-                if currentArgValue != "":
-                    generic_vals.append(currentArgValue)
-
-            # Generic 12
-            elif currentArg in ("--generic12_name"):
-                if currentArgValue != "":
-                    generic_names.append(currentArgValue)
-            elif currentArg in ("--generic12_val"):
-                if currentArgValue != "":
-                    generic_vals.append(currentArgValue)
-
-            # Generic 13
-            elif currentArg in ("--generic13_name"):
-                if currentArgValue != "":
-                    generic_names.append(currentArgValue)
-            elif currentArg in ("--generic13_val"):
-                if currentArgValue != "":
-                    generic_vals.append(currentArgValue)
-
-            # Generic 14
-            elif currentArg in ("--generic14_name"):
-                if currentArgValue != "":
-                    generic_names.append(currentArgValue)
-            elif currentArg in ("--generic14_val"):
-                if currentArgValue != "":
-                    generic_vals.append(currentArgValue)
-
-            # Generic 15
-            elif currentArg in ("--generic15_name"):
-                if currentArgValue != "":
-                    generic_names.append(currentArgValue)
-            elif currentArg in ("--generic15_val"):
-                if currentArgValue != "":
-                    generic_vals.append(currentArgValue)
-
-
-            # ----- Project name, Working and Output Directories -----
-            # Get project name
-            elif currentArg in ("--proj_name"):
-                proj_name = str(currentArgValue)
-                print('PY: proj_name: ', proj_name)
-
-            # Get current root directory
-            elif currentArg in ("--proj_dir"):
-                proj_dir = str(currentArgValue)
-                print('PY: Project root directory: ', proj_dir)
-
-            # Get desired output directory
-            elif currentArg in ("--output_dir"):
-                output_dir = str(currentArgValue)
-                print('PY: Output directory: ', output_dir)
+            # All Generics
+            get_arg_generic(currentArg, currentArgValue)
 
 
 
