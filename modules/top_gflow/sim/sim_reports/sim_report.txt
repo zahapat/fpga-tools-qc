@@ -1,12 +1,12 @@
 
-SIMULATION REPORT          Generated on Sat Nov 04 21:11:50 2023
+SIMULATION REPORT          Generated on Thu May 23 12:25:27 2024
 
 
 Design simulated: C:/Git/zahapat/fpga-tools-qc/simulator/vivado_precompiled_ver/unisim.glbl_vhd(glbl_vhd_v) C:/Git/zahapat/fpga-tools-qc/simulator/xil_iplib_verilog.glbl C:/Git/zahapat/fpga-tools-qc/simulator/lib_sim.top_gflow_tb(sim)
-Number of signals/nets in design: 6366328
-Number of processes in design: 4694
-Number of instances from user libraries in design: 330
-Number of executable statements in design: 116883
+Number of signals/nets in design: 6367089
+Number of processes in design: 4695
+Number of instances from user libraries in design: 332
+Number of executable statements in design: 117430
 
 Simulator Parameters:
 
@@ -122,6 +122,11 @@ List of Design units used:
     Source File: C:/Git/zahapat/fpga-tools-qc/packages/osvvm/NamePkg.vhd
     Occurrences: 1
 
+    Package Body: essentials_tb
+    Library: C:/Git/zahapat/fpga-tools-qc/simulator/lib_sim
+    Source File: C:/Git/zahapat/fpga-tools-qc/packages/global_sim/essentials_tb.vhd
+    Occurrences: 1
+
     Package Body: types_pack_tb
     Library: C:/Git/zahapat/fpga-tools-qc/simulator/lib_sim
     Source File: C:/Git/zahapat/fpga-tools-qc/packages/global_sim/types_pack_tb.vhd
@@ -232,6 +237,11 @@ List of Design units used:
     Package Body: types_pack
     Library: C:/Git/zahapat/fpga-tools-qc/simulator/lib_src
     Source File: C:/Git/zahapat/fpga-tools-qc/packages/global_src/types_pack.vhd
+    Occurrences: 1
+
+    Package Body: generics
+    Library: C:/Git/zahapat/fpga-tools-qc/simulator/lib_src
+    Source File: C:/Git/zahapat/fpga-tools-qc/packages/global_src/generics.vhd
     Occurrences: 1
 
     Package Body: const_pack

@@ -122,6 +122,7 @@ proc parse_file_and_find_best_common_pattern {find_pattern path_to_ip_src} {
 
     # Detect partial match on the detected line using wildcards based on the best match 'common_sequence_best'
     # Split on spaces, extract the missing src to be added
+    puts "line_matched_best = $line_matched_best"
     set line_matched_best [split $line_matched_best " "]
     foreach splitted_line $line_matched_best {
         if {[string match "$common_sequence_best*" $splitted_line]} {
