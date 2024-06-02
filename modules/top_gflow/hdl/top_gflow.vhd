@@ -225,6 +225,7 @@
         signal sl_math_data_valid       : std_logic := '0';
 
         signal slv_out_1MHz_pulses      : std_logic_vector(1 downto 0) := (others => '0');       
+        signal pcd_pulse                : std_logic_vector(0 downto 0) := (others => '0');
 
         -- Data buffers from G-Flow protocol module
         signal slv_qubit_buffer_2d      : t_qubit_buffer_2d;
@@ -871,6 +872,20 @@
         );
 
 
+        -- PCD Trigger logic delay
+        isnt_reg_delay : entity lib_src.reg_delay(rtl)
+        generic map (
+            RST_VAL => RST_VAL,
+            DATA_WIDTH => 1,
+            DELAY_CYCLES => 0
+        )
+        port map (
+            clk    => sys_clk,
+            i_data => slv_out_1MHz_pulses(1 downto 1),
+            o_data => pcd_pulse
+        );
+
+
         -- Xilinx OBUFs
         inst_xilinx_obufs : entity lib_src.xilinx_obufs(rtl)
         generic map (
@@ -878,7 +893,7 @@
         )
         port map (
             clk      => sys_clk,
-            data_in  => slv_out_1MHz_pulses(1 downto 1),
+            data_in  => pcd_pulse,
             data_out => output_pads
         );
 

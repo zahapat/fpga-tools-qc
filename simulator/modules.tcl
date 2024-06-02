@@ -13,6 +13,8 @@
 ./modules/alu_gflow/hdl/alu_gflow.vhd
 ./modules/pulse_gen/sim/pulse_gen_tb.vhd
 ./modules/pulse_gen/hdl/pulse_gen.vhd
+./modules/reg_delay/sim/reg_delay_tb.vhd
+./modules/reg_delay/hdl/reg_delay.vhd
 ./modules/xilinx_obufs/hdl/xilinx_obufs.vhd
 ./modules/nff_cdcc/sim/nff_cdcc_tb.vhd
 ./modules/nff_cdcc/hdl/nff_cdcc.vhd
