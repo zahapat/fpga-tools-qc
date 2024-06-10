@@ -19,14 +19,13 @@
 
         -- Generics
         constant RST_VAL                 : std_logic := '1';
-        constant PCD_DELAY_US            : natural := 1;           -- Duration of the pulse from PC in usec
+        constant CTRL_PULSE_DUR_WITH_DEADTIME_NS : natural := 150; -- Duration of the output PCD control pulse in ns (e.g. 100 ns high, 50 ns deadtime = 150 ns)
+
+        constant SAMPL_CLK_HZ            : real := 250.0e6;
 
         constant QUBITS_CNT              : natural := 4;
-        -- constant QUBITS_CNT              : natural := 6;
-        -- constant QUBITS_CNT              : natural := 8;
-
-        constant TOTAL_DELAY_FPGA_BEFORE : natural := 0;           -- delay before (clock cycles) this module + delay after this module
-        constant TOTAL_DELAY_FPGA_AFTER  : natural := 0;           -- delay before (clock cycles) + delay after
+        constant TOTAL_STATIC_DELAY_FPGA_BEFORE  : natural := 0;
+        constant TOTAL_DELAY_FPGA_AFTER  : natural := 0;
         constant PHOTON_1H_DELAY_NS      : real := 75.65;
         constant PHOTON_1V_DELAY_NS      : real := 75.01;       -- no delay
         constant PHOTON_2H_DELAY_NS      : real := -2117.95;    -- negative number = delay
@@ -39,18 +38,15 @@
         constant PHOTON_5V_DELAY_NS      : real := -3181.05;
         constant PHOTON_6H_DELAY_NS      : real := -3177.95;
         constant PHOTON_6V_DELAY_NS      : real := -3181.05;
-        constant PHOTON_7H_DELAY_NS      : real := -3177.95;
-        constant PHOTON_7V_DELAY_NS      : real := -3181.05;
-        constant PHOTON_8H_DELAY_NS      : real := -3177.95;
-        constant PHOTON_8V_DELAY_NS      : real := -3181.05;
+        constant DISCARD_QUBITS_TIME_NS  : natural := 0;
         
 
         -- CLK of the FPGA
-        constant CLK_HZ                : natural := 100e6;
+        constant CLK_HZ                : real := 100.0e6;
         constant CLK_PERIOD            : time := 1 sec / CLK_HZ;
 
         -- Emulation of the Qubit refresh rate on input
-        constant QUBIT_REFRESH_FREQ_HZ   : natural := 78e6;        -- New qubits refreshed with this frequency
+        constant QUBIT_REFRESH_FREQ_HZ   : natural := 80e6;        -- New qubits refreshed with this frequency
         constant CLK_NEW_QUBIT_PERIOD  : time := 1 sec / QUBIT_REFRESH_FREQ_HZ;
         signal CLK_NEW_QUBIT           : std_logic := '1';
 
@@ -65,7 +61,6 @@
         signal gflow_success_done : std_logic := '0';
         signal qubit_buffer : t_qubit_buffer_2d := (others => (others => '0'));
         signal time_stamp_buffer : t_time_stamp_buffer_2d := (others => (others => '0'));
-        signal time_stamp_buffer_overflows : t_time_stamp_buffer_overflows_2d := (others => (others => '0'));
         signal alpha_buffer : t_alpha_buffer_2d := (others => (others => '0'));
         signal to_math_alpha : std_logic_vector(1 downto 0) := (others => '0');
         signal to_math_sx_xz : std_logic_vector(1 downto 0) := (others => '0');
@@ -74,6 +69,7 @@
         signal actual_qubit_time_stamp : std_logic_vector(st_transaction_data_max_width);
         signal time_stamp_counter_overflow : std_logic := '0';
         signal state_gflow : natural range 0 to QUBITS_CNT-1;
+        signal pcd_ctrl_pulse_ready : std_logic := '1';
 
         -- Number od random inputs INST_B
         constant MAX_RANDOM_NUMBS : natural := 300;
@@ -108,11 +104,9 @@
             end if;
         end function;
 
-        type t_periods_q_2d is array (8-1 downto 0) of real; 
-        -- indices: 3, 2, 1, 0
+        -- MAX 6 QUBITS
+        type t_periods_q_2d is array (6-1 downto 0) of real; 
         constant MAX_PERIODS_Q : t_periods_q_2d := (
-            get_slowest_photon_delay(PHOTON_8H_DELAY_NS, PHOTON_8V_DELAY_NS), -- i7
-            get_slowest_photon_delay(PHOTON_7H_DELAY_NS, PHOTON_7V_DELAY_NS), -- i6
             get_slowest_photon_delay(PHOTON_6H_DELAY_NS, PHOTON_6V_DELAY_NS), -- i5
             get_slowest_photon_delay(PHOTON_5H_DELAY_NS, PHOTON_5V_DELAY_NS), -- i4
             get_slowest_photon_delay(PHOTON_4H_DELAY_NS, PHOTON_4V_DELAY_NS), -- i3
@@ -132,10 +126,9 @@
         generic map (
             RST_VAL                 => RST_VAL,
             CLK_HZ                  => CLK_HZ,
-            PCD_DELAY_US            => PCD_DELAY_US,
+            SAMPL_CLK_HZ            => SAMPL_CLK_HZ,
+            CTRL_PULSE_DUR_WITH_DEADTIME_NS => CTRL_PULSE_DUR_WITH_DEADTIME_NS,
             QUBITS_CNT              => QUBITS_CNT,
-            TOTAL_DELAY_FPGA_BEFORE => TOTAL_DELAY_FPGA_BEFORE,
-            TOTAL_DELAY_FPGA_AFTER  => TOTAL_DELAY_FPGA_AFTER,
             PHOTON_1H_DELAY_NS      => PHOTON_1H_DELAY_NS,
             PHOTON_1V_DELAY_NS      => PHOTON_1V_DELAY_NS,
             PHOTON_2H_DELAY_NS      => PHOTON_2H_DELAY_NS,
@@ -148,8 +141,7 @@
             PHOTON_5V_DELAY_NS      => PHOTON_5V_DELAY_NS,
             PHOTON_6H_DELAY_NS      => PHOTON_6H_DELAY_NS,
             PHOTON_6V_DELAY_NS      => PHOTON_6V_DELAY_NS,
-            PHOTON_7V_DELAY_NS      => PHOTON_7V_DELAY_NS,
-            PHOTON_8V_DELAY_NS      => PHOTON_8V_DELAY_NS
+            DISCARD_QUBITS_TIME_NS  => DISCARD_QUBITS_TIME_NS
         )
         port map (
             clk => clk,
@@ -165,7 +157,6 @@
             gflow_success_done => gflow_success_done,
             qubit_buffer => qubit_buffer,
             time_stamp_buffer => time_stamp_buffer,
-            time_stamp_buffer_overflows => time_stamp_buffer_overflows,
             alpha_buffer => alpha_buffer,
 
             to_math_alpha => to_math_alpha,
@@ -175,8 +166,12 @@
             actual_qubit_time_stamp => actual_qubit_time_stamp,
             state_gflow => state_gflow,
 
-            time_stamp_counter_overflow => time_stamp_counter_overflow
+            time_stamp_counter_overflow => time_stamp_counter_overflow,
+            pcd_ctrl_pulse_ready => pcd_ctrl_pulse_ready
         );
+
+
+        -- Proc Cluster State Transmitter
 
 
         -- Sequencer
@@ -248,8 +243,8 @@
 
             -- FSM in state 2 -> 3
             wait for (MAX_PERIODS_Q(1))*1 ns;
-            if (TOTAL_DELAY_FPGA_AFTER+TOTAL_DELAY_FPGA_BEFORE /= 0) then
-                for i in 0 to TOTAL_DELAY_FPGA_AFTER+TOTAL_DELAY_FPGA_BEFORE loop
+            if (TOTAL_DELAY_FPGA_AFTER+TOTAL_STATIC_DELAY_FPGA_BEFORE /= 0) then
+                for i in 0 to TOTAL_DELAY_FPGA_AFTER+TOTAL_STATIC_DELAY_FPGA_BEFORE loop
                     wait until rising_edge(clk);
                 end loop;
             end if;
@@ -262,7 +257,7 @@
 
             -- FSM in state 3 -> 4
             wait for (MAX_PERIODS_Q(2))*1 ns;
-            for i in 0 to TOTAL_DELAY_FPGA_AFTER+TOTAL_DELAY_FPGA_BEFORE loop
+            for i in 0 to TOTAL_DELAY_FPGA_AFTER+TOTAL_STATIC_DELAY_FPGA_BEFORE loop
                 wait until rising_edge(clk);
             end loop;
             qubits_sampled(3 downto 2) <= (others => '1');
@@ -274,8 +269,8 @@
 
             -- FSM in state 4 -> 1
             wait for (MAX_PERIODS_Q(3))*1 ns;
-            if (TOTAL_DELAY_FPGA_AFTER+TOTAL_DELAY_FPGA_BEFORE /= 0) then
-                for i in 0 to TOTAL_DELAY_FPGA_AFTER+TOTAL_DELAY_FPGA_BEFORE loop
+            if (TOTAL_DELAY_FPGA_AFTER+TOTAL_STATIC_DELAY_FPGA_BEFORE /= 0) then
+                for i in 0 to TOTAL_DELAY_FPGA_AFTER+TOTAL_STATIC_DELAY_FPGA_BEFORE loop
                     wait until rising_edge(clk);
                 end loop;
             end if;
@@ -300,8 +295,8 @@
 
             -- FSM in state 2 -> 3
             wait for (MAX_PERIODS_Q(1))*1 ns;
-            if (TOTAL_DELAY_FPGA_AFTER+TOTAL_DELAY_FPGA_BEFORE /= 0) then
-                for i in 0 to TOTAL_DELAY_FPGA_AFTER+TOTAL_DELAY_FPGA_BEFORE loop
+            if (TOTAL_DELAY_FPGA_AFTER+TOTAL_STATIC_DELAY_FPGA_BEFORE /= 0) then
+                for i in 0 to TOTAL_DELAY_FPGA_AFTER+TOTAL_STATIC_DELAY_FPGA_BEFORE loop
                     wait until rising_edge(clk);
                 end loop;
             end if;
@@ -314,8 +309,8 @@
 
             -- FSM in state 3 -> 1
             wait for (MAX_PERIODS_Q(2))*1 ns;
-            if (TOTAL_DELAY_FPGA_AFTER+TOTAL_DELAY_FPGA_BEFORE /= 0) then
-                for i in 0 to TOTAL_DELAY_FPGA_AFTER+TOTAL_DELAY_FPGA_BEFORE loop
+            if (TOTAL_DELAY_FPGA_AFTER+TOTAL_STATIC_DELAY_FPGA_BEFORE /= 0) then
+                for i in 0 to TOTAL_DELAY_FPGA_AFTER+TOTAL_STATIC_DELAY_FPGA_BEFORE loop
                     wait until rising_edge(clk);
                 end loop;
             end if;

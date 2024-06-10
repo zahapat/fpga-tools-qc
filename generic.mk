@@ -34,7 +34,11 @@ GENERIC_ARGS = 	--generic1_name=$(GEN1_NAME)   --generic1_val=$(GEN1_VAL)\
 			    --generic27_name=$(GEN27_NAME) --generic27_val=$(GEN27_VAL)\
 			    --generic28_name=$(GEN28_NAME) --generic28_val=$(GEN28_VAL)\
 			    --generic29_name=$(GEN29_NAME) --generic29_val=$(GEN29_VAL)\
-			    --generic30_name=$(GEN30_NAME) --generic30_val=$(GEN30_VAL)
+			    --generic30_name=$(GEN30_NAME) --generic30_val=$(GEN30_VAL)\
+				--generic31_name=$(GEN31_NAME) --generic30_val=$(GEN31_VAL)\
+				--generic32_name=$(GEN32_NAME) --generic30_val=$(GEN32_VAL)\
+				--generic33_name=$(GEN33_NAME) --generic30_val=$(GEN33_VAL)\
+				--generic34_name=$(GEN34_NAME) --generic30_val=$(GEN34_VAL)
 
 # -------------------------------------------------------------
 #                     MAKEFILE TARGETS

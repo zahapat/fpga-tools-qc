@@ -26,8 +26,8 @@
 
 
         constant CLK_100_HZ : integer := 100e6;
-        -- constant CLK_HZ : integer := 250e6;
-        constant CLK_HZ : integer := 450e6;
+        -- constant CLK_HZ : integer := 300e6;
+        constant CLK_HZ : integer := 250e6;
         constant CLK_PERIOD : time := 1 sec / CLK_HZ;
         constant CLK_NEW_QUBIT_78MHz_HZ : integer := 78e6;
         constant CLK_NEW_QUBIT_78MHz_PERIOD : time := 1 sec / CLK_NEW_QUBIT_78MHz_HZ;
@@ -42,8 +42,7 @@
         constant RST_VAL                   : std_logic := '1';
         constant CHANNELS_CNT              : positive := 2;
         constant BUFFER_DEPTH              : positive := 3;
-        constant ZERO_BITS_CNT             : positive := 2;
-        constant HIGH_BITS_CNT             : positive := 1;
+        constant BUFFER_PATTERN            : positive := 1;
 
         constant CNT_ONEHOT_WIDTH          : positive := 2;  -- to keep a signal high for a long time 1xclk = 10 ns -> 2 x 10ns = 20 ns (does not exceed 32 ns => OK)
 
@@ -55,8 +54,8 @@
         constant REAL_TOLERANCE_SPCM_PULSE_MIN_NS : real := -0.01;
         constant REAL_TOLERANCE_SPCM_PULSE_MAX_NS : real := 0.01;
 
-        constant TOLERANCE_KEEP_FASTER_BIT_CYCLES : natural := 1;
-        constant IGNORE_CYCLES_AFTER_TIMEUP : natural := 3;
+        constant TOLERANCE_KEEP_FASTER_BIT_CYCLES : natural := 0;
+        constant IGNORE_CYCLES_AFTER_TIMEUP : natural := BUFFER_DEPTH+1;
 
         constant PHOTON_1H_DELAY_NS : real := 75.65;          -- no delay = + 0; check every clk
         constant PHOTON_1V_DELAY_NS : real := 75.01;          -- no delay = + 0; check every clk
@@ -66,8 +65,8 @@
         constant PHOTON_3V_DELAY_NS : real := -1034.45;
         constant PHOTON_4H_DELAY_NS : real := -3177.95;
         constant PHOTON_4V_DELAY_NS : real := -3181.05;
-        constant PHOTON_H_DELAY_NS : real := PHOTON_2H_DELAY_NS;          -- no delay = + 0; check every clk
-        constant PHOTON_V_DELAY_NS : real := PHOTON_2V_DELAY_NS;          -- no delay = + 0; check every clk
+        constant PHOTON_H_DELAY_NS : real := PHOTON_3H_DELAY_NS;          -- no delay = + 0; check every clk
+        constant PHOTON_V_DELAY_NS : real := PHOTON_3V_DELAY_NS;          -- no delay = + 0; check every clk
 
         -- IOs
         signal clk : std_logic := '1';
@@ -88,7 +87,7 @@
         signal sl_photon_V_onway : std_logic := '0';
 
         -- Delta time of the arrival of a single photon
-        constant DELTA_ARRIVAL_MIN_NS : real := -0.5;
+        constant DELTA_ARRIVAL_MIN_NS : real := 0.0;
         constant DELTA_ARRIVAL_MAX_NS : real := 0.5;
 
 
@@ -127,8 +126,7 @@
         generic map (
             RST_VAL                   => RST_VAL,
             BUFFER_DEPTH              => BUFFER_DEPTH,
-            ZERO_BITS_CNT             => ZERO_BITS_CNT,
-            HIGH_BITS_CNT             => HIGH_BITS_CNT,
+            BUFFER_PATTERN            => BUFFER_PATTERN,
             CLK_HZ                    => CLK_HZ,
 
             CNT_ONEHOT_WIDTH          => CNT_ONEHOT_WIDTH,
@@ -152,7 +150,7 @@
 
 
         -- Input random number generator, Simulator of the SPCM device
-        proc_detectors_emul_qubit1H : process
+        proc_detectors_emul_qubitH : process
             variable v_rand_slv   : std_logic_vector(1 downto 1) := (others => '0');
             variable seed1, seed2 : integer := 1;
             variable v_rand_real_tolerance_ns : real;
@@ -185,7 +183,7 @@
 
 
         -- Input random number generator, Simulator of the SPCM device
-        proc_detectors_emul_qubit1V : process
+        proc_detectors_emul_qubitV : process
             variable v_rand_slv   : std_logic_vector(0 downto 0) := (others => '0');
             variable seed1, seed2 : integer := 1;
             variable v_rand_real_tolerance_ns : real;
@@ -237,7 +235,7 @@
                 s_qubit_78MHz <= rand_slv(2, seed1, seed2);
                 seed1 := rand_int(1, 2147483647, seed1, seed2);
                 seed2 := rand_int(1, 2147483647, seed1, seed2);
-                seed1 := seed1 + 1; seed2 := seed2 + 1;
+                seed1 := seed1 + 10; seed2 := seed2 + 10;
                 wait until rising_edge(s_clk_new_qubit_78MHz);
             end loop;
         end process;
@@ -337,6 +335,75 @@
         end process;
 
 
+        -- Measure the delay of the received qubit
+        proc_measure_io_delayV : process
+            variable v_time_start_real : real := 0.0;
+            variable v_time_delta_real : real := 0.0;
+            variable v_time_delta_acc_real : real := 0.0;
+            variable v_time_avg_real : real := 0.0;
+            variable v_cntr_real : real := 0.0;
+
+            variable v_time_start : time := 0.0 ns;
+            variable v_time_delta : time := 0.0 ns;
+            variable v_time_delta_acc : time := 0.0 ns;
+            variable v_time_avg : time := 0.0 ns;
+        begin
+            wait for 0 ns;
+            loop
+                wait until rising_edge(noisy_channels_in(0));
+                -- wait until rising_edge(clk);
+                v_time_start_real := real(now / 1 ps) / 1000.0; -- 'now' base time unit is in ps -> convert to ns
+
+                wait until rising_edge(qubit_valid_250MHz);
+                v_time_delta_real := (real(now / 1 ps) / 1000.0) - v_time_start_real; -- 'now' base time unit is in ps -> convert to ns
+                v_cntr_real := v_cntr_real + 1.0;
+                v_time_delta_acc_real := v_time_delta_acc_real + v_time_delta_real;
+                v_time_avg_real := v_time_delta_acc_real / v_cntr_real;
+
+                v_time_start := v_time_start_real * 1 ns;
+                v_time_delta := v_time_delta_real * 1 ns;
+                v_time_avg := v_time_avg_real * 1 ns;
+
+                print_string(
+                    "INFO: noisy_channels_in(V) IO delay transmitted @ time: " & real'image(v_time_start_real) & " is : " & real'image(v_time_delta_real)
+                    & "; average accumulated IO delay: " & real'image(v_time_avg_real));
+            end loop;
+
+        end process;
+
+        proc_measure_io_delayH : process
+            variable v_time_start_real : real := 0.0;
+            variable v_time_delta_real : real := 0.0;
+            variable v_time_delta_acc_real : real := 0.0;
+            variable v_time_avg_real : real := 0.0;
+            variable v_cntr_real : real := 0.0;
+
+            variable v_time_start : time := 0.0 ns;
+            variable v_time_delta : time := 0.0 ns;
+            variable v_time_delta_acc : time := 0.0 ns;
+            variable v_time_avg : time := 0.0 ns;
+        begin
+            loop
+                wait until rising_edge(noisy_channels_in(1));
+                -- wait until rising_edge(clk);
+                v_time_start_real := real(now / 1 ps) / 1000.0; -- 'now' base time unit is in ps -> convert to ns
+
+                wait until rising_edge(qubit_valid_250MHz);
+                v_time_delta_real := (real(now / 1 ps) / 1000.0) - v_time_start_real; -- 'now' base time unit is in ps -> convert to ns
+                v_cntr_real := v_cntr_real + 1.0;
+                v_time_delta_acc_real := v_time_delta_acc_real + v_time_delta_real;
+                v_time_avg_real := v_time_delta_acc_real / v_cntr_real;
+
+                v_time_start := v_time_start_real * 1 ns;
+                v_time_delta := v_time_delta_real * 1 ns;
+                v_time_avg := v_time_avg_real * 1 ns;
+
+                print_string(
+                    "INFO: noisy_channels_in(H) IO delay transmitted @ time: " & real'image(v_time_start_real) & " is : " & real'image(v_time_delta_real)
+                    & "; average accumulated IO delay: " & real'image(v_time_avg_real));
+            end loop;
+
+        end process;
 
 
 

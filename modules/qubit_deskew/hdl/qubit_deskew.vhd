@@ -20,21 +20,18 @@
 
     entity qubit_deskew is
         generic (
-            -- Setup for 100 MHz sampling of 50 MHz pulses
             RST_VAL        : std_logic := '1';
-            BUFFER_DEPTH   : positive := 5;
+            BUFFER_DEPTH   : positive := 3;
             PATTERN_WIDTH  : positive := 3;
             BUFFER_PATTERN : positive := 1;
-            ZERO_BITS_CNT  : positive := 1;
-            HIGH_BITS_CNT  : positive := 2;
             CLK_HZ         : natural := 250e6; -- Should be 2x higher than the input high pulse duration (10ns high pulse dur -> 2.5ns high sample pulse)
 
             CNT_ONEHOT_WIDTH          : positive := 2;  -- = LONG PULSE CLK CYCLES to keep a signal high for a long time 1xclk = 10 ns -> 2 x 10ns = 20 ns (does not exceed 32 ns => OK)
             DETECTOR_ACTIVE_PERIOD_NS : positive := 10;
             DETECTOR_DEAD_PERIOD_NS   : positive := 22;
 
-            TOLERANCE_KEEP_FASTER_BIT_CYCLES : natural := 1;
-            IGNORE_CYCLES_AFTER_TIMEUP       : natural := 2;
+            TOLERANCE_KEEP_FASTER_BIT_CYCLES : natural := 0;
+            IGNORE_CYCLES_AFTER_TIMEUP       : natural := 3; -- should be ~ BUFFER_DEPTH + 1
 
             PHOTON_H_DELAY_NS : real := -3177.95;        -- negative number = + delay
             PHOTON_V_DELAY_NS : real := -3181.05;
@@ -153,7 +150,8 @@
 
 
         -- Ranges for shifters
-        subtype st_shifts_for_slower is natural range CLK_PERIODS_DIFFERENCE_DELAY_Q-1 + 2 + TOLERANCE_KEEP_FASTER_BIT_CYCLES downto 0;
+        -- subtype st_shifts_for_slower is natural range CLK_PERIODS_DIFFERENCE_DELAY_Q-1 + 2 + TOLERANCE_KEEP_FASTER_BIT_CYCLES downto 0;
+        subtype st_shifts_for_slower is natural range CLK_PERIODS_DIFFERENCE_DELAY_Q-1 + TOLERANCE_KEEP_FASTER_BIT_CYCLES downto 0;
 
         -- Buffering detected faster data
         signal s_shiftreg_counter_faster : std_logic_vector(st_shifts_for_slower) := (others => '0');
@@ -169,6 +167,10 @@
 
         signal s_qubit_valid_out : std_logic := '0';
         signal s_stable_channels_oversampled : std_logic_vector(CHANNELS_CNT-1 downto 0) := (others => '0');
+
+        -- Prevent Xs in sim
+        signal sl_qubit_valid_250MHz : std_logic := '0';
+        signal slv_qubit_250MHz : std_logic_vector(qubit_250MHz'range) := (others => '0');
 
 
         -- Ignore slower bits if time for the slower bit is up
@@ -233,12 +235,15 @@
         --   | 0 | 0 | 0 |
 
 
-        -- Use flops for raw data buffering
+        -----------------------
+        -- RISING EDGE LOGIC --
+        -----------------------
+        -- Use flops for raw data buffering (do not use registers)
         all_channels_databuff : for i in 0 to CHANNELS_CNT-1 generate
             channel_databuff : process(clk)
             begin
                 if rising_edge(clk) then
-                    s_flops_databuff_1(i) <= noisy_channels_in(i);  -- Always pass input signal through a FlipFlop
+                    s_flops_databuff_1(i) <= noisy_channels_in(i);  -- Always pass input signal through one of two a flipflops
 
                     s_flops_databuff_2(i) <= s_flops_databuff_1(i);
                     s_flops_databuff_3(i) <= s_flops_databuff_2(i);
@@ -248,16 +253,17 @@
             end process;
         end generate;
 
+
         -- Raw input data buffering
         all_channels_oversample : for i in 0 to CHANNELS_CNT-1 generate
             channel_oversample : process(clk)
             begin
                 if rising_edge(clk) then
-                    s_buff_data(i)(BUFFER_DEPTH-1 downto 0) <= s_buff_data(i)(BUFFER_DEPTH-2 downto 0) & s_flops_databuff_5(i);
+                    -- s_buff_data(i)(BUFFER_DEPTH-1 downto 0) <= s_buff_data(i)(BUFFER_DEPTH-2 downto 0) & s_flops_databuff_5(i); -- Original
+                    s_buff_data(i)(BUFFER_DEPTH-1 downto 0) <= s_buff_data(i)(BUFFER_DEPTH-2 downto 0) & s_flops_databuff_1(i);
                 end if;
             end process;
         end generate;
-
 
 
         -- Detect rising edge on all input channels
@@ -268,7 +274,7 @@
                     -- Defaults
                     s_channels_redge(i) <= '0';
 
-                    -- IF (BUFFER_DEPTH = 3)
+                    -- Search for match pattern
                     if s_buff_data(i)(BUFFER_DEPTH-1 downto BUFFER_DEPTH-PATTERN_WIDTH) = std_logic_vector(to_unsigned(BUFFER_PATTERN, PATTERN_WIDTH)) then
                         s_channels_redge(i) <= '1';
                     end if;
@@ -278,79 +284,42 @@
 
 
 
-        ----- QUBIT DESKEW -----
-        -- Delay: Start shifting faster bit and detect immediately slower bit
-        align_valid_qubit : process(clk)
-        begin
-            if rising_edge(clk) then
-                -- If the faster bit has already arrived
-                if s_channels_redge(2*0 + FASTEST_EXPECTED_BIT_INDEX) = '1' then
-                    s_shiftreg_counter_faster(s_shiftreg_counter_faster'length-1 downto 0) <= std_logic_vector(to_unsigned(1, s_shiftreg_counter_faster'length));
-                else
-                    s_shiftreg_counter_faster(s_shiftreg_counter_faster'length-1 downto 0) <= s_shiftreg_counter_faster(s_shiftreg_counter_faster'length-2 downto 0) & '0';
-                end if;
-
-                -- If the slower bit has already arrived
-                s_slower_q1 <= '0';
-                if s_channels_redge(2*0 + SLOWEST_EXPECTED_BIT_INDEX) = '1' then
-                    s_slower_q1 <= '1';
-                end if;
-            end if;
-        end process;
-
-
-        -- Synchronization: Based on detected data in time, synchronize faster and slower bits
-        output_aligned_qubit : process(clk)
-        begin
-            if rising_edge(clk) then
-                -- If time is up for the next qubit, then it does not matter whether the slow is '1' or '0':
-                --          1   (fast)
-                --          1/0 (slow)
-                -- If detected slow flag first, this means that the slow one is automatically '1' and depends on the content in the shifter of the faster one
-                --          1   (slow)
-                --          1/0 (fast)
-
-                s_aligned_valid_q1_p1 <= s_aligned_valid_q1;
-                s_aligned_valid_q1 <= '0';
-                s_out_aligned_qubits(1 downto 0) <= (others => '0');
-                s_ignore_nextvalid_q1(s_ignore_nextvalid_q1'length-1 downto 0) <= s_ignore_nextvalid_q1(s_ignore_nextvalid_q1'length-2 downto 0) & '0';
-
-                if s_slower_q1 = '1' then 
-                s_aligned_valid_q1 <= '1';
-                    s_out_aligned_qubits(2*0 + SLOWEST_EXPECTED_BIT_INDEX) <= s_slower_q1;
-                    s_ignore_nextvalid_q1 <= std_logic_vector(to_unsigned(1, s_ignore_nextvalid_q1'length));
-
-                    if s_shiftreg_counter_faster(s_shiftreg_counter_faster'range) /= std_logic_vector(to_unsigned(0, s_shiftreg_counter_faster'length)) then
-                        s_out_aligned_qubits(2*0 + FASTEST_EXPECTED_BIT_INDEX) <= '1';
-                    end if;
-                else
-                    if s_shiftreg_counter_faster(s_shiftreg_counter_faster'length-1) = '1' then
-                        s_aligned_valid_q1 <= '1';
-                        s_out_aligned_qubits(2*0 + FASTEST_EXPECTED_BIT_INDEX) <= '1';
+        --------------------------------
+        -- INPUT FILTERING & DESKEW  --
+        --------------------------------
+        qubit_250MHz <= slv_qubit_250MHz;
+        qubit_valid_250MHz <= sl_qubit_valid_250MHz;
+        gen_if_photons_diff_delays : if PHOTON_H_DELAY_NS /= PHOTON_V_DELAY_NS generate
+            -- Delay: Start shifting faster bit and detect immediately slower bit
+            align_valid_qubit : process(clk)
+            begin
+                if rising_edge(clk) then
+                    -- If the faster bit has already arrived
+                    if s_channels_redge(2*0 + FASTEST_EXPECTED_BIT_INDEX) = '1' then
+                        s_shiftreg_counter_faster(s_shiftreg_counter_faster'length-1 downto 0) <= std_logic_vector(to_unsigned(1, s_shiftreg_counter_faster'length));
+                    else
+                        s_shiftreg_counter_faster(s_shiftreg_counter_faster'length-1 downto 0) <= s_shiftreg_counter_faster(s_shiftreg_counter_faster'length-2 downto 0) & '0';
                     end if;
                 end if;
-            end if;
-        end process;
+            end process;
 
+            -- EXPERIMENTAL
+            -- Synchronization: Based on detected data in time, synchronize faster and slower bits
+            -- Note: It is expected that qubit_valid_250MHz will be asserted for two consecutive clock cycles
+            --       (with valid qubit_250MHz H/V click) in case the system clock is not phase locked
+            output_deskew_photons : process(clk)
+            begin
+                if rising_edge(clk) then
+                    sl_qubit_valid_250MHz <= s_shiftreg_counter_faster(s_shiftreg_counter_faster'length-1) or s_channels_redge(2*0 + SLOWEST_EXPECTED_BIT_INDEX);
+                    slv_qubit_250MHz <= (s_shiftreg_counter_faster(s_shiftreg_counter_faster'length-1) & s_channels_redge(2*0 + SLOWEST_EXPECTED_BIT_INDEX));
+                end if;
+            end process;
+        end generate;
 
-        -- Filter out invalid aligned remaining aligned data
-        qubit_valid_250MHz <= s_qubit_valid_out;
-        qubit_250MHz(1 downto 0) <= s_stable_channels_oversampled(1 downto 0);
-        output_synch_channel : process(clk)
-        begin
-            if rising_edge(clk) then
-                s_stable_channels_oversampled(1 downto 0) <= (others => '0');
-                    s_qubit_valid_out <= '0';
-                    if s_aligned_valid_q1 = '1' and s_aligned_valid_q1_p1 = '0' then
-                        if s_ignore_nextvalid_q1(s_ignore_nextvalid_q1'length-1 downto 1) = std_logic_vector(to_unsigned(0, s_ignore_nextvalid_q1'length-1)) then
-                            s_stable_channels_oversampled(1 downto 0) <= s_out_aligned_qubits(1 downto 0);
-
-                            s_qubit_valid_out <= '1';
-                            
-                        end if;
-                    end if;
-            end if;
-        end process;
+        gen_if_photons_equal_delays : if PHOTON_H_DELAY_NS = PHOTON_V_DELAY_NS generate
+            sl_qubit_valid_250MHz <= s_channels_redge(0) or s_channels_redge(1);
+            slv_qubit_250MHz <= s_channels_redge;
+        end generate;
 
 
     end architecture;

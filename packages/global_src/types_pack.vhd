@@ -19,7 +19,7 @@ package types_pack is
 
 
     -- Buffers From Math Module
-    type t_random_buffer_2d is array(MAX_QUBITS_CNT-1 downto 0) of std_logic;
+    type t_random_buffer_2d is array(MAX_QUBITS_CNT-1 downto 0) of std_logic_vector(0 downto 0);
     type t_modulo_buffer_2d is array(MAX_QUBITS_CNT-1 downto 0) of std_logic_vector(2-1 downto 0);
 
 end package;

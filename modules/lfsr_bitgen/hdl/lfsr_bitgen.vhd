@@ -45,44 +45,34 @@
         proc_gf_counter : process (CLK)
         begin
             if rising_edge(CLK) then
-                if RST = RST_VAL then
-                    s_prev_rand_feedback <= std_logic_vector(to_unsigned(GF_SEED, SYMBOL_WIDTH));
-                    s_reg_act_rand_number <= std_logic_vector(to_unsigned(GF_SEED, SYMBOL_WIDTH));
-                    s_cnt_wait_symbol <= 0;
-                    sample_symbol_flag <= '0';
-                    sample_symbol_flag_p1 <= '0';
-                else
+                -- Default value
+                sample_symbol_flag <= '0';
 
-                    -- Default value
-                    sample_symbol_flag <= '0';
+                -- For rising_edge detection
+                sample_symbol_flag_p1 <= '0';
 
-                    -- For rising_edge detection
-                    sample_symbol_flag_p1 <= '0';
-
-                    -- Generate new pseudorandom number in the middle of the counting to minimise metastability
-                    if s_cnt_wait_symbol = SYMBOL_WIDTH/2 then
-                        -- Galois Counter
-                        if s_prev_rand_feedback(SYMBOL_WIDTH-1) = '1' then
-                            s_reg_act_rand_number(SYMBOL_WIDTH-1 downto 0) <= s_prev_rand_feedback(SYMBOL_WIDTH-2 downto 0) & '0' xor PRIM_POL_BIT_VAL(SYMBOL_WIDTH-1 downto 0);
-                        else
-                            s_reg_act_rand_number(SYMBOL_WIDTH-1 downto 0) <= s_prev_rand_feedback(SYMBOL_WIDTH-2 downto 0) & '0';
-                        end if;
-                    end if;
-
-                    if s_cnt_wait_symbol = SYMBOL_WIDTH-1 then
-
-                        -- Reset cnt
-                        s_cnt_wait_symbol <= 0;
-
-                        -- Refresh new data
-                        s_prev_rand_feedback <= s_reg_act_rand_number;
-
-                        -- Command to sample the new symbol
-                        sample_symbol_flag <= '1';
+                -- Generate new pseudorandom number in the middle of the counting to minimise metastability
+                if s_cnt_wait_symbol = SYMBOL_WIDTH/2 then
+                    -- Galois Counter
+                    if s_prev_rand_feedback(SYMBOL_WIDTH-1) = '1' then
+                        s_reg_act_rand_number(SYMBOL_WIDTH-1 downto 0) <= s_prev_rand_feedback(SYMBOL_WIDTH-2 downto 0) & '0' xor PRIM_POL_BIT_VAL(SYMBOL_WIDTH-1 downto 0);
                     else
-                        s_cnt_wait_symbol <= s_cnt_wait_symbol + 1;
+                        s_reg_act_rand_number(SYMBOL_WIDTH-1 downto 0) <= s_prev_rand_feedback(SYMBOL_WIDTH-2 downto 0) & '0';
                     end if;
+                end if;
 
+                if s_cnt_wait_symbol = SYMBOL_WIDTH-1 then
+
+                    -- Reset cnt
+                    s_cnt_wait_symbol <= 0;
+
+                    -- Refresh new data
+                    s_prev_rand_feedback <= s_reg_act_rand_number;
+
+                    -- Command to sample the new symbol
+                    sample_symbol_flag <= '1';
+                else
+                    s_cnt_wait_symbol <= s_cnt_wait_symbol + 1;
                 end if;
             end if;
         end process;
@@ -91,16 +81,12 @@
         shift_only_bits_out : process(CLK)
         begin
             if rising_edge(CLK) then
-                if RST = RST_VAL then
-                    s_shift_symbol <= std_logic_vector(to_unsigned(GF_SEED, SYMBOL_WIDTH));
+                if (sample_symbol_flag = '1') and (sample_symbol_flag_p1 = '0') then
+                    -- Sample new symbol
+                    s_shift_symbol <= s_reg_act_rand_number;
                 else
-                    if (sample_symbol_flag = '1') and (sample_symbol_flag_p1 = '0') then
-                        -- Sample new symbol
-                        s_shift_symbol <= s_reg_act_rand_number;
-                    else
-                        -- Fill out the symbol data every cycle
-                        s_shift_symbol(s_shift_symbol'high downto 0) <= s_shift_symbol(s_shift_symbol'high-1 downto 0) & '0';
-                    end if;
+                    -- Fill out the symbol data every cycle
+                    s_shift_symbol(s_shift_symbol'high downto 0) <= s_shift_symbol(s_shift_symbol'high-1 downto 0) & '0';
                 end if;
             end if;
         end process;

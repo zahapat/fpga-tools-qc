@@ -17,20 +17,19 @@ add_sim_file ./modules/top_gflow/sim/top_gflow_tb.vhd
 # -------------------------------------------------------
 # 1.0) Add SRC Package Files
 # -------------------------------------------------------
-#    * Vivado
 #    * ModelSim
+#    * Vivado
 
 
 # -------------------------------------------------------
 # 1.1) Add SRC HDL Files
 # -------------------------------------------------------
-#    * Vivado
-add_src_file lib_src ./modules/top_gflow/hdl/top_gflow_ok_wrapper.vhd
-add_src_file lib_src ./modules/top_gflow/hdl/top_gflow.vhd
-
 #    * ModelSim
 add_sim_file ./modules/top_gflow/hdl/top_gflow.vhd
 
+#    * Vivado
+add_src_file lib_src ./modules/top_gflow/hdl/top_gflow_ok_wrapper.vhd
+add_src_file lib_src ./modules/top_gflow/hdl/top_gflow.vhd
 
 
 # -------------------------------------------------------------------------------

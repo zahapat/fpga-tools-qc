@@ -40,8 +40,8 @@
         signal sl_data_valid : std_logic := '0';
 
         -- Gflow state indicating the actual qubit state being processed
-        signal natural_state_gflow : natural range 0 to QUBITS_CNT-1;
-        signal natural_state_gflow_p1 : natural range 0 to QUBITS_CNT-1;
+        signal natural_state_gflow : natural range 0 to QUBITS_CNT-1 := 0;
+        signal natural_state_gflow_p1 : natural range 0 to QUBITS_CNT-1 := 0;
 
         -- Delay alpha_positive
         signal sl_alpha_positive_p1 : std_logic_vector(ALPHA_POSITIVE'high downto 0) := (others => '0');
@@ -64,15 +64,18 @@
         constant AUX_BITS_CORRECTION : signed(s_modulo'range) := (others => '0');
 
         -- Data Buffer
-        signal slv_random_buffer_2d : t_random_buffer_2d := (others => '0');
+        signal slv_random_buffer_2d : t_random_buffer_2d := (others => (others => '0'));
         signal slv_modulo_buffer_2d : t_modulo_buffer_2d := (others => (others => '0'));
 
+        -- Change type from sl to slv
+        signal slv_random : std_logic_vector(0 downto 0) := (others => '0');
 
     begin
 
 
         -- Sample the random bit on signal valid and stor it to the respective buffer
         RANDOM_BUFFER <= slv_random_buffer_2d;
+        slv_random(0) <= RAND_BIT;
         proc_sample_random : process(CLK)
         begin
             if rising_edge(CLK) then
@@ -84,7 +87,7 @@
                     -- Using comparators, assign the value to the respective data slot
                     for i in 0 to QUBITS_CNT-1 loop
                         if i = STATE_QUBIT then
-                            slv_random_buffer_2d(i) <= RAND_BIT;
+                            slv_random_buffer_2d(i) <= slv_random;
                         end if;
                     end loop;
                 end if;
@@ -98,45 +101,36 @@
             proc_math_block_1 : process(CLK)
             begin
                 if rising_edge(CLK) then
-                    if RST = RST_VAL then
-                        sl_valid_factors <= '0';
-                        sl_alpha_positive_p1 <= (others => '0');
-                        s_alpha_multiplied_signed <= (others => '0');
-                        s_added_random_multiplied_unsigned <= (others => '0');
+                    -- Pass valid signal synchronously
+                    sl_valid_factors <= QUBIT_VALID;
+                    natural_state_gflow <= STATE_QUBIT;
+
+                    -- Delay signal ALPHA_POSITIVE
+                    sl_alpha_positive_p1 <= ALPHA_POSITIVE;
+
+                    -- Power -1^S_X (MSB is 1 for any negative signed number)
+                    if ALPHA_POSITIVE = "00" then
+                        -- zero is only one for signed numbers: 000
+                        s_alpha_multiplied_signed <= '0' & ALPHA_POSITIVE;
                     else
-
-                        -- Pass valid signal synchronously
-                        sl_valid_factors <= QUBIT_VALID;
-                        natural_state_gflow <= STATE_QUBIT;
-
-                        -- Delay signal ALPHA_POSITIVE
-                        sl_alpha_positive_p1 <= ALPHA_POSITIVE;
-
-                        -- Power -1^S_X (MSB is 1 for any negative signed number)
-                        if ALPHA_POSITIVE = "00" then
-                            -- zero is only one for signed numbers: 000
-                            s_alpha_multiplied_signed <= '0' & ALPHA_POSITIVE;
+                        if S_X = '0' then
+                            -- signed value of positive number alpha
+                            s_alpha_multiplied_signed <= S_X & ALPHA_POSITIVE;
                         else
-                            if S_X = '0' then
-                                -- signed value of positive number alpha
-                                s_alpha_multiplied_signed <= S_X & ALPHA_POSITIVE;
-                            else
-                                -- find negative representation of number alpha
-                                s_alpha_multiplied_signed <= S_X & ALPHA_NEGATIVE(to_integer(unsigned(ALPHA_POSITIVE)));     -- simplified
-                            end if;
+                            -- find negative representation of number alpha
+                            s_alpha_multiplied_signed <= S_X & ALPHA_NEGATIVE(to_integer(unsigned(ALPHA_POSITIVE)));     -- simplified
                         end if;
+                    end if;
 
-                        -- Add S_Z + RAND_BIT (The result is always positive)
-                        if RAND_BIT = '1' then
-                            if S_Z = '1' then                       -- 01 or 10
-                                s_added_random_multiplied_unsigned <= "10" & '0';   -- Simplified
-                            else 
-                                s_added_random_multiplied_unsigned <= "01" & '0';   -- Simplified
-                            end if;
-                        else
-                            s_added_random_multiplied_unsigned <= '0' & S_Z & '0';  -- Simplified
+                    -- Add S_Z + RAND_BIT (The result is always positive)
+                    if RAND_BIT = '1' then
+                        if S_Z = '1' then                       -- 01 or 10
+                            s_added_random_multiplied_unsigned <= "10" & '0';   -- Simplified
+                        else 
+                            s_added_random_multiplied_unsigned <= "01" & '0';   -- Simplified
                         end if;
-
+                    else
+                        s_added_random_multiplied_unsigned <= '0' & S_Z & '0';  -- Simplified
                     end if;
                 end if;
             end process;
@@ -190,21 +184,15 @@
         proc_math_block_2 : process(CLK)
         begin
             if rising_edge(CLK) then
-                if RST = RST_VAL then
-                    sl_data_valid <= '0';
-                    sl_alpha_positive_p2 <= (others => '0');
-                    s_modulo <= (others => '0');
-                else
-                    -- Send data valid after signal successfully propagated the module
-                    sl_data_valid <= sl_valid_factors;
-                    natural_state_gflow_p1 <= natural_state_gflow;
+                -- Send data valid after signal successfully propagated the module
+                sl_data_valid <= sl_valid_factors;
+                natural_state_gflow_p1 <= natural_state_gflow;
 
-                    -- Delay signal ALPHA_POSITIVE
-                    sl_alpha_positive_p2 <= sl_alpha_positive_p1;
+                -- Delay signal ALPHA_POSITIVE
+                sl_alpha_positive_p2 <= sl_alpha_positive_p1;
 
-                    -- Calculate the Modulo                                     3 bits signed (2 magnitude bits)          4 bits signed positive (3 magnitude bits)
-                    s_modulo <= std_logic_vector(signed(AUX_BITS_CORRECTION + signed(s_alpha_multiplied_signed)) + signed('0' & s_added_random_multiplied_unsigned));
-                end if;
+                -- Calculate the Modulo                                     3 bits signed (2 magnitude bits)          4 bits signed positive (3 magnitude bits)
+                s_modulo <= std_logic_vector(signed(AUX_BITS_CORRECTION + signed(s_alpha_multiplied_signed)) + signed('0' & s_added_random_multiplied_unsigned));
             end if;
         end process;
 
@@ -218,18 +206,13 @@
         proc_sample_modulo : process(CLK)
         begin
             if rising_edge(CLK) then
-                if RST = RST_VAL then
-                    slv_modulo_buffer_2d <= (others => (others => '0'));
-
-                else
-                    if sl_data_valid = '1' then
-                        -- Using comparators, assign the value to the respective data slot
-                        for i in 0 to QUBITS_CNT-1 loop
-                            if i = natural_state_gflow_p1 then
-                                slv_modulo_buffer_2d(i) <= s_modulo(1 downto 0);
-                            end if;
-                        end loop;
-                    end if;
+                if sl_data_valid = '1' then
+                    -- Using comparators, assign the value to the respective data slot
+                    for i in 0 to QUBITS_CNT-1 loop
+                        if i = natural_state_gflow_p1 then
+                            slv_modulo_buffer_2d(i) <= s_modulo(1 downto 0);
+                        end if;
+                    end loop;
                 end if;
             end if;
         end process;

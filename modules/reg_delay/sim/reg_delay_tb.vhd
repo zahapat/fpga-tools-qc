@@ -22,7 +22,8 @@
         -- Generics
         constant RST_VAL : std_logic := '1';
         constant DATA_WIDTH : positive := 10;
-        constant DELAY_CYCLES : natural := 12;
+        constant DELAY_CYCLES : natural := 12; -- If you specify DELAY_CYCLES (is greater than zero), then DELAY_NS value will be ignored
+        constant DELAY_NS : natural := 2;      -- This value should be a multiple of clock period for precise results
 
         -- Signals
         signal clk : std_logic := '1';
@@ -53,7 +54,8 @@
         generic map (
             RST_VAL => RST_VAL,
             DATA_WIDTH => DATA_WIDTH,
-            DELAY_CYCLES => DELAY_CYCLES
+            DELAY_CYCLES => DELAY_CYCLES,
+            DELAY_NS => DELAY_NS
         )
         port map (
             clk    => clk,

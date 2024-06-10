@@ -1,12 +1,12 @@
 
-SIMULATION REPORT          Generated on Mon Jun 03 01:09:58 2024
+SIMULATION REPORT          Generated on Tue Jun 11 00:34:43 2024
 
 
 Design simulated: C:/Git/zahapat/fpga-tools-qc/simulator/vivado_precompiled_ver/unisim.glbl_vhd(glbl_vhd_v) C:/Git/zahapat/fpga-tools-qc/simulator/xil_iplib_verilog.glbl C:/Git/zahapat/fpga-tools-qc/simulator/lib_sim.top_gflow_tb(sim)
-Number of signals/nets in design: 6367091
-Number of processes in design: 4697
-Number of instances from user libraries in design: 334
-Number of executable statements in design: 117487
+Number of signals/nets in design: 6368437
+Number of processes in design: 4784
+Number of instances from user libraries in design: 354
+Number of executable statements in design: 119447
 
 Simulator Parameters:
 
@@ -380,13 +380,13 @@ List of Design units used:
     Architecture: rtl
     Library: C:/Git/zahapat/fpga-tools-qc/simulator/lib_src
     Source File: C:/Git/zahapat/fpga-tools-qc/modules/qubit_deskew/hdl/qubit_deskew.vhd
-    Occurrences: 8
+    Occurrences: 6
 
     Entity: nff_cdcc , acc : <novopt>
     Architecture: rtl
     Library: C:/Git/zahapat/fpga-tools-qc/simulator/lib_src
     Source File: C:/Git/zahapat/fpga-tools-qc/modules/nff_cdcc/hdl/nff_cdcc.vhd
-    Occurrences: 8
+    Occurrences: 29
 
     Entity: fsm_gflow , acc : <novopt>
     Architecture: rtl
@@ -416,7 +416,7 @@ List of Design units used:
     Architecture: rtl
     Library: C:/Git/zahapat/fpga-tools-qc/simulator/lib_src
     Source File: C:/Git/zahapat/fpga-tools-qc/modules/reg_delay/hdl/reg_delay.vhd
-    Occurrences: 1
+    Occurrences: 2
 
     Entity: xilinx_obufs , acc : <novopt>
     Architecture: rtl

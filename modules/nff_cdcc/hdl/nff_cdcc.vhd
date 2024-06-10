@@ -4,6 +4,7 @@
 
     entity nff_cdcc is
         generic (
+            BYPASS : boolean := false;
             ASYNC_FLOPS_CNT : positive := 2;
             DATA_WIDTH : natural := 2;
             FLOPS_BEFORE_CROSSING_CNT : positive := 1;
@@ -77,104 +78,117 @@
     begin
 
 
-        -- Write: Latch, capture data to cross + create an event: each change = new data
-        -- slv_data_to_cross_2d(0) <= slv_data_to_cross_latched;
-        -- slv_wr_en_event_to_cross(0) <= sl_bit_to_cross_latched;
-        wr_ready <= sl_wr_ready;
+        gen_if_clocks_different : if BYPASS = false generate
+            -- Write: Latch, capture data to cross + create an event: each change = new data
+            -- slv_data_to_cross_2d(0) <= slv_data_to_cross_latched;
+            -- slv_wr_en_event_to_cross(0) <= sl_bit_to_cross_latched;
+            wr_ready <= sl_wr_ready;
 
-        proc_cdcc_wr_ready : process(clk_write)
-        begin
-            if rising_edge(clk_write) then
+            proc_cdcc_wr_ready : process(clk_write)
+            begin
+                if rising_edge(clk_write) then
 
-                sl_wr_ready <= '1';
+                    sl_wr_ready <= '1';
 
-                -- Deassert wr_ready until 'slv_next_srl' value
-                if wr_en = '1' and sl_wr_ready = '1' then
-                    sl_wr_ready <= '0';
-                    slv_next_srl <= not slv_wr_ready_srl;
-                end if;
+                    -- Deassert wr_ready until 'slv_next_srl' value
+                    if wr_en = '1' and sl_wr_ready = '1' then
+                        sl_wr_ready <= '0';
+                        slv_next_srl <= not slv_wr_ready_srl;
+                    end if;
 
-                -- Assert wr_ready once 'slv_next_srl' has been detected
-                if sl_wr_ready = '0' then
-                    sl_wr_ready <= '0';
-                    slv_wr_ready_srl(slv_wr_ready_srl'high downto 0) <=
-                        slv_wr_ready_srl(slv_wr_ready_srl'high-1 downto 0) & not(slv_wr_ready_srl(slv_wr_ready_srl'high));
-                    if slv_wr_ready_srl = slv_next_srl then
-                        sl_wr_ready <= '1';
+                    -- Assert wr_ready once 'slv_next_srl' has been detected
+                    if sl_wr_ready = '0' then
+                        sl_wr_ready <= '0';
+                        slv_wr_ready_srl(slv_wr_ready_srl'high downto 0) <=
+                            slv_wr_ready_srl(slv_wr_ready_srl'high-1 downto 0) & not(slv_wr_ready_srl(slv_wr_ready_srl'high));
+                        if slv_wr_ready_srl = slv_next_srl then
+                            sl_wr_ready <= '1';
+                        end if;
                     end if;
                 end if;
-            end if;
-        end process;
+            end process;
 
-        proc_latch_data_writeclk : process(clk_write)
-        begin
-            if rising_edge(clk_write) then
+            proc_latch_data_writeclk : process(clk_write)
+            begin
+                if rising_edge(clk_write) then
 
-                for i in 1 to FLOPS_BEFORE_CROSSING_CNT loop
-                    -- Synchronize data (changes infrequently)
-                    slv_data_to_cross_2d(i) <= slv_data_to_cross_2d(i-1);
+                    for i in 1 to FLOPS_BEFORE_CROSSING_CNT loop
+                        -- Synchronize data (changes infrequently)
+                        slv_data_to_cross_2d(i) <= slv_data_to_cross_2d(i-1);
 
-                    -- Synchronize 1 bit (changes infrequently)
-                    slv_wr_en_event_to_cross(i) <= slv_wr_en_event_to_cross(i-1);
-                end loop;
+                        -- Synchronize 1 bit (changes infrequently)
+                        slv_wr_en_event_to_cross(i) <= slv_wr_en_event_to_cross(i-1);
+                    end loop;
 
-                if wr_en = '1' and sl_wr_ready = '1' then
-                    slv_data_to_cross_2d(0) <= wr_data;
-                    slv_wr_en_event_to_cross(0) <= not slv_wr_en_event_to_cross(0);
+                    if wr_en = '1' and sl_wr_ready = '1' then
+                        slv_data_to_cross_2d(0) <= wr_data;
+                        slv_wr_en_event_to_cross(0) <= not slv_wr_en_event_to_cross(0);
+                    end if;
+
                 end if;
-
-            end if;
-        end process;
+            end process;
 
 
-        -- Read: CDC Circuit
-        -- slv_data_asyncff_2d(0) <= slv_data_to_cross_2d(FLOPS_BEFORE_CROSSING_CNT);  -- set_false_path
-        -- slv_wr_en_event_asyncff(0) <= slv_wr_en_event_to_cross(FLOPS_BEFORE_CROSSING_CNT);          -- set_false_path
-        proc_cdcc_readclk : process(clk_read)
-        begin
-            if rising_edge(clk_read) then
+            -- Read: CDC Circuit
+            -- slv_data_asyncff_2d(0) <= slv_data_to_cross_2d(FLOPS_BEFORE_CROSSING_CNT);  -- set_false_path
+            -- slv_wr_en_event_asyncff(0) <= slv_wr_en_event_to_cross(FLOPS_BEFORE_CROSSING_CNT);          -- set_false_path
+            proc_cdcc_readclk : process(clk_read)
+            begin
+                if rising_edge(clk_read) then
 
-                slv_data_asyncff_2d(0) <= slv_data_to_cross_2d(FLOPS_BEFORE_CROSSING_CNT);  -- set_false_path
-                slv_wr_en_event_asyncff(0) <= slv_wr_en_event_to_cross(FLOPS_BEFORE_CROSSING_CNT);          -- set_false_path
+                    slv_data_asyncff_2d(0) <= slv_data_to_cross_2d(FLOPS_BEFORE_CROSSING_CNT);  -- set_false_path
+                    slv_wr_en_event_asyncff(0) <= slv_wr_en_event_to_cross(FLOPS_BEFORE_CROSSING_CNT);          -- set_false_path
 
-                -- Async flops
-                for i in 1 to ASYNC_FLOPS_CNT loop
-                    -- Synchronize data (changes infrequently)
-                    slv_data_asyncff_2d(i) <= slv_data_asyncff_2d(i-1);
+                    -- Async flops
+                    for i in 1 to ASYNC_FLOPS_CNT loop
+                        -- Synchronize data (changes infrequently)
+                        slv_data_asyncff_2d(i) <= slv_data_asyncff_2d(i-1);
 
-                    -- Synchronize 1 bit (changes infrequently)
-                    slv_wr_en_event_asyncff(i) <= slv_wr_en_event_asyncff(i-1);
-                end loop;
+                        -- Synchronize 1 bit (changes infrequently)
+                        slv_wr_en_event_asyncff(i) <= slv_wr_en_event_asyncff(i-1);
+                    end loop;
 
-                -- Sync flop
-                slv_data_synchronized <= slv_data_asyncff_2d(ASYNC_FLOPS_CNT);
-                sl_wr_en_event_synchronized <= slv_wr_en_event_asyncff(ASYNC_FLOPS_CNT);
+                    -- Sync flop
+                    slv_data_synchronized <= slv_data_asyncff_2d(ASYNC_FLOPS_CNT);
+                    sl_wr_en_event_synchronized <= slv_wr_en_event_asyncff(ASYNC_FLOPS_CNT);
 
-            end if;
-        end process;
-
-
-        -- Read: Output logic
-        proc_outlogic_readclk : process(clk_read)
-        begin
-            if rising_edge(clk_read) then
-
-                -- Default
-                slv_data_synchronized_p1 <= slv_data_synchronized;
-                sl_wr_en_event_synchronized_p1 <= sl_wr_en_event_synchronized;
-
-                -- Data always propagate further
-                rd_data <= slv_data_synchronized;
-
-                -- Valid pulldown
-                rd_valid <= '0';
-
-                -- Control (after): valid on data event
-                if sl_wr_en_event_synchronized_p1 /= sl_wr_en_event_synchronized then
-                    rd_valid <= '1';
                 end if;
+            end process;
 
-            end if;
-        end process;
+
+            -- Read: Output logic
+            proc_outlogic_readclk : process(clk_read)
+            begin
+                if rising_edge(clk_read) then
+
+                    -- Default
+                    slv_data_synchronized_p1 <= slv_data_synchronized;
+                    sl_wr_en_event_synchronized_p1 <= sl_wr_en_event_synchronized;
+
+                    -- Data always propagate further
+                    rd_data <= slv_data_synchronized;
+
+                    -- Valid pulldown
+                    rd_valid <= '0';
+
+                    -- Control (after): valid on data event
+                    if sl_wr_en_event_synchronized_p1 /= sl_wr_en_event_synchronized then
+                        rd_valid <= '1';
+                    end if;
+
+                end if;
+            end process;
+        end generate;
+
+        -- Bypass this module if requested
+        gen_if_clocks_equal : if BYPASS = true generate
+            wr_ready <= '1';
+
+            sl_wr_en_event_synchronized <= wr_en;
+            rd_valid <= sl_wr_en_event_synchronized;
+
+            slv_data_synchronized <= wr_data;
+            rd_data  <= slv_data_synchronized;
+        end generate;
 
     end architecture;

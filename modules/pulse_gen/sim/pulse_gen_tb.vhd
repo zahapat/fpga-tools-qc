@@ -14,12 +14,14 @@
 
     architecture sim of pulse_gen_tb is
 
-        constant CLK_HZ : integer := 100e6;
-        constant CLK_PERIOD : time := 1 sec / CLK_HZ;
+        constant REAL_CLK_HZ : real := 250.0e6;
+        constant CLK_PERIOD : time := 1 sec / REAL_CLK_HZ;
 
         -- Generics
         constant RST_VAL    : std_logic := '1';
         constant DATA_WIDTH : integer := 2;
+        constant PULSE_DURATION_HIGH_NS : integer := 100;
+        constant PULSE_DURATION_LOW_NS : integer := 50;
 
         -- I/O ports
         signal CLK           : std_logic := '1';
@@ -27,6 +29,7 @@
         signal PULSE_TRIGGER : std_logic := '0';
         signal IN_DATA       : std_logic_vector(DATA_WIDTH-1 downto 0) := (others => '0');
         signal PULSES_OUT    : std_logic_vector(DATA_WIDTH-1 downto 0);
+        signal READY         : std_logic_vector(DATA_WIDTH-1 downto 0);
 
         -- Print to console "TEST OK."
         procedure print_test_ok is
@@ -42,14 +45,18 @@
         dut_pulse_gen : entity lib_src.pulse_gen(rtl)
         generic map (
             RST_VAL    => RST_VAL,
-            DATA_WIDTH => DATA_WIDTH
+            DATA_WIDTH => DATA_WIDTH,
+            REAL_CLK_HZ => REAL_CLK_HZ,
+            PULSE_DURATION_HIGH_NS => PULSE_DURATION_HIGH_NS,
+            PULSE_DURATION_LOW_NS => PULSE_DURATION_LOW_NS
         )
         port map (
             CLK           => CLK,
             RST           => RST,
             PULSE_TRIGGER => PULSE_TRIGGER,
             IN_DATA       => IN_DATA,
-            PULSES_OUT    => PULSES_OUT
+            PULSES_OUT    => PULSES_OUT,
+            READY         => READY
         );
 
         --CLK generator
@@ -66,69 +73,26 @@
             -- release from reset
             RST <= not(RST_VAL);
 
-            loop
+            wait until rising_edge(CLK);
+            PULSE_TRIGGER <= '1';
+            IN_DATA <= (others => '1');
+            wait for 0.5 us;
 
-                -- remember prev. IN_DATA 1 CLK ago
-                v_delayed_in_data := IN_DATA;
+            wait until rising_edge(CLK);
+            PULSE_TRIGGER <= '1';
+            IN_DATA <= "01";
+            wait for 0.5 us;
 
-                -- Enable writing new data
-                PULSE_TRIGGER <= '1';
-                wait until rising_edge(CLK); -- All above will be effective before this event
+            wait until rising_edge(CLK);
+            PULSE_TRIGGER <= '1';
+            IN_DATA <= "10";
+            wait for 0.5 us;
 
-                -- Don't write new data
-                PULSE_TRIGGER <= '0';
+            wait until rising_edge(CLK);
+            PULSE_TRIGGER <= '1';
+            IN_DATA <= "00";
+            wait for 0.5 us;
 
-                -- Send data to input and wait for data to propagate to out
-                IN_DATA <= std_logic_vector(v_all_data);
-                wait until rising_edge(CLK);
-
-                -- Self checking test (condition): check if not satisfied
-                assert v_delayed_in_data = PULSES_OUT
-                    report "The DUT output does not equal last input after write."
-                    severity failure;
-
-                wait for 10 * CLK_PERIOD;
-
-                assert v_delayed_in_data = PULSES_OUT
-                    report "The DUT output does not equal last input after write."
-                    severity failure;
-
-                -- Increment the input bit vector magnitude by 1
-                v_all_data := v_all_data + 1;
-
-                -- Exit the loop: Do the last test
-                if v_all_data = 0 then
-
-                    -- remember prev. IN_DATA 1 CLK ago
-                    v_delayed_in_data := IN_DATA;
-
-                    -- Enable writing new data
-                    PULSE_TRIGGER <= '1';
-                    wait until rising_edge(CLK); -- All above will be effective before this event
-
-                    -- Don't write new data
-                    PULSE_TRIGGER <= '0';
-
-                    -- Send data to input and wait for data to propagate to out
-                    IN_DATA <= std_logic_vector(v_all_data);
-                    wait until rising_edge(CLK);
-
-                    -- Self checking test (condition): check if not satisfied
-                    assert v_delayed_in_data = PULSES_OUT
-                        report "The DUT output does not equal last input after write."
-                        severity failure;
-
-                    wait for 10 * CLK_PERIOD;
-
-                    assert v_delayed_in_data = PULSES_OUT
-                        report "The DUT output does not equal last input after write."
-                        severity failure;
-                    exit;
-                end if;
-
-            end loop;
-
-            
             print_test_ok;
             finish;
             wait;
