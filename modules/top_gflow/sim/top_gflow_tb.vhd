@@ -32,8 +32,8 @@
         file sim_result : text;
 
         -- FPGA On-Board Oscillator Frequency (Input to MMCM/Clock Wizard)
-        constant CLK_HZ : integer := 200e6;
-        constant CLK_PERIOD : time := 1 sec / CLK_HZ;
+        constant CLK_HZ : real := 200.0e6;
+        constant CLK_PERIOD : time := 1.0 sec / CLK_HZ;
 
         -- New qubit each 80 MHz (# TODO implement emission probability)
         constant CLK_NEW_QUBIT_78MHz_HZ : real := 80.0e6 / 2.0;
@@ -51,8 +51,8 @@
 
         -- Gflow generics
         constant RST_VAL            : std_logic := '1';
-        constant CLK_SYS_HZ         : natural := 250e6;
-        constant CLK_SAMPL_HZ       : natural := 250e6;
+        constant CLK_SYS_HZ         : real := 104.16667e6;
+        constant CLK_SAMPL_HZ       : real := 250.0e6;
         constant INT_QUBITS_CNT     : positive := INT_QUBITS_CNT;
         constant INT_EMULATE_INPUTS : integer := INT_EMULATE_INPUTS;
         constant INT_WHOLE_PHOTON_1H_DELAY_NS : integer := INT_WHOLE_PHOTON_1H_DELAY_NS;
@@ -196,8 +196,6 @@
         dut_top_gflow : entity lib_src.top_gflow(str)
         generic map (
             RST_VAL                      => RST_VAL,
-            CLK_SYS_HZ                   => CLK_SYS_HZ,
-            CLK_SAMPL_HZ                 => CLK_SAMPL_HZ,
             INT_QUBITS_CNT               => INT_QUBITS_CNT,
             INT_EMULATE_INPUTS           => INT_EMULATE_INPUTS,
             INT_WHOLE_PHOTON_1H_DELAY_NS => INT_WHOLE_PHOTON_1H_DELAY_NS,

@@ -16,8 +16,7 @@
         generic(
             -- Gflow generics
             RST_VAL                : std_logic := '1';
-            CLK_SYS_HZ             : natural := 250e6;
-            CLK_SAMPL_HZ           : natural := 250e6;
+            -- CLK_SAMPL_HZ           : natural := 250e6;
 
 
             -- Integer parameters from Makefile
@@ -83,6 +82,9 @@
 
     architecture str of top_gflow is
 
+        constant CLK_SYS_HZ   : real := 104.16667e6;
+        constant CLK_SAMPL_HZ : real := 312.5e6;
+
         ------------------------------
         -- USB FIFO Readout Control --
         ------------------------------
@@ -99,11 +101,12 @@
         -- Xilinx Clock generator
         component clk_wiz_0
         port (
-            clk_out1          : out    std_logic;
-            clk_out2          : out    std_logic;
-            clk_in1_p         : in     std_logic;
-            clk_in1_n         : in     std_logic;
-            locked            : out    std_logic
+            clk_out1 : out std_logic;
+            clk_out2 : out std_logic;
+            clk_out3 : out std_logic;
+            clk_in1_p : in std_logic;
+            clk_in1_n : in std_logic;
+            locked   : out std_logic
         );
         end component;
 
@@ -257,6 +260,7 @@
 
             clk_out1 => sys_clk,
             clk_out2 => sampl_clk,
+            clk_out3 => open,
 
             locked => locked
         );
@@ -282,7 +286,7 @@
         inst_okHost_fifo_ctrl : entity lib_src.ok_usb_32b_fifo_ctrl(rtl)
         generic map (
             RST_VAL => RST_VAL,
-            CLK_HZ => CLK_SYS_HZ,
+            CLK_HZ => REAL_CLK_SYS_HZ,
             WRITE_VALID_SIGNALS_CNT => 4,
             WRITE_ON_VALID => WRITE_ON_VALID
         )
@@ -291,11 +295,11 @@
             rst => sl_rst_sysclk,
 
             -- Write endpoint signals
-            wr_sys_clk           => sampl_clk,
+            wr_sys_clk => sys_clk,
 
             wr_valid_qubit_flags => slv_fifo_wr_valid_qubit_flags,
+            
             wr_valid_gflow_success_done => sl_gflow_success_done_transferred,
-
             wr_data_qubit_buffer => slv_qubit_buffer_transferred_2d,
             wr_data_time_stamp_buffer => slv_time_stamp_buffer_transferred_2d,
             wr_data_alpha_buffer => slv_alpha_buffer_transferred_2d,
@@ -453,7 +457,7 @@
             BUFFER_DEPTH              => BUFFER_DEPTH,
             PATTERN_WIDTH             => PATTERN_WIDTH,
             BUFFER_PATTERN            => BUFFER_PATTERN,
-            CLK_HZ                    => CLK_SAMPL_HZ,
+            CLK_HZ                    => REAL_CLK_SYS_HZ,
 
             CNT_ONEHOT_WIDTH          => CNT_ONEHOT_WIDTH,
             DETECTOR_ACTIVE_PERIOD_NS => DETECTOR_ACTIVE_PERIOD_NS,
@@ -481,7 +485,7 @@
             BUFFER_DEPTH              => BUFFER_DEPTH,
             PATTERN_WIDTH             => PATTERN_WIDTH,
             BUFFER_PATTERN            => BUFFER_PATTERN,
-            CLK_HZ                    => CLK_SAMPL_HZ,
+            CLK_HZ                    => REAL_CLK_SYS_HZ,
 
             CNT_ONEHOT_WIDTH          => CNT_ONEHOT_WIDTH,
             DETECTOR_ACTIVE_PERIOD_NS => DETECTOR_ACTIVE_PERIOD_NS,
@@ -509,7 +513,7 @@
             BUFFER_DEPTH              => BUFFER_DEPTH,
             PATTERN_WIDTH             => PATTERN_WIDTH,
             BUFFER_PATTERN            => BUFFER_PATTERN,
-            CLK_HZ                    => CLK_SAMPL_HZ,
+            CLK_HZ                    => REAL_CLK_SYS_HZ,
 
             CNT_ONEHOT_WIDTH          => CNT_ONEHOT_WIDTH,
             DETECTOR_ACTIVE_PERIOD_NS => DETECTOR_ACTIVE_PERIOD_NS,
@@ -537,7 +541,7 @@
             BUFFER_DEPTH              => BUFFER_DEPTH,
             PATTERN_WIDTH             => PATTERN_WIDTH,
             BUFFER_PATTERN            => BUFFER_PATTERN,
-            CLK_HZ                    => CLK_SAMPL_HZ,
+            CLK_HZ                    => REAL_CLK_SYS_HZ,
 
             CNT_ONEHOT_WIDTH          => CNT_ONEHOT_WIDTH,
             DETECTOR_ACTIVE_PERIOD_NS => DETECTOR_ACTIVE_PERIOD_NS,
@@ -565,7 +569,7 @@
             BUFFER_DEPTH              => BUFFER_DEPTH,
             PATTERN_WIDTH             => PATTERN_WIDTH,
             BUFFER_PATTERN            => BUFFER_PATTERN,
-            CLK_HZ                    => CLK_SAMPL_HZ,
+            CLK_HZ                    => REAL_CLK_SYS_HZ,
 
             CNT_ONEHOT_WIDTH          => CNT_ONEHOT_WIDTH,
             DETECTOR_ACTIVE_PERIOD_NS => DETECTOR_ACTIVE_PERIOD_NS,
@@ -593,7 +597,7 @@
             BUFFER_DEPTH              => BUFFER_DEPTH,
             PATTERN_WIDTH             => PATTERN_WIDTH,
             BUFFER_PATTERN            => BUFFER_PATTERN,
-            CLK_HZ                    => CLK_SAMPL_HZ,
+            CLK_HZ                    => REAL_CLK_SYS_HZ,
 
             CNT_ONEHOT_WIDTH          => CNT_ONEHOT_WIDTH,
             DETECTOR_ACTIVE_PERIOD_NS => DETECTOR_ACTIVE_PERIOD_NS,
@@ -711,8 +715,8 @@
         inst_fsm_gflow : entity lib_src.fsm_gflow(rtl)
         generic map (
             RST_VAL                 => RST_VAL,
-            SAMPL_CLK_HZ            => REAL_CLK_SAMPL_HZ,
-            CLK_HZ                  => REAL_CLK_SYS_HZ,
+            -- SAMPL_CLK_HZ            => REAL_CLK_SAMPL_HZ,
+            CLK_HZ                  => REAL_CLK_SAMPL_HZ,
             CTRL_PULSE_DUR_WITH_DEADTIME_NS => CTRL_PULSE_DUR_WITH_DEADTIME_NS,
             QUBITS_CNT              => INT_QUBITS_CNT,
             PHOTON_1H_DELAY_NS      => PHOTON_1H_DELAY_NS,

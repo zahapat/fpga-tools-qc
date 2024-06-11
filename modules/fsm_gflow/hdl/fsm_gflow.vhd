@@ -23,7 +23,7 @@
     entity fsm_gflow is
         generic (
             RST_VAL                  : std_logic := '1';
-            SAMPL_CLK_HZ             : real := 250.0e6;       -- You must keep this for acquisition compensation delay between H/V photons
+            -- SAMPL_CLK_HZ             : real := 250.0e6;       -- You must keep this for acquisition compensation delay between H/V photons
             CLK_HZ                   : real := 250.0e6;       -- Frequency of the FPGA in HZ
             CTRL_PULSE_DUR_WITH_DEADTIME_NS : natural := 150; -- Duration of the output PCD control pulse in ns (e.g. 100 ns high, 50 ns deadtime = 150 ns)
             QUBITS_CNT               : natural := 4;
@@ -213,7 +213,7 @@
             constant DELAY_PHOTON_2 : real
         ) return natural is
             constant CLK_PERIOD_SAMPLCLK_NS : real := 
-                (1.0/real(SAMPL_CLK_HZ) * 1.0e9);
+                (1.0/real(CLK_HZ) * 1.0e9);
             constant TIME_DIFFERENCE_PHOTONS_NS_ABS : real := 
                 abs(DELAY_PHOTON_1 - DELAY_PHOTON_2);
         begin

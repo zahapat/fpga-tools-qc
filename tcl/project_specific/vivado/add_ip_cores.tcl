@@ -107,30 +107,61 @@
                                 CONFIG.Full_Threshold_Negate_Value {65535}] [get_ips fifo_generator_0]
     }
 
-    # 4.2) clk_wiz_0
+    # 4.2) clk_wiz_0: 200 MHz diff input, out1 = 100 MHz, out2 = 250 MHz
+    # if {[catch {
+    #     create_ip -name clk_wiz -vendor xilinx.com -library ip -version 6.0 -module_name clk_wiz_0\
+    # } error_msg]} {
+    #     puts "TCL: Skipping adding already existing Xilinx IP Core."
+    # } else {\
+    #     set_property -dict [list CONFIG.PRIM_SOURCE {Differential_clock_capable_pin}\
+    #                             CONFIG.PRIM_IN_FREQ {200.000}\
+    #                             CONFIG.CLKOUT1_DRIVES {BUFG}\
+    #                             CONFIG.USE_RESET {false}\
+    #                             CONFIG.CLKIN1_JITTER_PS {50.0}\
+    #                             CONFIG.FEEDBACK_SOURCE {FDBK_AUTO}\
+    #                             CONFIG.MMCM_CLKFBOUT_MULT_F {5.000}\
+    #                             CONFIG.MMCM_CLKIN1_PERIOD {5.000}\
+    #                             CONFIG.MMCM_CLKIN2_PERIOD {10.0}\
+    #                             CONFIG.CLKOUT1_JITTER {112.316}\
+    #                             CONFIG.CLKOUT1_PHASE_ERROR {89.971}] [get_ips clk_wiz_0]
+
+    #     set_property -dict [list CONFIG.CLKOUT2_USED {true}\
+    #                             CONFIG.CLKOUT2_REQUESTED_OUT_FREQ {250.000}\
+    #                             CONFIG.MMCM_CLKOUT1_DIVIDE {4}\
+    #                             CONFIG.NUM_OUT_CLKS {2}\
+    #                             CONFIG.CLKOUT2_JITTER {93.990}\
+    #                             CONFIG.CLKOUT2_PHASE_ERROR {89.971}] [get_ips clk_wiz_0]
+    # }
+
+
+    # 4.2) clk_wiz_0: 200 MHz diff input, out1 = 104.16667 MHz, out2 = 312.500 MHz, out3 = 625.000 MHz
     if {[catch {
         create_ip -name clk_wiz -vendor xilinx.com -library ip -version 6.0 -module_name clk_wiz_0\
     } error_msg]} {
         puts "TCL: Skipping adding already existing Xilinx IP Core."
     } else {\
-        set_property -dict [list CONFIG.PRIM_SOURCE {Differential_clock_capable_pin}\
-                                CONFIG.PRIM_IN_FREQ {200.000}\
-                                CONFIG.CLKOUT1_DRIVES {BUFG}\
-                                CONFIG.USE_RESET {false}\
-                                CONFIG.CLKIN1_JITTER_PS {50.0}\
-                                CONFIG.FEEDBACK_SOURCE {FDBK_AUTO}\
-                                CONFIG.MMCM_CLKFBOUT_MULT_F {5.000}\
-                                CONFIG.MMCM_CLKIN1_PERIOD {5.000}\
-                                CONFIG.MMCM_CLKIN2_PERIOD {10.0}\
-                                CONFIG.CLKOUT1_JITTER {112.316}\
-                                CONFIG.CLKOUT1_PHASE_ERROR {89.971}] [get_ips clk_wiz_0]
-
-        set_property -dict [list CONFIG.CLKOUT2_USED {true}\
-                                CONFIG.CLKOUT2_REQUESTED_OUT_FREQ {250.000}\
-                                CONFIG.MMCM_CLKOUT1_DIVIDE {4}\
-                                CONFIG.NUM_OUT_CLKS {2}\
-                                CONFIG.CLKOUT2_JITTER {93.990}\
-                                CONFIG.CLKOUT2_PHASE_ERROR {89.971}] [get_ips clk_wiz_0]
+        set_property -dict [list CONFIG.PRIM_SOURCE {Differential_clock_capable_pin} \
+                                CONFIG.PRIM_IN_FREQ {200.000} CONFIG.CLKOUT2_USED {true} \
+                                CONFIG.CLKOUT3_USED {true} \
+                                CONFIG.CLKOUT1_REQUESTED_OUT_FREQ {104.16667} \
+                                CONFIG.CLKOUT2_REQUESTED_OUT_FREQ {312.500} \
+                                CONFIG.CLKOUT3_REQUESTED_OUT_FREQ {625.000} \
+                                CONFIG.USE_RESET {false} \
+                                CONFIG.CLKIN1_JITTER_PS {50.0} \
+                                CONFIG.MMCM_DIVCLK_DIVIDE {1} \
+                                CONFIG.MMCM_CLKFBOUT_MULT_F {3.125} \
+                                CONFIG.MMCM_CLKIN1_PERIOD {5.000} \
+                                CONFIG.MMCM_CLKIN2_PERIOD {10.0} \
+                                CONFIG.MMCM_CLKOUT0_DIVIDE_F {6.000} \
+                                CONFIG.MMCM_CLKOUT1_DIVIDE {2} \
+                                CONFIG.MMCM_CLKOUT2_DIVIDE {1} \
+                                CONFIG.NUM_OUT_CLKS {3} \
+                                CONFIG.CLKOUT1_JITTER {106.729} \
+                                CONFIG.CLKOUT1_PHASE_ERROR {103.084} \
+                                CONFIG.CLKOUT2_JITTER {86.121} \
+                                CONFIG.CLKOUT2_PHASE_ERROR {103.084} \
+                                CONFIG.CLKOUT3_JITTER {75.276} \
+                                CONFIG.CLKOUT3_PHASE_ERROR {103.084}] [get_ips clk_wiz_0]
     }
 
 

@@ -12,7 +12,7 @@
     entity ok_usb_32b_fifo_ctrl is
         generic (
             RST_VAL : std_logic := '1';
-            CLK_HZ : natural := 100e6;
+            CLK_HZ : real := 100.0e6;
             WRITE_VALID_SIGNALS_CNT : positive := 4;
             WRITE_ON_VALID : boolean := true
         );

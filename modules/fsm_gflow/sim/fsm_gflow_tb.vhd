@@ -126,7 +126,7 @@
         generic map (
             RST_VAL                 => RST_VAL,
             CLK_HZ                  => CLK_HZ,
-            SAMPL_CLK_HZ            => SAMPL_CLK_HZ,
+            -- SAMPL_CLK_HZ            => SAMPL_CLK_HZ,
             CTRL_PULSE_DUR_WITH_DEADTIME_NS => CTRL_PULSE_DUR_WITH_DEADTIME_NS,
             QUBITS_CNT              => QUBITS_CNT,
             PHOTON_1H_DELAY_NS      => PHOTON_1H_DELAY_NS,

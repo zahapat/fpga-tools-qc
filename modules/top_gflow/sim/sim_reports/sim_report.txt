@@ -1,12 +1,12 @@
 
-SIMULATION REPORT          Generated on Tue Jun 11 00:34:43 2024
+SIMULATION REPORT          Generated on Tue Jun 11 16:12:39 2024
 
 
 Design simulated: C:/Git/zahapat/fpga-tools-qc/simulator/vivado_precompiled_ver/unisim.glbl_vhd(glbl_vhd_v) C:/Git/zahapat/fpga-tools-qc/simulator/xil_iplib_verilog.glbl C:/Git/zahapat/fpga-tools-qc/simulator/lib_sim.top_gflow_tb(sim)
-Number of signals/nets in design: 6368437
-Number of processes in design: 4784
+Number of signals/nets in design: 6368432
+Number of processes in design: 4785
 Number of instances from user libraries in design: 354
-Number of executable statements in design: 119447
+Number of executable statements in design: 119427
 
 Simulator Parameters:
 
@@ -51,7 +51,7 @@ List of Design units used:
     Library: C:/Git/zahapat/fpga-tools-qc/simulator/vivado_precompiled_ver/unisims_ver
     Source File: C:/Xilinx/Vivado/2020.2/data/verilog/src/unisims/BUFG.v
     Timescale: 1ps / 1ps
-    Occurrences: 3
+    Occurrences: 4
 
     Module: MMCME2_ADV (cell) , acc : <novopt>
     Library: C:/Git/zahapat/fpga-tools-qc/simulator/vivado_precompiled_ver/unisims_ver

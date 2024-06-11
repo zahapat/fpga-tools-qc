@@ -24,7 +24,7 @@
             BUFFER_DEPTH   : positive := 3;
             PATTERN_WIDTH  : positive := 3;
             BUFFER_PATTERN : positive := 1;
-            CLK_HZ         : natural := 250e6; -- Should be 2x higher than the input high pulse duration (10ns high pulse dur -> 2.5ns high sample pulse)
+            CLK_HZ         : real := 250.0e6; -- Should be 2x higher than the input high pulse duration (10ns high pulse dur -> 2.5ns high sample pulse)
 
             CNT_ONEHOT_WIDTH          : positive := 2;  -- = LONG PULSE CLK CYCLES to keep a signal high for a long time 1xclk = 10 ns -> 2 x 10ns = 20 ns (does not exceed 32 ns => OK)
             DETECTOR_ACTIVE_PERIOD_NS : positive := 10;

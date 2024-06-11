@@ -27,8 +27,8 @@
 
         constant CLK_100_HZ : integer := 100e6;
         -- constant CLK_HZ : integer := 300e6;
-        constant CLK_HZ : integer := 250e6;
-        constant CLK_PERIOD : time := 1 sec / CLK_HZ;
+        constant CLK_HZ : real := 250.0e6;
+        constant CLK_PERIOD : time := 1.0 sec / CLK_HZ;
         constant CLK_NEW_QUBIT_78MHz_HZ : integer := 78e6;
         constant CLK_NEW_QUBIT_78MHz_PERIOD : time := 1 sec / CLK_NEW_QUBIT_78MHz_HZ;
         signal s_clk_100MHz : std_logic := '0';
@@ -118,7 +118,7 @@
         -- CLK generator
         -- clk <= not clk after CLK_PERIOD / 2;
         -- Clocks
-        gen_clk_freq_hz_int(clk, CLK_HZ);
+        gen_clk_freq_hz_real(clk, CLK_HZ);
         gen_clk_freq_hz_int(s_clk_100MHz, CLK_100_HZ);
 
         -- DUT instance
@@ -219,7 +219,7 @@
         -- Clock Oscillators --
         -----------------------
         -- 1) SYSTEM 230 MHz, 2) NEW_QUBIT 78 MHz, 3) DETECTOR 31 MHz
-        gen_clk_freq_hz_int(clk, CLK_HZ);
+        gen_clk_freq_hz_real(clk, CLK_HZ);
         gen_clk_period_time(s_clk_new_qubit_78MHz, CLK_NEW_QUBIT_78MHz_PERIOD);
 
 

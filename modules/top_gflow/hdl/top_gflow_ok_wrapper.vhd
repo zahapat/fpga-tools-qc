@@ -125,34 +125,6 @@
         signal sl_usb_fifo_prog_empty : std_logic := '0';
 
 
-        ---------------------
-        -- Vivado IP Cores --
-        ---------------------
-        -- Xilinx Clock generator
-        component clk_wiz_0
-        port (
-            clk_out1          : out    std_logic;
-            clk_out2          : out    std_logic;
-            clk_in1_p         : in     std_logic;
-            clk_in1_n         : in     std_logic;
-            locked            : out    std_logic
-        );
-        end component;
-
-
-        -- Combine whole number and decimal separated numbers into a single real number
-        -- Get divisor, prevent division by zero
-        -- impure function get_divisor (
-        --     constant DIVISOR : integer
-        -- ) return integer is
-        -- begin
-        --     if DIVISOR = 0 then
-        --         return 1;
-        --     else
-        --         return integer(10.0*(floor(log10(real(DIVISOR))) + 1.0));
-        --     end if;
-        -- end function;
-
     begin
 
 
@@ -303,8 +275,6 @@
         generic map (
             -- Gflow generics
             RST_VAL => RST_VAL,
-            CLK_SYS_HZ => CLK_SYS_HZ,
-            CLK_SAMPL_HZ => CLK_SAMPL_HZ,
 
             INT_QUBITS_CNT => INT_QUBITS_CNT,
             INT_EMULATE_INPUTS => INT_EMULATE_INPUTS,
