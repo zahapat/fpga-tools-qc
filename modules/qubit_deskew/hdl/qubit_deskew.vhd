@@ -43,6 +43,8 @@
             rst : in  std_logic;
             noisy_channels_in : in std_logic_vector(2-1 downto 0);
 
+            channels_redge_synchronized : out std_logic_vector(2-1 downto 0);
+
             qubit_valid_250MHz : out std_logic;
             qubit_250MHz : out std_logic_vector(2-1 downto 0)
         );
@@ -267,6 +269,7 @@
 
 
         -- Detect rising edge on all input channels
+        channels_redge_synchronized <= s_channels_redge;
         all_channels_redge : for i in 0 to CHANNELS_CNT-1 generate
             channel_redge : process(clk)
             begin

@@ -23,7 +23,7 @@
             -- Write endpoint signals: faster CLK, slower rate
             wr_sys_clk : in std_logic;
             --     Valid Signals / Write Flags
-            wr_valid_qubit_flags        : in std_logic_vector(WRITE_VALID_SIGNALS_CNT-1 downto 0);
+            -- wr_valid_qubit_flags        : in std_logic_vector(WRITE_VALID_SIGNALS_CNT-1 downto 0);
             wr_valid_gflow_success_done : in std_logic;
             --     Data Signals
             wr_data_qubit_buffer : in t_qubit_buffer_2d;
@@ -72,6 +72,12 @@
         );
         end component;
 
+        -- #TODO WARNING: [Timing 38-316]:
+        --   Clock period '10.000' specified during out-of-context synthesis of instance 
+        --   'inst_gflow/inst_okHost_fifo_ctrl/inst_native_fifo_generator' at clock pin 
+        --   'rd_clk' is different from the actual clock period '9.920', this can lead to 
+        --   different synthesis results.
+
         signal wr_valid_gflow_success_done_p1 : std_logic := '0';
         signal wr_valid_gflow_success_done_p2 : std_logic := '0';
         signal wr_valid_gflow_success_done_p3 : std_logic := '0';
@@ -92,7 +98,7 @@
 
 
         -- User logic endpoint write logic
-        signal slv_wr_valid_qubit_flags_p1 : std_logic_vector(wr_valid_qubit_flags'range) := (others => '0');
+        -- signal slv_wr_valid_qubit_flags_p1 : std_logic_vector(wr_valid_qubit_flags'range) := (others => '0'); -- # TODO REDO
         signal sl_wr_en_flag_pulsed : std_logic := '0';
         signal slv_wr_data_stream_32b : std_logic_vector(32-1 downto 0) := (others => '0');
         signal slv_wr_data_stream_32b_1 : std_logic_vector(32-1 downto 0) := (others => '0');
@@ -181,7 +187,7 @@
         begin
             if rising_edge(wr_sys_clk) then
                 
-                slv_wr_valid_qubit_flags_p1 <= wr_valid_qubit_flags;
+                -- slv_wr_valid_qubit_flags_p1 <= wr_valid_qubit_flags; -- redo
                 
                 wr_valid_gflow_success_done_p1 <= wr_valid_gflow_success_done;
                 wr_valid_gflow_success_done_p2 <= wr_valid_gflow_success_done_p1;
@@ -237,15 +243,15 @@
 
 
         -- OR-gate with multiple inputs
-        asynproc_valid_flags_ored : process(slv_wr_valid_qubit_flags_p1)
-            variable v_valid_qubit_flags_ored : std_logic;
-        begin
-            v_valid_qubit_flags_ored := '0';
-            for i in slv_wr_valid_qubit_flags_p1'range loop
-                v_valid_qubit_flags_ored := v_valid_qubit_flags_ored or slv_wr_valid_qubit_flags_p1(i);
-            end loop;
-            sl_at_least_one_qubit_valid <= v_valid_qubit_flags_ored;
-        end process;
+        -- asynproc_valid_flags_ored : process(slv_wr_valid_qubit_flags_p1)
+        --     variable v_valid_qubit_flags_ored : std_logic;
+        -- begin
+        --     v_valid_qubit_flags_ored := '0';
+        --     for i in slv_wr_valid_qubit_flags_p1'range loop
+        --         v_valid_qubit_flags_ored := v_valid_qubit_flags_ored or slv_wr_valid_qubit_flags_p1(i);
+        --     end loop;
+        --     sl_at_least_one_qubit_valid <= v_valid_qubit_flags_ored;
+        -- end process;
 
 
         -- Sample the data buffers and make them stable, since they change over time

@@ -40,11 +40,12 @@ add wave -noupdate /top_gflow_tb/dut_top_gflow/inst_fsm_gflow/pcd_ctrl_pulse_fed
 add wave -noupdate -divider {TB: top_gflow INTERNAL signals}
 add wave -noupdate /top_gflow_tb/dut_top_gflow/sys_clk
 add wave -noupdate /top_gflow_tb/dut_top_gflow/sampl_clk
+add wave -noupdate /top_gflow_tb/dut_top_gflow/acq_clk
 add wave -noupdate /top_gflow_tb/output_pads
 add wave -noupdate -color Gold /top_gflow_tb/dut_top_gflow/inst_fsm_gflow/int_state_gflow
 add wave -noupdate -radix unsigned -childformat {{/top_gflow_tb/dut_top_gflow/inst_fsm_gflow/slv_counter_skip_qubits(0) -radix unsigned}} -subitemconfig {/top_gflow_tb/dut_top_gflow/inst_fsm_gflow/slv_counter_skip_qubits(0) {-height 15 -radix unsigned}} /top_gflow_tb/dut_top_gflow/inst_fsm_gflow/slv_counter_skip_qubits
 add wave -noupdate /top_gflow_tb/input_pads
-add wave -noupdate -expand /top_gflow_tb/dut_top_gflow/slv_cdcc_rd_qubits_to_fsm
+add wave -noupdate /top_gflow_tb/dut_top_gflow/slv_cdcc_rd_qubits_to_fsm
 add wave -noupdate -expand /top_gflow_tb/dut_top_gflow/slv_cdcc_rd_valid_to_fsm
 add wave -noupdate -color {Violet Red} -radix unsigned /top_gflow_tb/dut_top_gflow/slv_actual_qubit_time_stamp
 add wave -noupdate /top_gflow_tb/dut_top_gflow/inst_qubit4_deskew/s_buff_data
@@ -89,7 +90,6 @@ add wave -noupdate /top_gflow_tb/dut_top_gflow/inst_okHost_fifo_ctrl/wr_valid_gf
 add wave -noupdate /top_gflow_tb/dut_top_gflow/inst_okHost_fifo_ctrl/wr_valid_gflow_success_done_p1
 add wave -noupdate /top_gflow_tb/dut_top_gflow/inst_okHost_fifo_ctrl/wr_valid_gflow_success_done_p2
 add wave -noupdate /top_gflow_tb/dut_top_gflow/inst_okHost_fifo_ctrl/wr_valid_gflow_success_done_p3
-add wave -noupdate /top_gflow_tb/dut_top_gflow/inst_okHost_fifo_ctrl/wr_valid_qubit_flags
 add wave -noupdate /top_gflow_tb/dut_top_gflow/inst_okHost_fifo_ctrl/wr_data_qubit_buffer
 add wave -noupdate /top_gflow_tb/dut_top_gflow/inst_okHost_fifo_ctrl/wr_data_time_stamp_buffer
 add wave -noupdate /top_gflow_tb/dut_top_gflow/inst_okHost_fifo_ctrl/wr_data_alpha_buffer
@@ -114,7 +114,6 @@ add wave -noupdate /top_gflow_tb/dut_top_gflow/inst_okHost_fifo_ctrl/slv_rd_data
 add wave -noupdate /top_gflow_tb/dut_top_gflow/inst_okHost_fifo_ctrl/sl_full
 add wave -noupdate /top_gflow_tb/dut_top_gflow/inst_okHost_fifo_ctrl/sl_empty
 add wave -noupdate /top_gflow_tb/dut_top_gflow/inst_okHost_fifo_ctrl/sl_prog_empty
-add wave -noupdate /top_gflow_tb/dut_top_gflow/inst_okHost_fifo_ctrl/slv_wr_valid_qubit_flags_p1
 add wave -noupdate /top_gflow_tb/dut_top_gflow/inst_okHost_fifo_ctrl/sl_wr_en_flag_pulsed
 add wave -noupdate /top_gflow_tb/dut_top_gflow/inst_okHost_fifo_ctrl/slv_wr_data_stream_32b
 add wave -noupdate /top_gflow_tb/dut_top_gflow/inst_okHost_fifo_ctrl/slv_wr_data_stream_32b_1
@@ -143,7 +142,7 @@ add wave -noupdate /top_gflow_tb/dut_top_gflow/slv_alpha_buffer_transferred_2d
 add wave -noupdate /top_gflow_tb/dut_top_gflow/slv_modulo_buffer_transferred_2d
 add wave -noupdate /top_gflow_tb/dut_top_gflow/slv_random_buffer_transferred_2d
 TreeUpdate [SetDefaultTree]
-WaveRestoreCursors {{Cursor 1} {2462600 ps} 0}
+WaveRestoreCursors {{Cursor 1} {11134600 ps} 0}
 quietly wave cursor active 1
 configure wave -namecolwidth 476
 configure wave -valuecolwidth 213
@@ -159,4 +158,4 @@ configure wave -griddelta 40
 configure wave -timeline 0
 configure wave -timelineunits ns
 update
-WaveRestoreZoom {48886028 ps} {50058631 ps}
+WaveRestoreZoom {0 ps} {52500 ns}

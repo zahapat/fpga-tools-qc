@@ -1,10 +1,26 @@
 # Remove files
-file delete [glob -type f -nocomplain -directory \
-    ${origin_dir}/*.str \
-    ${origin_dir}/*.tmp \
-    ${origin_dir}/*.tmp \
-    ${origin_dir}/simulator/modules.tcl
+# set files_to_delete [glob -type f -nocomplain -directory \
+#     ${origin_dir}/*.str \
+#     ${origin_dir}/*.tmp \
+#     ${origin_dir}/*.debug \
+#     ${origin_dir}/*.zip \
+#     ${origin_dir}/simulator/modules.tcl
+# ]
+
+# Find files to delete
+set files_to_delete [glob -type f -nocomplain -directory ${origin_dir} \
+    simulator/modules.tcl \
+    *.str \
+    *.tmp \
+    *.debug \
+    *.zip \
 ]
+
+# Delete the found files
+foreach file $files_to_delete {
+    file delete -force $file
+}
+
 
 # Remove directories
 file delete -force -- ${origin_dir}/.Xil

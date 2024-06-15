@@ -12,6 +12,9 @@ add wave -noupdate /nff_cdcc_tb/rd_valid
 add wave -noupdate /nff_cdcc_tb/rd_data
 add wave -noupdate /nff_cdcc_tb/sl_detector_clk
 add wave -noupdate /nff_cdcc_tb/slv_detector_qubit
+add wave -noupdate /nff_cdcc_tb/dut_nff_cdcc/sl_wr_busy
+add wave -noupdate /nff_cdcc_tb/dut_nff_cdcc/sl_next_low_srl_bit
+add wave -noupdate /nff_cdcc_tb/dut_nff_cdcc/slv_wr_ready_srl
 add wave -noupdate /nff_cdcc_tb/dut_nff_cdcc/clk_write
 add wave -noupdate /nff_cdcc_tb/dut_nff_cdcc/wr_en
 add wave -noupdate /nff_cdcc_tb/dut_nff_cdcc/wr_data
@@ -30,10 +33,9 @@ add wave -noupdate /nff_cdcc_tb/dut_nff_cdcc/sl_wr_en_event_synchronized
 add wave -noupdate /nff_cdcc_tb/dut_nff_cdcc/slv_data_synchronized_p1
 add wave -noupdate /nff_cdcc_tb/dut_nff_cdcc/sl_wr_en_event_synchronized_p1
 add wave -noupdate /nff_cdcc_tb/dut_nff_cdcc/sl_wr_ready
-add wave -noupdate /nff_cdcc_tb/dut_nff_cdcc/slv_wr_ready_srl
 add wave -noupdate /nff_cdcc_tb/dut_nff_cdcc/slv_next_srl
 TreeUpdate [SetDefaultTree]
-WaveRestoreCursors {{Cursor 1} {260000 ps} 0}
+WaveRestoreCursors {{Cursor 1} {852000 ps} 0}
 quietly wave cursor active 1
 configure wave -namecolwidth 340
 configure wave -valuecolwidth 100
@@ -49,4 +51,4 @@ configure wave -griddelta 40
 configure wave -timeline 0
 configure wave -timelineunits ns
 update
-WaveRestoreZoom {0 ps} {997500 ps}
+WaveRestoreZoom {807755 ps} {957487 ps}

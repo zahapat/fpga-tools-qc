@@ -7,7 +7,7 @@
             BYPASS : boolean := false;
             ASYNC_FLOPS_CNT : positive := 2;
             DATA_WIDTH : natural := 2;
-            FLOPS_BEFORE_CROSSING_CNT : positive := 1;
+            FLOPS_BEFORE_CROSSING_CNT : natural := 1;
             WR_READY_DEASSERTED_CYCLES : positive := 3
         );
         port (
@@ -48,63 +48,65 @@
         signal sl_wr_en_event_synchronized_p1 : std_logic := '0';
 
 
-        -- Attributes to prevent logic trimming and 
+        -- Attributes to prevent logic trimming and removing it
         attribute KEEP : string;
-        attribute KEEP of slv_data_asyncff_2d : signal is "TRUE";
         attribute KEEP of slv_wr_en_event_asyncff : signal is "TRUE";
-        attribute KEEP of slv_data_to_cross_2d : signal is "TRUE";
         attribute KEEP of slv_wr_en_event_to_cross : signal is "TRUE";
+        -- attribute KEEP of slv_data_asyncff_2d : signal is "TRUE";
+        -- attribute KEEP of slv_data_to_cross_2d : signal is "TRUE";
 
         attribute DONT_TOUCH : string;
-        attribute DONT_TOUCH of slv_data_asyncff_2d: signal is "TRUE";
         attribute DONT_TOUCH of slv_wr_en_event_asyncff: signal is "TRUE";
-        attribute DONT_TOUCH of slv_data_to_cross_2d: signal is "TRUE";
         attribute DONT_TOUCH of slv_wr_en_event_to_cross: signal is "TRUE";
+        -- attribute DONT_TOUCH of slv_data_asyncff_2d: signal is "TRUE";
+        -- attribute DONT_TOUCH of slv_data_to_cross_2d: signal is "TRUE";
 
-        attribute SHREG_EXTRACT : string;
-        attribute SHREG_EXTRACT of slv_data_asyncff_2d: signal is "FALSE";
-        attribute SHREG_EXTRACT of slv_wr_en_event_asyncff: signal is "FALSE";
-        attribute SHREG_EXTRACT of slv_data_to_cross_2d: signal is "FALSE";
-        attribute SHREG_EXTRACT of slv_wr_en_event_to_cross: signal is "FALSE";
+        -- Ucomment if necessary
+        -- attribute SHREG_EXTRACT : string;
+        -- attribute SHREG_EXTRACT of slv_data_asyncff_2d: signal is "FALSE";
+        -- attribute SHREG_EXTRACT of slv_wr_en_event_asyncff: signal is "FALSE";
+        -- attribute SHREG_EXTRACT of slv_data_to_cross_2d: signal is "FALSE";
+        -- attribute SHREG_EXTRACT of slv_wr_en_event_to_cross: signal is "FALSE";
 
-        attribute ASYNC_REG : string;
-        attribute ASYNC_REG of slv_data_asyncff_2d : signal is "TRUE";
-        attribute ASYNC_REG of slv_wr_en_event_asyncff : signal is "TRUE";
+        -- Registers capable of receiving asynchronous data in the D input pin relative to the source clock
+        attribute ASYNC_REG : boolean;
+        attribute ASYNC_REG of slv_data_asyncff_2d : signal is true;
+        attribute ASYNC_REG of slv_wr_en_event_asyncff : signal is true;
 
         signal sl_wr_ready : std_logic := '0';
-        signal slv_wr_ready_srl : std_logic_vector(WR_READY_DEASSERTED_CYCLES-1 downto 0) := (others => '0');
-        signal slv_next_srl : std_logic_vector(WR_READY_DEASSERTED_CYCLES-1 downto 0) := (others => '0');
+        signal sl_wr_busy : std_logic := '0';
+        signal sl_next_low_srl_bit : std_logic := '0';
+        signal slv_wr_ready_srl : std_logic_vector(WR_READY_DEASSERTED_CYCLES+1 downto 0) := (others => '0');
+        signal slv_next_srl : std_logic_vector(WR_READY_DEASSERTED_CYCLES downto 0) := (others => '0');
 
     begin
 
 
         gen_if_clocks_different : if BYPASS = false generate
-            -- Write: Latch, capture data to cross + create an event: each change = new data
-            -- slv_data_to_cross_2d(0) <= slv_data_to_cross_latched;
-            -- slv_wr_en_event_to_cross(0) <= sl_bit_to_cross_latched;
-            wr_ready <= sl_wr_ready;
+            
+            -- Module is ready once busy flag is low (if ring buffer is full)
+            wr_ready <= not sl_wr_busy;
 
             proc_cdcc_wr_ready : process(clk_write)
             begin
                 if rising_edge(clk_write) then
 
-                    sl_wr_ready <= '1';
+                    -- Always shift
+                    slv_wr_ready_srl(slv_wr_ready_srl'high downto 1) <=
+                        slv_wr_ready_srl(slv_wr_ready_srl'high-1 downto 1) 
+                        & slv_wr_ready_srl(0);
 
-                    -- Deassert wr_ready until 'slv_next_srl' value
-                    if wr_en = '1' and sl_wr_ready = '1' then
-                        sl_wr_ready <= '0';
-                        slv_next_srl <= not slv_wr_ready_srl;
+                    -- Ring buffer is full, module is not busy
+                    if slv_wr_ready_srl(WR_READY_DEASSERTED_CYCLES-1) = slv_wr_ready_srl(0) then
+                        sl_wr_busy <= '0';
                     end if;
 
-                    -- Assert wr_ready once 'slv_next_srl' has been detected
-                    if sl_wr_ready = '0' then
-                        sl_wr_ready <= '0';
-                        slv_wr_ready_srl(slv_wr_ready_srl'high downto 0) <=
-                            slv_wr_ready_srl(slv_wr_ready_srl'high-1 downto 0) & not(slv_wr_ready_srl(slv_wr_ready_srl'high));
-                        if slv_wr_ready_srl = slv_next_srl then
-                            sl_wr_ready <= '1';
-                        end if;
+                    -- Assert wr_busy only if not busy and write enable has been detected
+                    if wr_en = '1' and sl_wr_busy = '0' then
+                        sl_wr_busy <= wr_en;
+                        slv_wr_ready_srl(0) <= not slv_wr_ready_srl(0); -- Set new value for full ring buffer
                     end if;
+                    
                 end if;
             end process;
 
@@ -120,7 +122,8 @@
                         slv_wr_en_event_to_cross(i) <= slv_wr_en_event_to_cross(i-1);
                     end loop;
 
-                    if wr_en = '1' and sl_wr_ready = '1' then
+                    -- if wr_en = '1' and sl_wr_busy = '0' then
+                    if wr_en = '1' then
                         slv_data_to_cross_2d(0) <= wr_data;
                         slv_wr_en_event_to_cross(0) <= not slv_wr_en_event_to_cross(0);
                     end if;
@@ -130,16 +133,17 @@
 
 
             -- Read: CDC Circuit
-            -- slv_data_asyncff_2d(0) <= slv_data_to_cross_2d(FLOPS_BEFORE_CROSSING_CNT);  -- set_false_path
-            -- slv_wr_en_event_asyncff(0) <= slv_wr_en_event_to_cross(FLOPS_BEFORE_CROSSING_CNT);          -- set_false_path
             proc_cdcc_readclk : process(clk_read)
             begin
                 if rising_edge(clk_read) then
 
+                    -- #TODO PERFORMANCE BOTTLENECK
+                    -- #TODO Should this be in the clk_write domain? I guess not... 
                     slv_data_asyncff_2d(0) <= slv_data_to_cross_2d(FLOPS_BEFORE_CROSSING_CNT);  -- set_false_path
                     slv_wr_en_event_asyncff(0) <= slv_wr_en_event_to_cross(FLOPS_BEFORE_CROSSING_CNT);          -- set_false_path
 
                     -- Async flops
+                    -- #TODO Redo this. One can not specify the number of flip-flops in total (ASYNC_FLOPS_CNT=1 is actually 2)
                     for i in 1 to ASYNC_FLOPS_CNT loop
                         -- Synchronize data (changes infrequently)
                         slv_data_asyncff_2d(i) <= slv_data_asyncff_2d(i-1);

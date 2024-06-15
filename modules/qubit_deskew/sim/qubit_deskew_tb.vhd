@@ -73,6 +73,7 @@
         signal rst : std_logic := RST_VAL;
         signal noisy_channels_in : std_logic_vector(2-1 downto 0) := (others => '0');
         signal qubit_valid_250MHz : std_logic;          -- Valid acts like write enable to sampler
+        signal channels_redge_synchronized : std_logic_vector(2-1 downto 0) := (others => '0');
         signal qubit_250MHz : std_logic_vector(2-1 downto 0);
 
         -- Desired input data to be send to the unit
@@ -143,6 +144,8 @@
             clk => clk,
             rst => rst,
             noisy_channels_in => noisy_channels_in,
+            
+            channels_redge_synchronized => channels_redge_synchronized,
 
             qubit_valid_250MHz => qubit_valid_250MHz,
             qubit_250MHz => qubit_250MHz
