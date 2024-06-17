@@ -3,6 +3,7 @@ set all_modules_lines_cnt [llength $all_modules]
 # Compile all files in the modules.tcl file
 # Sort the files to repsective libraries based on the compile order in the file modules.tcl
 puts "TCL: Compiling sources started..."
+set verilog_libname "xil_iplib_verilog"
 for {set i 0} {$i <= [llength $all_modules]} {incr i} {
 
     # Reconstruct the correct normalized path to source files
@@ -60,29 +61,29 @@ for {set i 0} {$i <= [llength $all_modules]} {incr i} {
             }
         } elseif {($file_lang eq "sv") || ($file_lang eq "svh")} {
             #  SystemVerilog
-            if { [file exist "${proj_root_dir}simulator/work"] } {
+            if { [file exist "${proj_root_dir}simulator/${verilog_libname}"] } {
                 # Compile
-                vlog -sv -work ${proj_root_dir}simulator/work $filepath
+                vlog -sv -work ${proj_root_dir}simulator/${verilog_libname} $filepath
             } else {
                 # Create the library, remap
-                vlib ${proj_root_dir}simulator/work
-                vmap work ${proj_root_dir}simulator/work
+                vlib ${proj_root_dir}simulator/${verilog_libname}
+                vmap ${verilog_libname} ${proj_root_dir}simulator/${verilog_libname}
                 # Compile
-                vlog -sv -work ${proj_root_dir}simulator/work $filepath
+                vlog -sv -work ${proj_root_dir}simulator/${verilog_libname} $filepath
             }
         } elseif {($file_lang eq "v") || ($file_lang eq "vh")} {
             # Verilog
             set verilog_file_present 1
-            if { [file exist "${proj_root_dir}simulator/work"] } {
+            if { [file exist "${proj_root_dir}simulator/${verilog_libname}"] } {
                 # Compile
-                vlog -work ${proj_root_dir}work $filepath
+                vlog -work ${proj_root_dir}${verilog_libname} $filepath
             } else {
                 # Recreate the library, remap
-                vlib ${proj_root_dir}simulator/work
-                vmap work ${proj_root_dir}simulator/work
+                vlib ${proj_root_dir}simulator/${verilog_libname}
+                vmap ${verilog_libname} ${proj_root_dir}simulator/${verilog_libname}
 
                 # Compile
-	            vlog -work ${proj_root_dir}simulator/work $filepath
+	            vlog -work ${proj_root_dir}simulator/${verilog_libname} $filepath
             }
         } else {
                 puts "TCL: ERROR: Invalid file suffix."

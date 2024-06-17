@@ -7,7 +7,7 @@
 
     package const_pack is
 
-        constant MAX_QUBITS_CNT : natural := 8;
+        constant MAX_QUBITS_CNT : natural := 6;
         
     end package;
 

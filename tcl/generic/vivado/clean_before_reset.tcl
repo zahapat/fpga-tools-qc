@@ -1,12 +1,3 @@
-# Remove files
-# set files_to_delete [glob -type f -nocomplain -directory \
-#     ${origin_dir}/*.str \
-#     ${origin_dir}/*.tmp \
-#     ${origin_dir}/*.debug \
-#     ${origin_dir}/*.zip \
-#     ${origin_dir}/simulator/modules.tcl
-# ]
-
 # Find files to delete
 set files_to_delete [glob -type f -nocomplain -directory ${origin_dir} \
     simulator/modules.tcl \

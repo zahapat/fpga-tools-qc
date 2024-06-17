@@ -99,30 +99,30 @@
 
 
         impure function get_faster_photon_real (
-            constant REAL_DELAY_HORIZ_ABS : real;
-            constant REAL_DELAY_VERTI_ABS : real
+            constant REAL_DELAY_A_ABS : real;
+            constant REAL_DELAY_B_ABS : real
         ) return real is
         begin
             -- Consistent logic with 'get_faster_photon_index'
             -- Faster = higher number (abs)
-            if REAL_DELAY_HORIZ_ABS < REAL_DELAY_VERTI_ABS then
-                return REAL_DELAY_VERTI_ABS;
+            if abs(REAL_DELAY_A_ABS) > abs(REAL_DELAY_B_ABS) then
+                return abs(REAL_DELAY_B_ABS);
             else
-                return REAL_DELAY_HORIZ_ABS;
+                return abs(REAL_DELAY_A_ABS);
             end if;
         end function;
 
         impure function get_slower_photon_real (
-            constant REAL_DELAY_HORIZ_ABS : real;
-            constant REAL_DELAY_VERTI_ABS : real
+            constant REAL_DELAY_A_ABS : real;
+            constant REAL_DELAY_B_ABS : real
         ) return real is
         begin
             -- Consistent logic with 'get_slower_photon_index'
             -- Faster = higher number (abs)
-            if REAL_DELAY_HORIZ_ABS < REAL_DELAY_VERTI_ABS then
-                return REAL_DELAY_HORIZ_ABS;
+            if abs(REAL_DELAY_A_ABS) < abs(REAL_DELAY_B_ABS) then
+                return abs(REAL_DELAY_B_ABS);
             else
-                return REAL_DELAY_VERTI_ABS;
+                return abs(REAL_DELAY_A_ABS);
             end if;
         end function;
 
@@ -142,18 +142,82 @@
 
         constant CLK_PERIOD_NS : real := 
             (1.0/real(CLK_HZ) * 1.0e9);
-        constant TIME_DIFFERENCE_PHOTONS_NS_ABS : real := 
-        --        higher vlaue              smaller value
-            abs(FASTER_PHOTON_REAL_ABS - SLOWER_PHOTON_REAL_ABS);
+
+        constant TIME_DIFFERENCE_PHOTONS_NS_ABS : real := -- higher vlaue - smaller value
+            SLOWER_PHOTON_REAL_ABS-FASTER_PHOTON_REAL_ABS;
+
         constant CLK_PERIODS_DIFFERENCE_DELAY_Q : natural :=
                 natural( ceil(TIME_DIFFERENCE_PHOTONS_NS_ABS / CLK_PERIOD_NS) );
-            -- constant CLK_PERIODS_DIFFERENCE_DELAY_Q : natural := ;
+        
+        -- Ceil function may increase the difference from the target and generated delay
+        impure function correct_periods (
+            constant CLK_PERIODS : natural;
+            constant CLK_PERIOD_NS : real;
+            constant REAL_TARGET_VALUE : real
+        ) return natural is
+            variable v_periods_plus_one : real := CLK_PERIOD_NS * real(CLK_PERIODS+1);
+            variable v_periods_plus_one_abserror : real;
+
+            variable v_periods_actual : real := CLK_PERIOD_NS * real(CLK_PERIODS);
+            variable v_periods_actual_abserror : real;
+
+            variable v_periods_minus_one : real := CLK_PERIOD_NS * real(CLK_PERIODS-1);
+            variable v_periods_minus_one_abserror : real;
+        begin
+            -- Compare differences from each case and select the minimum error
+            if REAL_TARGET_VALUE < v_periods_plus_one then
+                v_periods_plus_one_abserror := v_periods_plus_one - REAL_TARGET_VALUE;
+            else
+                v_periods_plus_one_abserror := REAL_TARGET_VALUE - v_periods_plus_one;
+            end if;
+
+            if REAL_TARGET_VALUE < v_periods_actual then
+                v_periods_actual_abserror := v_periods_actual - REAL_TARGET_VALUE;
+            else
+                v_periods_actual_abserror := REAL_TARGET_VALUE - v_periods_actual;
+            end if;
+
+            if REAL_TARGET_VALUE < v_periods_minus_one then
+                v_periods_minus_one_abserror := v_periods_minus_one - REAL_TARGET_VALUE;
+            else
+                v_periods_minus_one_abserror := REAL_TARGET_VALUE - v_periods_minus_one;
+            end if;
+
+            -- If CLK_PERIODS+1 gives less error
+            if v_periods_plus_one_abserror < v_periods_actual_abserror then
+                if v_periods_plus_one_abserror < v_periods_minus_one_abserror then
+                    return CLK_PERIODS + 1;
+                end if;
+            end if;
+
+            -- If CLK_PERIODS-1 gives less error
+            if v_periods_minus_one_abserror < v_periods_actual_abserror then
+                if v_periods_minus_one_abserror < v_periods_plus_one_abserror then
+                    return CLK_PERIODS - 1;
+                end if;
+            end if;
+
+            -- Otherwise keep ceil value
+            return CLK_PERIODS;
+
+        end function;
+
+        -- constant CLK_PERIODS : natural;
+        -- constant CLK_PERIOD_NS : real;
+        -- constant REAL_TARGET_VALUE : real
+        constant CLK_PERIODS_DIFFERENCE_DELAY_CORR : natural :=
+            correct_periods(
+                CLK_PERIODS_DIFFERENCE_DELAY_Q, 
+                CLK_PERIOD_NS, 
+                TIME_DIFFERENCE_PHOTONS_NS_ABS
+            );
 
 
 
         -- Ranges for shifters
         -- subtype st_shifts_for_slower is natural range CLK_PERIODS_DIFFERENCE_DELAY_Q-1 + 2 + TOLERANCE_KEEP_FASTER_BIT_CYCLES downto 0;
-        subtype st_shifts_for_slower is natural range CLK_PERIODS_DIFFERENCE_DELAY_Q-1 + TOLERANCE_KEEP_FASTER_BIT_CYCLES downto 0;
+        -- subtype st_shifts_for_slower is natural range CLK_PERIODS_DIFFERENCE_DELAY_Q-1 + TOLERANCE_KEEP_FASTER_BIT_CYCLES downto 0;
+        subtype st_shifts_for_slower is natural range CLK_PERIODS_DIFFERENCE_DELAY_Q+2 downto 0;
 
         -- Buffering detected faster data
         signal s_shiftreg_counter_faster : std_logic_vector(st_shifts_for_slower) := (others => '0');
@@ -294,15 +358,20 @@
         qubit_valid_250MHz <= sl_qubit_valid_250MHz;
         gen_if_photons_diff_delays : if PHOTON_H_DELAY_NS /= PHOTON_V_DELAY_NS generate
             -- Delay: Start shifting faster bit and detect immediately slower bit
+            s_shiftreg_counter_faster(0) <= s_channels_redge(2*0 + FASTEST_EXPECTED_BIT_INDEX);
             align_valid_qubit : process(clk)
             begin
                 if rising_edge(clk) then
-                    -- If the faster bit has already arrived
-                    if s_channels_redge(2*0 + FASTEST_EXPECTED_BIT_INDEX) = '1' then
-                        s_shiftreg_counter_faster(s_shiftreg_counter_faster'length-1 downto 0) <= std_logic_vector(to_unsigned(1, s_shiftreg_counter_faster'length));
-                    else
-                        s_shiftreg_counter_faster(s_shiftreg_counter_faster'length-1 downto 0) <= s_shiftreg_counter_faster(s_shiftreg_counter_faster'length-2 downto 0) & '0';
-                    end if;
+                    -- -- If the faster bit has already arrived
+                    -- if s_channels_redge(2*0 + FASTEST_EXPECTED_BIT_INDEX) = '1' then
+                    --     s_shiftreg_counter_faster(s_shiftreg_counter_faster'length-1 downto 0) <= std_logic_vector(to_unsigned(1, s_shiftreg_counter_faster'length));
+                    -- else
+                    --     s_shiftreg_counter_faster(s_shiftreg_counter_faster'length-1 downto 0) <= s_shiftreg_counter_faster(s_shiftreg_counter_faster'length-2 downto 0) & '0';
+                    -- end if;
+
+                    -- Delay the rising edge of the fast photon
+                    s_shiftreg_counter_faster(s_shiftreg_counter_faster'length-1 downto 1) <= s_shiftreg_counter_faster(s_shiftreg_counter_faster'length-2 downto 0);
+
                 end if;
             end process;
 
@@ -313,8 +382,8 @@
             output_deskew_photons : process(clk)
             begin
                 if rising_edge(clk) then
-                    sl_qubit_valid_250MHz <= s_shiftreg_counter_faster(s_shiftreg_counter_faster'length-1) or s_channels_redge(2*0 + SLOWEST_EXPECTED_BIT_INDEX);
-                    slv_qubit_250MHz <= (s_shiftreg_counter_faster(s_shiftreg_counter_faster'length-1) & s_channels_redge(2*0 + SLOWEST_EXPECTED_BIT_INDEX));
+                    sl_qubit_valid_250MHz <= s_shiftreg_counter_faster(CLK_PERIODS_DIFFERENCE_DELAY_CORR) or s_channels_redge(2*0 + SLOWEST_EXPECTED_BIT_INDEX);
+                    slv_qubit_250MHz <= (s_shiftreg_counter_faster(CLK_PERIODS_DIFFERENCE_DELAY_CORR) & s_channels_redge(2*0 + SLOWEST_EXPECTED_BIT_INDEX));
                 end if;
             end process;
         end generate;

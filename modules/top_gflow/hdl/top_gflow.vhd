@@ -89,22 +89,59 @@
         signal sl_usb_fifo_prog_empty : std_logic := '0';
 
 
-        ---------------------
-        -- Vivado IP Cores --
-        ---------------------
-        -- Xilinx Clock generator
-        component clk_wiz_0
+        ----------------
+        -- Components --
+        ----------------
+        -- SystemVerilog File (must be compiled to the same lib as glbl)
+        component clock_synthesizer
+        generic (
+            IF_CLKIN1_DIFF : integer;
+            REAL_CLKIN1_MHZ : real;
+            INT_VCO_DIVIDE : integer;
+            REAL_VCO_MULTIPLY : real;
+            REAL_DIVIDE_OUT0 : real;
+            INT_DIVIDE_OUT1  : integer;
+            INT_DIVIDE_OUT2  : integer;
+            INT_DIVIDE_OUT3  : integer;
+            INT_DIVIDE_OUT4  : integer;
+            INT_DIVIDE_OUT5  : integer;
+            INT_DIVIDE_OUT6  : integer;
+            REAL_DUTY_OUT0 : real;
+            REAL_DUTY_OUT1 : real;
+            REAL_DUTY_OUT2 : real;
+            REAL_DUTY_OUT3 : real;
+            REAL_DUTY_OUT4 : real;
+            REAL_DUTY_OUT5 : real;
+            REAL_DUTY_OUT6 : real;
+            REAL_PHASE_OUT0 : real;
+            REAL_PHASE_OUT1 : real;
+            REAL_PHASE_OUT2 : real;
+            REAL_PHASE_OUT3 : real;
+            REAL_PHASE_OUT4 : real;
+            REAL_PHASE_OUT5 : real;
+            REAL_PHASE_OUT6 : real
+        ); 
         port (
-            clk_out1 : out std_logic;
-            clk_out2 : out std_logic;
-            clk_out3 : out std_logic;
-            clk_in1_p : in std_logic;
-            clk_in1_n : in std_logic;
-            locked   : out std_logic
+            in_clk0_p : in std_logic;
+            in_clk0_n : in std_logic;
+            in_fineps_clk : in std_logic;
+            in_fineps_incr : in std_logic;
+            in_fineps_decr : in std_logic;
+            in_fineps_valid : in std_logic;
+            out_fineps_dready : out std_logic;
+            out_clk0 : out std_logic;
+            out_clk1 : out std_logic;
+            out_clk2 : out std_logic;
+            out_clk3 : out std_logic;
+            out_clk4 : out std_logic;
+            out_clk5 : out std_logic;
+            out_clk6 : out std_logic;
+            locked : out std_logic
         );
         end component;
 
         -- Clocks
+        constant REAL_BOARD_OSC_FREQ_MHZ : real := 200.0;
         constant REAL_CLK_SYS_HZ : real := 200.0e6;
         constant REAL_CLK_SAMPL_HZ : real := 300.0e6;
         constant REAL_CLK_ACQ_HZ : real := 600.0e6;
@@ -222,7 +259,7 @@
             if DIVISOR = 0 then
                 return 1;
             else
-                return integer(10.0*(floor(log10(real(DIVISOR))) + 1.0));
+                return integer(10.0**(floor(log10(real(DIVISOR))) + 1.0));
             end if;
         end function;
         constant PHOTON_1H_DELAY_NS : real := real(INT_WHOLE_PHOTON_1H_DELAY_NS) + real(INT_DECIM_PHOTON_1H_DELAY_NS) / real(get_divisor(INT_DECIM_PHOTON_1H_DELAY_NS));
@@ -244,16 +281,62 @@
         ----------------------
         -- Xilinx IP Blocks --
         ----------------------
-        -- Clock Wizard
-        inst_clk_wiz_0 : clk_wiz_0
-        port map (
-            clk_in1_p => sys_clk_p,
-            clk_in1_n => sys_clk_n,
+        -- Instance Clock Synthesizer (Verilog)
+        inst_clock_synthesizer : clock_synthesizer
+        generic map (
+            -- If input clk is differential, set to 1
+            IF_CLKIN1_DIFF => 1,
 
-            clk_out1 => acq_clk,
-            clk_out2 => sampl_clk,
-            clk_out3 => sys_clk,
+            -- Set input clk parameters
+            REAL_CLKIN1_MHZ => REAL_BOARD_OSC_FREQ_MHZ,
 
+            -- Setup the VCO frequency for the entire device
+            INT_VCO_DIVIDE => 1,
+            REAL_VCO_MULTIPLY => 6.0,
+
+            REAL_DIVIDE_OUT0 => 2.0,
+            INT_DIVIDE_OUT1 => 4,
+            INT_DIVIDE_OUT2 => 6,
+            INT_DIVIDE_OUT3 => 0,
+            INT_DIVIDE_OUT4 => 0,
+            INT_DIVIDE_OUT5 => 0,
+            INT_DIVIDE_OUT6 => 0,
+
+            REAL_DUTY_OUT0 => 0.5,
+            REAL_DUTY_OUT1 => 0.5,
+            REAL_DUTY_OUT2 => 0.5,
+            REAL_DUTY_OUT3 => 0.5,
+            REAL_DUTY_OUT4 => 0.5,
+            REAL_DUTY_OUT5 => 0.5,
+            REAL_DUTY_OUT6 => 0.5,
+
+            REAL_PHASE_OUT0 => 0.0,
+            REAL_PHASE_OUT1 => 0.0,
+            REAL_PHASE_OUT2 => 0.0,
+            REAL_PHASE_OUT3 => 0.0,
+            REAL_PHASE_OUT4 => 0.0,
+            REAL_PHASE_OUT5 => 0.0,
+            REAL_PHASE_OUT6 => 0.0
+        ) port map (
+            -- Inputs
+            in_clk0_p => sys_clk_p,
+            in_clk0_n => sys_clk_n,
+
+            -- Fine Phase Shift
+            in_fineps_clk     => '0',
+            in_fineps_incr    => '0',
+            in_fineps_decr    => '0',
+            in_fineps_valid   => '0',
+            out_fineps_dready => open,
+
+            -- Outputs
+            out_clk0 => acq_clk,
+            out_clk1 => sampl_clk,
+            out_clk2 => sys_clk,
+            out_clk3 => open,
+            out_clk4 => open,
+            out_clk5 => open,
+            out_clk6 => open,
             locked => locked
         );
 
@@ -647,7 +730,9 @@
 
                 -- wr_en     => s_valid_qubits_stable_to_cdcc(i),
                 -- wr_en     => s_stable_channels_to_cdcc((i+1)*2-1),
-                wr_en => s_channels_redge_synchronized_to_cdcc((i+1)*2-1),
+
+                -- wr_en => s_channels_redge_synchronized_to_cdcc((i+1)*2-1), -- Synthesized OK
+                wr_en => s_stable_channels_to_cdcc((i+1)*2-1), -- Test
 
                 -- wr_data   => s_stable_channels_to_cdcc((i+1)*2-1 downto (i+1)*2-1),
                 -- wr_data   => open,
@@ -679,7 +764,9 @@
                 -- clk_write => sampl_clk,
                 -- wr_en     => s_valid_qubits_stable_to_cdcc(i),
                 -- wr_en     => s_stable_channels_to_cdcc(i*2),
-                wr_en => s_channels_redge_synchronized_to_cdcc(i*2),
+
+                -- wr_en => s_channels_redge_synchronized_to_cdcc(i*2), -- Synthesized OK
+                wr_en => s_stable_channels_to_cdcc(i*2), -- Test
                 
 
                 -- wr_data   => s_stable_channels_to_cdcc(i*2 downto i*2),

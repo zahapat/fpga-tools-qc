@@ -21,16 +21,15 @@ set_property IOSTANDARD LVDS [get_ports sys_clk_n]
 set_property PACKAGE_PIN AC4 [get_ports sys_clk_p]
 set_property PACKAGE_PIN AC3 [get_ports sys_clk_n]
 
-# create_clock -name sys_clk -period 10 [get_ports SYS_CLK_P]
+# Differential clock (200 MHz Differential)
+create_clock -period 5.0 [get_ports sys_clk_p]
+set_input_jitter [get_clocks -of_objects [get_ports sys_clk_p]] 0.05
 
-# create_clock -period 10.000 -name sys_clk [get_ports CLK_IN1_D_0_clk_p]
-
-# CLK0_M2C_P	E18 (HA)
-# set_property IOSTANDARD LVTTL [get_ports clk_in_76Mhz]
-# set_property PACKAGE_PIN E18 [get_ports clk_in_76Mhz]
-# set_property PACKAGE_PIN G9 [get_ports clk_in_76Mhz]
-
-# CLK0_M2C_N	D18 (HA)
+# MMCM output clocks
+set inst_name "inst_clock_synthesizer"
+create_clock -name acq_clk -period 1.666667 [get_ports inst_gflow/${inst_name}/mmcm_out_clk[0]]
+create_clock -name sampl_clk -period 3.333334 [get_ports inst_gflow/${inst_name}/mmcm_out_clk[1]]
+create_clock -name sys_clk -period 5 [get_ports inst_gflow/${inst_name}/mmcm_out_clk[2]]
 
 
 ############################################################################

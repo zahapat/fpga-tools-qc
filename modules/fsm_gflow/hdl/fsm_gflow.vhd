@@ -100,39 +100,42 @@
         signal slv_qubits_sampled : std_logic_vector(qubits_sampled'range) := (others => '0');
         signal slv_actual_qubit : std_logic_vector(actual_qubit'range) := (others => '0');
 
-
-        -- 1 MHz delay + CCS delay + FPGA Delay: corrected counting for waiting for the next qubit
-
-        -- GFLOW module timing perspective:
-        -- Function to compare which bit arrives the second (is expected to be slower)
-        impure function get_slowest_photon_delay_us (
-            constant REAL_DELAY_HORIZ_NS : real;
-            constant REAL_DELAY_VERTI_NS : real
+        -- GFLOW module timing perspective
+        -- Function that compares which photon (H/V) arrives the second (is expected to be slower) and get its delay in clock periods
+        impure function get_largest_photon_delay_periods (
+            constant REAL_PHOTON_A_DELAY_NS : real;
+            constant REAL_PHOTON_B_DELAY_NS : real
         ) return natural is
-            variable v_ph_horiz_us : real := 0.0;
-            variable v_ph_verti_us : real := 0.0;
+            variable v_ph_a_us : real := 0.0;
+            variable v_ph_b_us : real := 0.0;
         begin
             -- 1 MHz = 1 us
-            v_ph_horiz_us := abs(REAL_DELAY_HORIZ_NS)/1000.0;
-            v_ph_verti_us := abs(REAL_DELAY_VERTI_NS)/1000.0;
+            v_ph_a_us := abs(REAL_PHOTON_A_DELAY_NS)/1000.0;
+            v_ph_b_us := abs(REAL_PHOTON_B_DELAY_NS)/1000.0;
 
             -- Pick the one with the largest delay
-            if v_ph_horiz_us < v_ph_verti_us then
-                return natural(ceil(real(CLK_HZ)/1.0e6 * v_ph_verti_us));
+            if v_ph_a_us < v_ph_b_us then
+                return natural(ceil(real(CLK_HZ)/1.0e6 * v_ph_b_us));
             else
-                return natural(ceil(real(CLK_HZ)/1.0e6 * v_ph_horiz_us));
+                return natural(ceil(real(CLK_HZ)/1.0e6 * v_ph_a_us));
             end if;
         end function;
 
-        -- MAX 6 QUBITS
         type t_periods_q_2d is array (6-1 downto 0) of natural; 
         constant MAX_PERIODS_Q : t_periods_q_2d := (
-            get_slowest_photon_delay_us(PHOTON_6H_DELAY_NS, PHOTON_6V_DELAY_NS), -- index 5
-            get_slowest_photon_delay_us(PHOTON_5H_DELAY_NS, PHOTON_5V_DELAY_NS), -- index 4
-            get_slowest_photon_delay_us(PHOTON_4H_DELAY_NS, PHOTON_4V_DELAY_NS), -- index 3
-            get_slowest_photon_delay_us(PHOTON_3H_DELAY_NS, PHOTON_3V_DELAY_NS), -- index 2
-            get_slowest_photon_delay_us(PHOTON_2H_DELAY_NS, PHOTON_2V_DELAY_NS), -- index 1
-            get_slowest_photon_delay_us(PHOTON_1H_DELAY_NS, PHOTON_1V_DELAY_NS)  -- index 0 (never used)
+            -- get_largest_photon_delay_periods(PHOTON_6H_DELAY_NS, PHOTON_6V_DELAY_NS)-1, -- index 5
+            -- get_largest_photon_delay_periods(PHOTON_5H_DELAY_NS, PHOTON_5V_DELAY_NS)-1, -- index 4
+            -- get_largest_photon_delay_periods(PHOTON_4H_DELAY_NS, PHOTON_4V_DELAY_NS)-2, -- index 3
+            -- get_largest_photon_delay_periods(PHOTON_3H_DELAY_NS, PHOTON_3V_DELAY_NS)-1, -- index 2
+            -- get_largest_photon_delay_periods(PHOTON_2H_DELAY_NS, PHOTON_2V_DELAY_NS)-1, -- index 1
+            -- get_largest_photon_delay_periods(PHOTON_1H_DELAY_NS, PHOTON_1V_DELAY_NS)  -- index 0 (never used)
+
+            get_largest_photon_delay_periods(PHOTON_6H_DELAY_NS, PHOTON_6V_DELAY_NS), -- index 5
+            get_largest_photon_delay_periods(PHOTON_5H_DELAY_NS, PHOTON_5V_DELAY_NS), -- index 4
+            get_largest_photon_delay_periods(PHOTON_4H_DELAY_NS, PHOTON_4V_DELAY_NS), -- index 3
+            get_largest_photon_delay_periods(PHOTON_3H_DELAY_NS, PHOTON_3V_DELAY_NS), -- index 2
+            get_largest_photon_delay_periods(PHOTON_2H_DELAY_NS, PHOTON_2V_DELAY_NS), -- index 1
+            get_largest_photon_delay_periods(PHOTON_1H_DELAY_NS, PHOTON_1V_DELAY_NS)  -- index 0 (never used)
         );
 
         -- Sort MAX_PERIODS_Q and get sorted indices (default) or periods
@@ -208,7 +211,7 @@
         signal flag_invalid_qubit_id : std_logic := '0';
 
         -- Calculate total delay before this module
-        impure function get_delay_qubit_deskew (
+        impure function get_photon_hv_synch_delay (
             constant DELAY_PHOTON_1 : real;
             constant DELAY_PHOTON_2 : real
         ) return natural is
@@ -219,13 +222,13 @@
         begin
             return natural( ceil(TIME_DIFFERENCE_PHOTONS_NS_ABS / CLK_PERIOD_SAMPLCLK_NS) );
         end function;
-        constant DELAY_BEFORE_FSM_GFLOW : t_periods_q_2d := (
-            get_delay_qubit_deskew(PHOTON_6H_DELAY_NS, PHOTON_6V_DELAY_NS), -- index 5
-            get_delay_qubit_deskew(PHOTON_5H_DELAY_NS, PHOTON_5V_DELAY_NS), -- index 4
-            get_delay_qubit_deskew(PHOTON_4H_DELAY_NS, PHOTON_4V_DELAY_NS), -- index 3
-            get_delay_qubit_deskew(PHOTON_3H_DELAY_NS, PHOTON_3V_DELAY_NS), -- index 2
-            get_delay_qubit_deskew(PHOTON_2H_DELAY_NS, PHOTON_2V_DELAY_NS), -- index 1
-            get_delay_qubit_deskew(PHOTON_1H_DELAY_NS, PHOTON_1V_DELAY_NS)  -- index 0 (never used)
+        constant PHOTON_HV_SYNCHRONIZATION_DELAY : t_periods_q_2d := (
+            get_photon_hv_synch_delay(PHOTON_6H_DELAY_NS, PHOTON_6V_DELAY_NS), -- index 5
+            get_photon_hv_synch_delay(PHOTON_5H_DELAY_NS, PHOTON_5V_DELAY_NS), -- index 4
+            get_photon_hv_synch_delay(PHOTON_4H_DELAY_NS, PHOTON_4V_DELAY_NS), -- index 3
+            get_photon_hv_synch_delay(PHOTON_3H_DELAY_NS, PHOTON_3V_DELAY_NS), -- index 2
+            get_photon_hv_synch_delay(PHOTON_2H_DELAY_NS, PHOTON_2V_DELAY_NS), -- index 1
+            get_photon_hv_synch_delay(PHOTON_1H_DELAY_NS, PHOTON_1V_DELAY_NS)  -- index 0 (never used)
         );
 
 
@@ -233,7 +236,85 @@
         constant CLK_PERIODS_SKIP : natural :=
                 natural( ceil(real(DISCARD_QUBITS_TIME_NS) / CLK_PERIOD_NS) );
         signal slv_counter_skip_qubits : std_logic_vector(integer(ceil(log2(real(CLK_PERIODS_SKIP+1)))) downto 0) := (others => '0');
-        
+
+
+        -- Ceil function may increase the difference from the target and generated delay
+        impure function correct_periods (
+            constant CLK_PERIODS : natural;
+            constant CLK_PERIOD_NS : real;
+            constant REAL_TARGET_VALUE : real
+        ) return natural is
+            variable v_periods_plus_one : real := CLK_PERIOD_NS * real(CLK_PERIODS+1);
+            variable v_periods_plus_one_abserror : real;
+
+            variable v_periods_actual : real := CLK_PERIOD_NS * real(CLK_PERIODS);
+            variable v_periods_actual_abserror : real;
+
+            variable v_periods_minus_one : real := CLK_PERIOD_NS * real(CLK_PERIODS-1);
+            variable v_periods_minus_one_abserror : real;
+        begin
+            -- Compare differences from each case and select the minimum error
+            if REAL_TARGET_VALUE < v_periods_plus_one then
+                v_periods_plus_one_abserror := v_periods_plus_one - REAL_TARGET_VALUE;
+            else
+                v_periods_plus_one_abserror := REAL_TARGET_VALUE - v_periods_plus_one;
+            end if;
+
+            if REAL_TARGET_VALUE < v_periods_actual then
+                v_periods_actual_abserror := v_periods_actual - REAL_TARGET_VALUE;
+            else
+                v_periods_actual_abserror := REAL_TARGET_VALUE - v_periods_actual;
+            end if;
+
+            if REAL_TARGET_VALUE < v_periods_minus_one then
+                v_periods_minus_one_abserror := v_periods_minus_one - REAL_TARGET_VALUE;
+            else
+                v_periods_minus_one_abserror := REAL_TARGET_VALUE - v_periods_minus_one;
+            end if;
+
+            -- If CLK_PERIODS+1 gives less error
+            if v_periods_plus_one_abserror < v_periods_actual_abserror then
+                if v_periods_plus_one_abserror < v_periods_minus_one_abserror then
+                    return CLK_PERIODS + 1;
+                end if;
+            end if;
+
+            -- If CLK_PERIODS-1 gives less error
+            if v_periods_minus_one_abserror < v_periods_actual_abserror then
+                if v_periods_minus_one_abserror < v_periods_plus_one_abserror then
+                    return CLK_PERIODS - 1;
+                end if;
+            end if;
+
+            -- Otherwise keep ceil value
+            return CLK_PERIODS;
+
+        end function;
+
+        -- Compare which photon arrives the second
+        impure function get_largest_delay (
+            constant REAL_DELAY_A_ABS : real;
+            constant REAL_DELAY_B_ABS : real
+        ) return real is
+        begin
+            -- Faster = higher number (abs)
+            if abs(REAL_DELAY_A_ABS) < abs(REAL_DELAY_B_ABS) then
+                return abs(REAL_DELAY_B_ABS);
+            else
+                return abs(REAL_DELAY_A_ABS);
+            end if;
+        end function;
+
+        -- MAX 6 QUBITS
+        constant MAX_PERIODS_CORR : t_periods_q_2d := (
+            correct_periods(MAX_PERIODS_Q(5), CLK_PERIOD_NS, get_largest_delay(PHOTON_6H_DELAY_NS, PHOTON_6V_DELAY_NS)),
+            correct_periods(MAX_PERIODS_Q(4), CLK_PERIOD_NS, get_largest_delay(PHOTON_5H_DELAY_NS, PHOTON_5V_DELAY_NS)),
+            correct_periods(MAX_PERIODS_Q(3), CLK_PERIOD_NS, get_largest_delay(PHOTON_4H_DELAY_NS, PHOTON_4V_DELAY_NS)),
+            correct_periods(MAX_PERIODS_Q(2), CLK_PERIOD_NS, get_largest_delay(PHOTON_3H_DELAY_NS, PHOTON_3V_DELAY_NS)),
+            correct_periods(MAX_PERIODS_Q(1), CLK_PERIOD_NS, get_largest_delay(PHOTON_2H_DELAY_NS, PHOTON_2V_DELAY_NS)),
+            correct_periods(MAX_PERIODS_Q(0), CLK_PERIOD_NS, get_largest_delay(PHOTON_1H_DELAY_NS, PHOTON_1V_DELAY_NS))
+        );
+
 
 
     begin
@@ -351,6 +432,7 @@
                                 end if;
 
                                 -- If the counter has reached the max delay, don't ask and reset it and assess the next state
+                                -- if int_main_counter = MAX_PERIODS_CORR(QUBIT_ID(i)) -1 then
                                 if int_main_counter = MAX_PERIODS_Q(QUBIT_ID(i)) -1 then
 
                                     -- Detect Qubit 3 and proceed to Qubit 4, sample time stamp
@@ -365,7 +447,8 @@
                                 end if;
 
                                 -- Look for detection before the last counter iteration (counter the data skew)
-                                for u in 0 to 2 loop
+                                for u in 0 to 0 loop
+                                    -- if int_main_counter = MAX_PERIODS_CORR(QUBIT_ID(i)) -2 -u then
                                     if int_main_counter = MAX_PERIODS_Q(QUBIT_ID(i)) -2 -u then
 
                                         -- Detect Qubit 3 earlier and proceed to Qubit 4
@@ -398,6 +481,7 @@
                             slv_to_math_sx_sz <= feedback_mod;
                         end if;
 
+                        -- if int_main_counter = MAX_PERIODS_CORR(QUBITS_CNT-1) -1 then
                         if int_main_counter = MAX_PERIODS_Q(QUBITS_CNT-1) -1 then
 
                             -- Detect Qubit 4 and proceed to Qubit 1, save times tamp
@@ -413,7 +497,8 @@
                         end if;
 
                         -- Look for detection before the last counter iteration (counter the data skew)
-                        for u in 0 to 2 loop
+                        for u in 0 to 0 loop
+                            -- if int_main_counter = MAX_PERIODS_CORR(QUBITS_CNT-1) -2 -u then
                             if int_main_counter = MAX_PERIODS_Q(QUBITS_CNT-1) -2 -u then
 
                                 -- Detect Qubit 4 earlier and proceed to Qubit 1
@@ -539,8 +624,8 @@
                             slv_to_math_sx_sz <= feedback_mod;
                         end if;
 
+                        -- if int_main_counter = MAX_PERIODS_CORR(QUBITS_CNT-1) -1 then
                         if int_main_counter = MAX_PERIODS_Q(QUBITS_CNT-1) -1 then
-
                             -- Detect Qubit 4 and proceed to Qubit 1, sample time stamp
                             -- if qubits_sampled_valid(0) = '1' then
                             if qubits_sampled_valid(QUBITS_CNT-1) = '1' then
@@ -554,8 +639,8 @@
                         end if;
 
                         -- Look for detection before the last counter iteration (counter the data skew)
+                        -- if int_main_counter = MAX_PERIODS_CORR(QUBITS_CNT-1) -2 then
                         if int_main_counter = MAX_PERIODS_Q(QUBITS_CNT-1) -2 then
-
                             -- Detect Qubit 4 earlier and proceed to Qubit 1
                             -- if qubits_sampled_valid(0) = '1' then
                             if qubits_sampled_valid(QUBITS_CNT-1) = '1' then

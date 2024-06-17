@@ -1,12 +1,12 @@
 
-SIMULATION REPORT          Generated on Fri Jun 14 01:17:40 2024
+SIMULATION REPORT          Generated on Tue Jun 18 00:48:54 2024
 
 
 Design simulated: C:/Git/zahapat/fpga-tools-qc/simulator/vivado_precompiled_ver/unisim.glbl_vhd(glbl_vhd_v) C:/Git/zahapat/fpga-tools-qc/simulator/xil_iplib_verilog.glbl C:/Git/zahapat/fpga-tools-qc/simulator/lib_sim.top_gflow_tb(sim)
-Number of signals/nets in design: 6368643
-Number of processes in design: 4790
+Number of signals/nets in design: 6368275
+Number of processes in design: 4830
 Number of instances from user libraries in design: 354
-Number of executable statements in design: 119568
+Number of executable statements in design: 119985
 
 Simulator Parameters:
 
@@ -47,11 +47,11 @@ List of Design units used:
     Timescale: 1ns / 1ps
     Occurrences: 1
 
-    Module: BUFG , acc : <novopt>
+    Module: IBUFDS , acc : <novopt>
     Library: C:/Git/zahapat/fpga-tools-qc/simulator/vivado_precompiled_ver/unisims_ver
-    Source File: C:/Xilinx/Vivado/2020.2/data/verilog/src/unisims/BUFG.v
+    Source File: C:/Xilinx/Vivado/2020.2/data/verilog/src/unisims/IBUFDS.v
     Timescale: 1ps / 1ps
-    Occurrences: 4
+    Occurrences: 1
 
     Module: MMCME2_ADV (cell) , acc : <novopt>
     Library: C:/Git/zahapat/fpga-tools-qc/simulator/vivado_precompiled_ver/unisims_ver
@@ -59,22 +59,21 @@ List of Design units used:
     Timescale: 1ps / 1ps
     Occurrences: 1
 
-    Module: IBUFDS , acc : <novopt>
+    Module: BUFG , acc : <novopt>
     Library: C:/Git/zahapat/fpga-tools-qc/simulator/vivado_precompiled_ver/unisims_ver
-    Source File: C:/Xilinx/Vivado/2020.2/data/verilog/src/unisims/IBUFDS.v
+    Source File: C:/Xilinx/Vivado/2020.2/data/verilog/src/unisims/BUFG.v
     Timescale: 1ps / 1ps
+    Occurrences: 4
+
+    Module: clock_synthesizer , acc : <novopt>
+    Library: C:/Git/zahapat/fpga-tools-qc/simulator/xil_iplib_verilog
+    Source File: C:/Git/zahapat/fpga-tools-qc/modules/clock_synthesizer/hdl/clock_synthesizer.sv
+    Timescale: 1ns / 1ps
     Occurrences: 1
 
-    Module: clk_wiz_0_clk_wiz , acc : <novopt>
-    Library: C:/Git/zahapat/fpga-tools-qc/simulator/xil_iplib_verilog
-    Source File: C:/Git/zahapat/fpga-tools-qc/vivado/ip/clk_wiz_0/clk_wiz_0_clk_wiz.v
-    Timescale: 1ps / 1ps
-    Occurrences: 1
-
-    Module: clk_wiz_0 , acc : <novopt>
-    Library: C:/Git/zahapat/fpga-tools-qc/simulator/xil_iplib_verilog
-    Source File: C:/Git/zahapat/fpga-tools-qc/vivado/ip/clk_wiz_0/clk_wiz_0.v
-    Timescale: 1ps / 1ps
+    Module: std , acc : <novopt>
+    Library: C:/intelFPGA/20.1/modelsim_ase/sv_std
+    Source File: $MODEL_TECH/../verilog_src/std/std.sv
     Occurrences: 1
 
     Package Body: randompkg
@@ -120,6 +119,11 @@ List of Design units used:
     Package Body: namepkg
     Library: C:/Git/zahapat/fpga-tools-qc/simulator/osvvm
     Source File: C:/Git/zahapat/fpga-tools-qc/packages/osvvm/NamePkg.vhd
+    Occurrences: 1
+
+    Package Body: clk_pack_tb
+    Library: C:/Git/zahapat/fpga-tools-qc/simulator/lib_sim
+    Source File: C:/Git/zahapat/fpga-tools-qc/packages/sim_tools/clk_pack_tb.vhd
     Occurrences: 1
 
     Package Body: essentials_tb

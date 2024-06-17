@@ -31,28 +31,34 @@ add wave -noupdate /top_gflow_tb/dut_top_gflow/inst_alu_gflow/minus_one_power_si
 add wave -noupdate /top_gflow_tb/dut_top_gflow/inst_alu_gflow/s_added_random_unsigned
 add wave -noupdate /top_gflow_tb/dut_top_gflow/inst_alu_gflow/slv_random_buffer_2d
 add wave -noupdate /top_gflow_tb/dut_top_gflow/inst_alu_gflow/slv_modulo_buffer_2d
-add wave -noupdate /top_gflow_tb/dut_top_gflow/sl_gflow_success_flag
 add wave -noupdate /top_gflow_tb/dut_top_gflow/sl_gflow_success_done
 add wave -noupdate /top_gflow_tb/dut_top_gflow/sl_gflow_success_done_transferred
 add wave -noupdate -expand /top_gflow_tb/dut_top_gflow/pcd_ctrl_pulse_ready
 add wave -noupdate /top_gflow_tb/dut_top_gflow/inst_fsm_gflow/pcd_ctrl_pulse_ready_p1
 add wave -noupdate /top_gflow_tb/dut_top_gflow/inst_fsm_gflow/pcd_ctrl_pulse_fedge_latched
 add wave -noupdate -divider {TB: top_gflow INTERNAL signals}
+add wave -noupdate /top_gflow_tb/dut_top_gflow/inst_fsm_gflow/PHOTON_HV_SYNCHRONIZATION_DELAY
+add wave -noupdate /top_gflow_tb/dut_top_gflow/inst_fsm_gflow/MAX_PERIODS_Q
 add wave -noupdate /top_gflow_tb/dut_top_gflow/sys_clk
 add wave -noupdate /top_gflow_tb/dut_top_gflow/sampl_clk
 add wave -noupdate /top_gflow_tb/dut_top_gflow/acq_clk
 add wave -noupdate /top_gflow_tb/output_pads
+add wave -noupdate /top_gflow_tb/dut_top_gflow/sl_gflow_success_flag
 add wave -noupdate -color Gold /top_gflow_tb/dut_top_gflow/inst_fsm_gflow/int_state_gflow
 add wave -noupdate -radix unsigned -childformat {{/top_gflow_tb/dut_top_gflow/inst_fsm_gflow/slv_counter_skip_qubits(0) -radix unsigned}} -subitemconfig {/top_gflow_tb/dut_top_gflow/inst_fsm_gflow/slv_counter_skip_qubits(0) {-height 15 -radix unsigned}} /top_gflow_tb/dut_top_gflow/inst_fsm_gflow/slv_counter_skip_qubits
-add wave -noupdate /top_gflow_tb/input_pads
-add wave -noupdate /top_gflow_tb/dut_top_gflow/slv_cdcc_rd_qubits_to_fsm
+add wave -noupdate -expand /top_gflow_tb/input_pads
+add wave -noupdate /top_gflow_tb/dut_top_gflow/inst_fsm_gflow/int_main_counter
+add wave -noupdate -expand /top_gflow_tb/dut_top_gflow/slv_cdcc_rd_qubits_to_fsm
 add wave -noupdate -expand /top_gflow_tb/dut_top_gflow/slv_cdcc_rd_valid_to_fsm
 add wave -noupdate -color {Violet Red} -radix unsigned /top_gflow_tb/dut_top_gflow/slv_actual_qubit_time_stamp
-add wave -noupdate /top_gflow_tb/dut_top_gflow/inst_qubit4_deskew/s_buff_data
 add wave -noupdate -radix unsigned -childformat {{/top_gflow_tb/dut_top_gflow/slv_actual_qubit(1) -radix unsigned} {/top_gflow_tb/dut_top_gflow/slv_actual_qubit(0) -radix unsigned}} -subitemconfig {/top_gflow_tb/dut_top_gflow/slv_actual_qubit(1) {-height 15 -radix unsigned} /top_gflow_tb/dut_top_gflow/slv_actual_qubit(0) {-height 15 -radix unsigned}} /top_gflow_tb/dut_top_gflow/slv_actual_qubit
-add wave -noupdate /top_gflow_tb/dut_top_gflow/inst_qubit2_deskew/s_buff_data
+add wave -noupdate /top_gflow_tb/dut_top_gflow/inst_qubit4_deskew/s_buff_data
 add wave -noupdate /top_gflow_tb/dut_top_gflow/inst_qubit3_deskew/s_buff_data
-add wave -noupdate /top_gflow_tb/dut_top_gflow/inst_qubit1_deskew/s_buff_data
+add wave -noupdate /top_gflow_tb/dut_top_gflow/inst_qubit2_deskew/s_buff_data
+add wave -noupdate -expand /top_gflow_tb/dut_top_gflow/inst_qubit1_deskew/s_buff_data
+add wave -noupdate -expand /top_gflow_tb/dut_top_gflow/inst_qubit1_deskew/s_shiftreg_counter_faster
+add wave -noupdate /top_gflow_tb/dut_top_gflow/inst_qubit2_deskew/s_shiftreg_counter_faster
+add wave -noupdate /top_gflow_tb/dut_top_gflow/inst_qubit3_deskew/s_shiftreg_counter_faster
 add wave -noupdate /top_gflow_tb/dut_top_gflow/s_valid_qubits_stable_to_cdcc
 add wave -noupdate /top_gflow_tb/dut_top_gflow/sl_actual_qubit_valid
 add wave -noupdate /top_gflow_tb/dut_top_gflow/sl_math_data_valid
@@ -141,10 +147,24 @@ add wave -noupdate /top_gflow_tb/dut_top_gflow/slv_time_stamp_buffer_transferred
 add wave -noupdate /top_gflow_tb/dut_top_gflow/slv_alpha_buffer_transferred_2d
 add wave -noupdate /top_gflow_tb/dut_top_gflow/slv_modulo_buffer_transferred_2d
 add wave -noupdate /top_gflow_tb/dut_top_gflow/slv_random_buffer_transferred_2d
+add wave -noupdate /top_gflow_tb/dut_top_gflow/inst_qubit1_deskew/CLK_PERIODS_DIFFERENCE_DELAY_Q
+add wave -noupdate /top_gflow_tb/dut_top_gflow/inst_qubit1_deskew/CLK_PERIODS_DIFFERENCE_DELAY_CORR
+add wave -noupdate /top_gflow_tb/dut_top_gflow/inst_qubit2_deskew/CLK_PERIODS_DIFFERENCE_DELAY_Q
+add wave -noupdate /top_gflow_tb/dut_top_gflow/inst_qubit2_deskew/CLK_PERIODS_DIFFERENCE_DELAY_CORR
+add wave -noupdate /top_gflow_tb/dut_top_gflow/inst_qubit3_deskew/CLK_PERIODS_DIFFERENCE_DELAY_Q
+add wave -noupdate /top_gflow_tb/dut_top_gflow/inst_qubit3_deskew/CLK_PERIODS_DIFFERENCE_DELAY_CORR
+add wave -noupdate /top_gflow_tb/dut_top_gflow/inst_qubit4_deskew/CLK_PERIODS_DIFFERENCE_DELAY_Q
+add wave -noupdate /top_gflow_tb/dut_top_gflow/inst_qubit4_deskew/CLK_PERIODS_DIFFERENCE_DELAY_CORR
+add wave -noupdate /top_gflow_tb/dut_top_gflow/inst_fsm_gflow/MAX_PERIODS_Q
+add wave -noupdate /top_gflow_tb/dut_top_gflow/inst_fsm_gflow/MAX_PERIODS_CORR
+add wave -noupdate /top_gflow_tb/dut_top_gflow/inst_qubit2_deskew/TIME_DIFFERENCE_PHOTONS_NS_ABS
+add wave -noupdate /top_gflow_tb/dut_top_gflow/inst_qubit2_deskew/CLK_PERIOD_NS
+add wave -noupdate /top_gflow_tb/dut_top_gflow/inst_qubit2_deskew/SLOWER_PHOTON_REAL_ABS
+add wave -noupdate /top_gflow_tb/dut_top_gflow/inst_qubit2_deskew/FASTER_PHOTON_REAL_ABS
 TreeUpdate [SetDefaultTree]
-WaveRestoreCursors {{Cursor 1} {11134600 ps} 0}
+WaveRestoreCursors {{Cursor 1} {5243333 ps} 0}
 quietly wave cursor active 1
-configure wave -namecolwidth 476
+configure wave -namecolwidth 546
 configure wave -valuecolwidth 213
 configure wave -justifyvalue left
 configure wave -signalnamewidth 0
@@ -158,4 +178,4 @@ configure wave -griddelta 40
 configure wave -timeline 0
 configure wave -timelineunits ns
 update
-WaveRestoreZoom {0 ps} {52500 ns}
+WaveRestoreZoom {50226081 ps} {50261891 ps}

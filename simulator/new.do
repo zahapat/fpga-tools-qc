@@ -43,55 +43,56 @@ if {[ catch {
 
 # Run Testbench
 puts "TCL: RUN TESTBENCH: Top = ${file_name}.${file_lang}"
+set verilog_libname "xil_iplib_verilog"
 if {($file_lang eq "sv") || ($file_lang eq "svh")} {
     if { [string first "_tb." ${file_name}] != -1} {
 
         if {[ catch {
-            vsim -lib $proj_root_dir/simulator/work -onfinish stop -L unisim_verilog work.glbl work.${file_name}_tb
+            vsim -lib $proj_root_dir/simulator/${verilog_libname} -onfinish stop -L unisim_verilog ${verilog_libname}.glbl ${verilog_libname}.${file_name}_tb
         } errorstring]} {
             puts "TCL: The following error was generated: $errorstring - Attempting to refresh the library image."
             # Refresh the library image & launch sim
-            vlog -work $proj_root_dir/simulator/work -refresh
+            vlog -work $proj_root_dir/simulator/${verilog_libname} -refresh
             vcom -work $proj_root_dir/simulator/$lib_src_vhdl -refresh
             vcom -work $proj_root_dir/simulator/$lib_sim_vhdl -refresh
-            vsim -lib $proj_root_dir/simulator/work -onfinish stop -L unisim_verilog work.glbl work.${file_name}_tb
+            vsim -lib $proj_root_dir/simulator/${verilog_libname} -onfinish stop -L unisim_verilog ${verilog_libname}.glbl ${verilog_libname}.${file_name}_tb
         }
 
     } else {
 
         if {[ catch {
-            vsim -lib $proj_root_dir/simulator/work -onfinish stop -L unisim_verilog work.glbl work.${file_name}
+            vsim -lib $proj_root_dir/simulator/${verilog_libname} -onfinish stop -L unisim_verilog ${verilog_libname}.glbl ${verilog_libname}.${file_name}
         } errorstring]} {
             puts "TCL: The following error was generated: $errorstring - Attempting to refresh the library image."
             # Refresh the library image & launch sim
-            vlog -work $proj_root_dir/simulator/work -refresh
+            vlog -work $proj_root_dir/simulator/${verilog_libname} -refresh
             vcom -work $proj_root_dir/simulator/$lib_src_vhdl -refresh
             vcom -work $proj_root_dir/simulator/$lib_sim_vhdl -refresh
-            vsim -lib $proj_root_dir/simulator/work -onfinish stop -L unisim_verilog work.glbl work.${file_name}
+            vsim -lib $proj_root_dir/simulator/${verilog_libname} -onfinish stop -L unisim_verilog ${verilog_libname}.glbl ${verilog_libname}.${file_name}
         }
     }
 } elseif {($file_lang eq "v") || ($file_lang eq "vh")} {
     if { [string first "_tb." ${file_name}] != -1} {
         if {[ catch {
-            vsim -lib $proj_root_dir/simulator/work -onfinish stop -L unisim_verilog work.glbl work.${file_name}_tb
+            vsim -lib $proj_root_dir/simulator/${verilog_libname} -onfinish stop -L unisim_verilog ${verilog_libname}.glbl ${verilog_libname}.${file_name}_tb
         } errorstring]} {
             puts "TCL: The following error was generated: $errorstring - Attempting to refresh the library image."
             # Refresh the library image & launch sim
-            vlog -work $proj_root_dir/simulator/work -refresh
+            vlog -work $proj_root_dir/simulator/${verilog_libname} -refresh
             vcom -work $proj_root_dir/simulator/$lib_src_vhdl -refresh
             vcom -work $proj_root_dir/simulator/$lib_sim_vhdl -refresh
-            vsim -lib $proj_root_dir/simulator/work -onfinish stop -L unisim_verilog work.glbl work.${file_name}_tb
+            vsim -lib $proj_root_dir/simulator/${verilog_libname} -onfinish stop -L unisim_verilog ${verilog_libname}.glbl ${verilog_libname}.${file_name}_tb
         }
     } else {
         if {[ catch {
-            vsim -lib $proj_root_dir/simulator/work -onfinish stop -L unisim_verilog work.glbl work.${file_name}
+            vsim -lib $proj_root_dir/simulator/work -onfinish stop -L unisim_verilog ${verilog_libname}.glbl ${verilog_libname}.${file_name}
         } errorstring]} {
             puts "TCL: The following error was generated: $errorstring - Attempting to refresh the library image."
             # Refresh the library image & launch sim
-            vlog -work $proj_root_dir/simulator/work -refresh
+            vlog -work $proj_root_dir/simulator/${verilog_libname} -refresh
             vcom -work $proj_root_dir/simulator/$lib_src_vhdl -refresh
             vcom -work $proj_root_dir/simulator/$lib_sim_vhdl -refresh
-            vsim -lib $proj_root_dir/simulator/work -onfinish stop -L unisim_verilog work.glbl work.${file_name}
+            vsim -lib $proj_root_dir/simulator/${verilog_libname} -onfinish stop -L unisim_verilog ${verilog_libname}.glbl ${verilog_libname}.${file_name}
         }
     }
 } elseif {$file_lang eq "vhd"} {
@@ -101,7 +102,7 @@ if {($file_lang eq "sv") || ($file_lang eq "svh")} {
         } errorstring]} {
             puts "TCL: The following error was generated: $errorstring - Attempting to refresh the library image."
             # Refresh the library image & launch sim
-            vlog -work $proj_root_dir/simulator/work -refresh
+            vlog -work $proj_root_dir/simulator/${verilog_libname} -refresh
             vcom -work $proj_root_dir/simulator/$lib_src_vhdl -refresh
             vcom -work $proj_root_dir/simulator/$lib_sim_vhdl -refresh
             vsim -lib $proj_root_dir/simulator/$lib_sim_vhdl -onfinish stop $lib_sim_vhdl.${file_name}_tb
@@ -112,7 +113,7 @@ if {($file_lang eq "sv") || ($file_lang eq "svh")} {
         } errorstring]} {
             puts "TCL: The following error was generated: $errorstring - Attempting to refresh the library image."
             # Refresh the library image & launch sim
-            vlog -work $proj_root_dir/simulator/work -refresh
+            vlog -work $proj_root_dir/simulator/${verilog_libname} -refresh
             vcom -work $proj_root_dir/simulator/$lib_src_vhdl -refresh
             vcom -work $proj_root_dir/simulator/$lib_sim_vhdl -refresh
             vsim -lib $proj_root_dir/simulator/$lib_src_vhdl -onfinish stop $lib_src_vhdl.${file_name}

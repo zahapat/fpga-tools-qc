@@ -17,6 +17,7 @@
     use lib_sim.types_pack_tb.all;
     use lib_sim.const_pack_tb.all;
     use lib_sim.essentials_tb.all;
+    use lib_sim.clk_pack_tb.all;
 
     library OSVVM;
     use OSVVM.RandomPkg.all;
@@ -31,30 +32,35 @@
         -- File I/O
         file sim_result : text;
 
+        -- Simulation control signals
+        type t_input_emulation_mode is (
+            SEND_PHOTON_EVERY_LASER_CLK,
+            SEND_CLUSTER_THEN_WAIT
+        );
+        constant TIME_BETWEEN_CLUSTERS_NS : time := 1000.0 ns;
+        signal ctrl_input_emulation_mode : t_input_emulation_mode := SEND_PHOTON_EVERY_LASER_CLK;
+        signal ctrl_sim_start : std_logic := '0';
+
         -- FPGA On-Board Oscillator Frequency (Input to MMCM/Clock Wizard)
         constant CLK_HZ : real := 200.0e6;
         constant CLK_PERIOD : time := 1.0 sec / CLK_HZ;
 
         -- New qubit each 80 MHz (# TODO implement emission probability)
-        constant CLK_NEW_QUBIT_78MHz_HZ : real := 80.0e6 / 2.0;
+        constant CLK_NEW_QUBIT_78MHz_HZ : real := 80.0e6;
         constant LASER_CLK_PERIOD : time := 1 sec / CLK_NEW_QUBIT_78MHz_HZ;
         signal laser_clk : std_logic := '1';
 
         -- External Detector: Excelitas SPCM (Single Photon Counting Module) SPCM-AQRH-1X
-        -- 31.249999999999996 MHz
-        constant DETECTOR_HIGH_TIME_NS : time := 10 ns;
-        constant DETECTOR_DEAD_TIME_NS : time := 22 ns;
-
-        -- Number od random inputs INST_B
-        -- THE SEEDS MUST BE MODIFIED!
-        constant RAND_NUMBS_SEEDS : natural := 1;
+        constant NOMINAL_DETECTOR_HIGH_TIME_NS : time := 10 ns;
+        constant NOMINAL_DETECTOR_DEAD_TIME_NS : time := 22 ns;
+        constant REALISTIC_DETECTOR_HIGH_TIME_NS : time := 5 ns;
 
         -- Gflow generics
-        constant RST_VAL            : std_logic := '1';
-        constant CLK_SYS_HZ         : real := 104.16667e6;
-        constant CLK_SAMPL_HZ       : real := 250.0e6;
-        constant INT_QUBITS_CNT     : positive := INT_QUBITS_CNT;
-        constant INT_EMULATE_INPUTS : integer := INT_EMULATE_INPUTS;
+        constant RST_VAL                      : std_logic := '1';
+        constant CLK_SYS_HZ                   : real := 104.16667e6;
+        constant CLK_SAMPL_HZ                 : real := 250.0e6;
+        constant INT_QUBITS_CNT               : positive := INT_QUBITS_CNT;
+        constant INT_EMULATE_INPUTS           : integer := INT_EMULATE_INPUTS;
         constant INT_WHOLE_PHOTON_1H_DELAY_NS : integer := INT_WHOLE_PHOTON_1H_DELAY_NS;
         constant INT_DECIM_PHOTON_1H_DELAY_NS : integer := INT_DECIM_PHOTON_1H_DELAY_NS;
         constant INT_WHOLE_PHOTON_1V_DELAY_NS : integer := INT_WHOLE_PHOTON_1V_DELAY_NS;
@@ -108,7 +114,7 @@
 
         signal s_qubits : std_logic_vector(2*INT_QUBITS_CNT-1 downto 0) := (others => '0');
         signal s_faster_photon_event : std_logic_vector(2*INT_QUBITS_CNT-1 downto 0) := (others => '0');
-        signal s_qubits_latched : std_logic_vector(2*INT_QUBITS_CNT-1 downto 0) := (others => '0');
+        signal s_photon_value_latched : std_logic_vector(2*INT_QUBITS_CNT-1 downto 0) := (others => '0');
 
         -- Delta time of the arrival of a single photon
         constant DELTA_ARRIVAL_MIN_NS : real := -0.5;
@@ -123,7 +129,7 @@
             if DIVISOR = 0 then
                 return 1;
             else
-                return integer(10.0*(floor(log10(real(DIVISOR))) + 1.0));
+                return integer(10.0**(floor(log10(real(DIVISOR))) + 1.0));
             end if;
         end function;
         constant PHOTON_1H_DELAY_ABS_NS : real := abs(real(INT_WHOLE_PHOTON_1H_DELAY_NS) + real(INT_DECIM_PHOTON_1H_DELAY_NS) / real(get_divisor(INT_DECIM_PHOTON_1H_DELAY_NS)));
@@ -138,6 +144,24 @@
         constant PHOTON_5V_DELAY_ABS_NS : real := abs(real(INT_WHOLE_PHOTON_5V_DELAY_NS) + real(INT_DECIM_PHOTON_5V_DELAY_NS) / real(get_divisor(INT_DECIM_PHOTON_5V_DELAY_NS)));
         constant PHOTON_6H_DELAY_ABS_NS : real := abs(real(INT_WHOLE_PHOTON_6H_DELAY_NS) + real(INT_DECIM_PHOTON_6H_DELAY_NS) / real(get_divisor(INT_DECIM_PHOTON_6H_DELAY_NS)));
         constant PHOTON_6V_DELAY_ABS_NS : real := abs(real(INT_WHOLE_PHOTON_6V_DELAY_NS) + real(INT_DECIM_PHOTON_6V_DELAY_NS) / real(get_divisor(INT_DECIM_PHOTON_6V_DELAY_NS)));
+
+        type t_real_arr_2d is array(6-1 downto 0) of real;
+        constant PHOTON_V_DELAY_ABS_NS : t_real_arr_2d := (
+            PHOTON_6V_DELAY_ABS_NS, -- index 5
+            PHOTON_5V_DELAY_ABS_NS, -- index 4
+            PHOTON_4V_DELAY_ABS_NS, -- index 3
+            PHOTON_3V_DELAY_ABS_NS, -- index 2
+            PHOTON_2V_DELAY_ABS_NS, -- index 1
+            PHOTON_1V_DELAY_ABS_NS  -- index 0 (never used)
+        );
+        constant PHOTON_H_DELAY_ABS_NS : t_real_arr_2d := (
+            PHOTON_6H_DELAY_ABS_NS, -- index 5
+            PHOTON_5H_DELAY_ABS_NS, -- index 4
+            PHOTON_4H_DELAY_ABS_NS, -- index 3
+            PHOTON_3H_DELAY_ABS_NS, -- index 2
+            PHOTON_2H_DELAY_ABS_NS, -- index 1
+            PHOTON_1H_DELAY_ABS_NS  -- index 0 (never used)
+        );
 
         impure function get_faster_photon_real (
             constant REAL_DELAY_HORIZ_ABS : real;
@@ -179,6 +203,14 @@
                                                           - get_faster_photon_real(PHOTON_5H_DELAY_ABS_NS,PHOTON_5V_DELAY_ABS_NS));
         constant PHOTON_6HV_DIFFERENCE_ABS_NS : real := abs(get_slower_photon_real(PHOTON_6H_DELAY_ABS_NS,PHOTON_6V_DELAY_ABS_NS) 
                                                           - get_faster_photon_real(PHOTON_6H_DELAY_ABS_NS,PHOTON_6V_DELAY_ABS_NS));
+        constant PHOTON_HV_DIFFERENCE_ABS_NS : t_real_arr_2d := (
+            PHOTON_6HV_DIFFERENCE_ABS_NS,
+            PHOTON_5HV_DIFFERENCE_ABS_NS,
+            PHOTON_4HV_DIFFERENCE_ABS_NS,
+            PHOTON_3HV_DIFFERENCE_ABS_NS,
+            PHOTON_2HV_DIFFERENCE_ABS_NS,
+            PHOTON_1HV_DIFFERENCE_ABS_NS
+        );
 
         -- Print to console "TEST OK."
         procedure print_test_ok is
@@ -262,56 +294,69 @@
         laser_clk <= not laser_clk after LASER_CLK_PERIOD / 2.0;
         readout_clk <= not readout_clk after 5 ns;
 
-        --------------------------------------------------------------
-        -- GENERATE RANDOM QUBITS AT MAX DETECTOR FREQ 31.24999 MHz --
-        --------------------------------------------------------------
+        -----------------------------------------------------------
+        -- GENERATE RANDOM QUBITS AT A LASER FREQUENCY OF 80 MHz --
+        -----------------------------------------------------------
         proc_model_photon_1v : process
             -- Random SLV type generator
             variable rand_slv : RandomPType;
         begin
 
+            -- Triggers this block
+            wait until rising_edge(ctrl_sim_start);
+
             -- Test if this photon is faster as logic will differ for both cases
             if PHOTON_1V_DELAY_ABS_NS <= PHOTON_1H_DELAY_ABS_NS then
-                wait for 0 ns;
+                wait_deltas(1);
                 -- Create a unique seed (if the same seed is used in all qubits, detected qubits will be the same)
-                rand_slv.InitSeed(RANDOM_SEED_1+1);
-                wait for 0 ns;
-
-                wait for 300 ns;
+                rand_slv.InitSeed(RANDOM_SEED_1);
+                wait_deltas(1);
 
                 loop
-                    wait until rising_edge(laser_clk);
+                    if ctrl_input_emulation_mode = SEND_PHOTON_EVERY_LASER_CLK then
+                        wait until rising_edge(laser_clk);
+                    end if;
 
                     -- Create the randomized values (Normal Distribution)
                     s_qubits(0 downto 0) <= rand_slv.Randslv((0, 1), 1);
-                    wait for 0 ns;
-                    s_qubits_latched(0) <= s_qubits(0);
-                    wait for 0 ns;
+                    wait_deltas(1);
+                    s_photon_value_latched(0) <= s_qubits(0);
+                    wait_deltas(1);
                     s_faster_photon_event(0) <= not s_faster_photon_event(0);
-                    wait for 0 ns;
-                    
-                    input_pads(0) <= s_qubits(0);
-                    wait for 0 ns;
-                    wait for DETECTOR_HIGH_TIME_NS;
+                    wait_deltas(1);
 
-                    -- Model Detector Dead Time
+                    input_pads(0) <= s_qubits(0);
+                    wait_deltas(1);
+                    wait for REALISTIC_DETECTOR_HIGH_TIME_NS;
+
+                    -- Model Detector Dead Time (until next laser clk tick)
                     input_pads(0) <= '0';
-                    wait for 0 ns;
+                    wait_deltas(1);
+
+                    if ctrl_input_emulation_mode = SEND_CLUSTER_THEN_WAIT then
+                        if PHOTON_V_DELAY_ABS_NS(INT_QUBITS_CNT-1) <= PHOTON_H_DELAY_ABS_NS(INT_QUBITS_CNT-1) then
+                            wait for PHOTON_H_DELAY_ABS_NS(INT_QUBITS_CNT-1) * 1.0 ns;
+                        else
+                            wait for PHOTON_V_DELAY_ABS_NS(INT_QUBITS_CNT-1) * 1.0 ns;
+                        end if;
+                        wait for TIME_BETWEEN_CLUSTERS_NS;
+                    end if;
+                    
                 end loop;
             else
                 -- If photon V is slower (has smaller delay) ensure 01/10 configuration
                 loop
                     wait until s_faster_photon_event(1)'event;
                     wait for PHOTON_1HV_DIFFERENCE_ABS_NS * 1.0 ns;
-                    s_qubits(0) <= not(s_qubits_latched(1));
-                    wait for 0 ns;
+                    s_qubits(0) <= not(s_photon_value_latched(1));
+                    wait_deltas(1);
                     input_pads(0) <= s_qubits(0);
-                    wait for 0 ns;
-                    wait for DETECTOR_HIGH_TIME_NS;
+                    wait_deltas(1);
+                    wait for REALISTIC_DETECTOR_HIGH_TIME_NS;
 
                     -- Model Detector Dead Time
                     input_pads(0) <= '0';
-                    wait for 0 ns;
+                    wait_deltas(1);
                 end loop;
 
             end if;
@@ -322,414 +367,223 @@
             variable rand_slv : RandomPType;
         begin
 
+            -- Triggers this block
+            wait until rising_edge(ctrl_sim_start);
+
             -- Test if this photon is faster as logic will differ for both cases
             if PHOTON_1V_DELAY_ABS_NS > PHOTON_1H_DELAY_ABS_NS then
-                wait for 0 ns;
+                wait_deltas(1);
                 -- Create a unique seed (if the same seed is used in all qubits, detected qubits will be the same)
-                rand_slv.InitSeed(RANDOM_SEED_1+1);
-                wait for 0 ns;
-
-                wait for 100 ns;
+                rand_slv.InitSeed(99+RANDOM_SEED_1);
+                wait_deltas(1);
 
                 loop
-                    wait until rising_edge(laser_clk);
 
+                    if ctrl_input_emulation_mode = SEND_PHOTON_EVERY_LASER_CLK then
+                        wait until rising_edge(laser_clk);
+                    end if;
 
                     -- Create the randomized values (Normal Distribution)
                     s_qubits(1 downto 1) <= rand_slv.Randslv((0, 1), 1);
-                    wait for 0 ns;
-                    s_qubits_latched(1) <= s_qubits(1);
-                    wait for 0 ns;
+                    wait_deltas(1);
+                    s_photon_value_latched(1) <= s_qubits(1);
+                    wait_deltas(1);
                     s_faster_photon_event(1) <= not s_faster_photon_event(1);
-                    wait for 0 ns;
-                    
-                    input_pads(1) <= s_qubits(1);
-                    wait for 0 ns;
-                    wait for DETECTOR_HIGH_TIME_NS;
+                    wait_deltas(1);
 
-                    -- -- Model Detector Dead Time
+                    input_pads(1) <= s_qubits(1);
+                    wait_deltas(1);
+                    wait for REALISTIC_DETECTOR_HIGH_TIME_NS;
+
+                    -- Model Detector Dead Time (until next laser clk tick)
                     input_pads(1) <= '0';
-                    wait for 0 ns;
+                    wait_deltas(1);
+
+                    if ctrl_input_emulation_mode = SEND_CLUSTER_THEN_WAIT then
+                        if PHOTON_V_DELAY_ABS_NS(INT_QUBITS_CNT-1) <= PHOTON_H_DELAY_ABS_NS(INT_QUBITS_CNT-1) then
+                            wait for PHOTON_H_DELAY_ABS_NS(INT_QUBITS_CNT-1) * 1.0 ns;
+                        else
+                            wait for PHOTON_V_DELAY_ABS_NS(INT_QUBITS_CNT-1) * 1.0 ns;
+                        end if;
+                        wait for TIME_BETWEEN_CLUSTERS_NS;
+                    end if;
+
                 end loop;
             else
                 -- If photon H is slower (has smaller delay) ensure 01/10 configuration
                 loop
                     wait until s_faster_photon_event(0)'event;
                     wait for PHOTON_1HV_DIFFERENCE_ABS_NS * 1.0 ns;
-                    s_qubits(1) <= not(s_qubits_latched(0));
-                    wait for 0 ns;
+                    s_qubits(1) <= not(s_photon_value_latched(0));
+                    wait_deltas(1);
                     input_pads(1) <= s_qubits(1);
-                    wait for 0 ns;
-                    wait for DETECTOR_HIGH_TIME_NS;
+                    wait_deltas(1);
+                    wait for REALISTIC_DETECTOR_HIGH_TIME_NS;
 
                     -- Model Detector Dead Time
                     input_pads(1) <= '0';
-                    wait for 0 ns;
+                    wait_deltas(1);
                 end loop;
 
             end if;
         end process;
 
 
-        -- Send Qubit 2
-        proc_model_photon_2v : process
-            -- Random SLV type generator
-            variable rand_slv : RandomPType;
-        begin
+        -- Send Qubits 2 to MAX 6
+        gen_photon_detectors : for p in 1 to INT_QUBITS_CNT-1 generate
+            proc_model_photon_v : process
+                -- Random SLV type generator
+                variable rand_slv : RandomPType;
+            begin
 
-            -- Wait for time reference event (faster photon 1)
-            if PHOTON_1V_DELAY_ABS_NS <= PHOTON_1H_DELAY_ABS_NS then
-                wait until s_faster_photon_event(0)'event;
-            else
-                wait until s_faster_photon_event(1)'event;
-            end if;
+                -- Triggers this block
+                wait until rising_edge(ctrl_sim_start);
 
-            -- Test if this photon is faster as logic will differ for both cases
-            if PHOTON_2V_DELAY_ABS_NS <= PHOTON_2H_DELAY_ABS_NS then
-                wait for 0 ns;
-                -- Create a unique seed (if the same seed is used in all qubits, detected qubits will be the same)
-                rand_slv.InitSeed(RANDOM_SEED_1+2);
-                wait for 0 ns;
+                -- Wait for time reference event (faster photon 1)
+                if PHOTON_1V_DELAY_ABS_NS <= PHOTON_1H_DELAY_ABS_NS then
+                    wait until s_faster_photon_event(0)'event;
+                else
+                    wait until s_faster_photon_event(1)'event;
+                end if;
 
-                wait for PHOTON_2V_DELAY_ABS_NS * 1.0 ns;
+                -- Test if this photon is faster as logic will differ for both cases
+                if PHOTON_V_DELAY_ABS_NS(p) <= PHOTON_H_DELAY_ABS_NS(p) then
+                    wait_deltas(1);
+                    -- Create a unique seed (if the same seed is used in all qubits, detected qubits will be the same)
+                    rand_slv.InitSeed(RANDOM_SEED_1+(p**2+p**2));
+                    wait_deltas(1);
 
-                loop
-                    -- Create the randomized values (Normal Distribution)
-                    s_qubits(2 downto 2) <= rand_slv.Randslv((0, 1), 1);
-                    wait for 0 ns;
-                    s_qubits_latched(2) <= s_qubits(2);
-                    wait for 0 ns;
-                    s_faster_photon_event(2) <= not s_faster_photon_event(2);
-                    wait for 0 ns;
-                    
-                    input_pads(2) <= s_qubits(2);
-                    wait for 0 ns;
-                    wait for DETECTOR_HIGH_TIME_NS;
+                    wait for PHOTON_V_DELAY_ABS_NS(p) * 1.0 ns;
 
-                    -- Model Detector Dead Time
-                    input_pads(2) <= '0';
-                    wait for 0 ns;
-                    wait for LASER_CLK_PERIOD-DETECTOR_HIGH_TIME_NS;
-                end loop;
-            else
-                -- If photon V is slower (has smaller delay) ensure 01/10 configuration
-                loop
-                    wait until s_faster_photon_event(3)'event;
-                    wait for PHOTON_2HV_DIFFERENCE_ABS_NS * 1.0 ns;
-                    s_qubits(2) <= not(s_qubits_latched(3));
-                    wait for 0 ns;
-                    input_pads(2) <= s_qubits(2);
-                    wait for 0 ns;
-                    wait for DETECTOR_HIGH_TIME_NS;
+                    loop
 
-                    -- Model Detector Dead Time
-                    input_pads(2) <= '0';
-                    wait for 0 ns;
-                end loop;
-                
-            end if;
-        end process;
+                        -- Create the randomized values (Normal Distribution)
+                        s_qubits(p*2 downto p*2) <= rand_slv.Randslv((0, 1), 1);
+                        wait_deltas(1);
+                        s_photon_value_latched(p*2) <= s_qubits(p*2);
+                        wait_deltas(1);
+                        s_faster_photon_event(p*2) <= not s_faster_photon_event(p*2);
+                        wait_deltas(1);
 
-        proc_model_photon_2h : process
-            -- Random SLV type generator
-            variable rand_slv : RandomPType;
-        begin
+                        input_pads(p*2) <= s_qubits(p*2);
+                        wait_deltas(1);
+                        wait for REALISTIC_DETECTOR_HIGH_TIME_NS;
 
-            -- Wait for time reference event (faster photon 1)
-            if PHOTON_1V_DELAY_ABS_NS <= PHOTON_1H_DELAY_ABS_NS then
-                wait until s_faster_photon_event(0)'event;
-            else
-                wait until s_faster_photon_event(1)'event;
-            end if;
+                        -- Model Detector Dead Time
+                        input_pads(p*2) <= '0';
+                        wait_deltas(1);
 
-            -- Test if this photon is faster as logic will differ for both cases
-            if PHOTON_2V_DELAY_ABS_NS > PHOTON_2H_DELAY_ABS_NS then
-                wait for 0 ns;
-                -- Create a unique seed (if the same seed is used in all qubits, detected qubits will be the same)
-                rand_slv.InitSeed(RANDOM_SEED_1+2);
-                wait for 0 ns;
+                        -- Wait for next laser clk minus the time spent on transmitting a pulse
+                        if ctrl_input_emulation_mode = SEND_PHOTON_EVERY_LASER_CLK then
+                            wait for LASER_CLK_PERIOD-REALISTIC_DETECTOR_HIGH_TIME_NS;
 
-                wait for PHOTON_2H_DELAY_ABS_NS * 1.0 ns;
+                        -- Wait for an event on the first qubit
+                        elsif ctrl_input_emulation_mode = SEND_CLUSTER_THEN_WAIT then
+                            if PHOTON_1V_DELAY_ABS_NS <= PHOTON_1H_DELAY_ABS_NS then
+                                wait until s_faster_photon_event(0)'event;
+                            else
+                                wait until s_faster_photon_event(1)'event;
+                            end if;
+                            wait for PHOTON_V_DELAY_ABS_NS(p) * 1.0 ns;
 
-                loop
-                    -- Create the randomized values (Normal Distribution)
-                    s_qubits(3 downto 3) <= rand_slv.Randslv((0, 1), 1);
-                    wait for 0 ns;
-                    s_qubits_latched(3) <= s_qubits(3);
-                    wait for 0 ns;
-                    s_faster_photon_event(3) <= not s_faster_photon_event(3);
-                    wait for 0 ns;
-                    
-                    input_pads(3) <= s_qubits(3);
-                    wait for 0 ns;
-                    wait for DETECTOR_HIGH_TIME_NS;
+                        end if;
+                    end loop;
+                else
+                    -- If photon V is slower (has smaller delay) ensure 01/10 configuration
+                    loop
+                        wait until s_faster_photon_event((p+1)*2-1)'event;
+                        wait for PHOTON_HV_DIFFERENCE_ABS_NS(p) * 1.0 ns;
+                        s_qubits(p*2) <= not(s_photon_value_latched((p+1)*2-1));
+                        wait_deltas(1);
+                        input_pads(p*2) <= s_qubits(p*2);
+                        wait_deltas(1);
+                        wait for REALISTIC_DETECTOR_HIGH_TIME_NS;
 
-                    -- -- Model Detector Dead Time
-                    input_pads(3) <= '0';
-                    wait for 0 ns;
-                    wait for LASER_CLK_PERIOD-DETECTOR_HIGH_TIME_NS;
-                end loop;
-            else
-                -- If photon H is slower (has smaller delay) ensure 01/10 configuration
-                loop
-                    wait until s_faster_photon_event(2)'event;
-                    wait for PHOTON_2HV_DIFFERENCE_ABS_NS * 1.0 ns;
-                    s_qubits(3) <= not(s_qubits_latched(2));
-                    wait for 0 ns;
-                    input_pads(3) <= s_qubits(3);
-                    wait for 0 ns;
-                    wait for DETECTOR_HIGH_TIME_NS;
+                        -- Model Detector Dead Time
+                        input_pads(p*2) <= '0';
+                        wait_deltas(1);
+                    end loop;
 
-                    -- Model Detector Dead Time
-                    input_pads(3) <= '0';
-                    wait for 0 ns;
-                end loop;
-                
-            end if;
-        end process;
+                end if;
+            end process;
 
+            proc_model_photon_h : process
+                -- Random SLV type generator
+                variable rand_slv : RandomPType;
+            begin
 
+                -- Triggers this block
+                wait until rising_edge(ctrl_sim_start);
 
+                -- Wait for time reference event (faster photon 1)
+                if PHOTON_1V_DELAY_ABS_NS <= PHOTON_1H_DELAY_ABS_NS then
+                    wait until s_faster_photon_event(0)'event;
+                else
+                    wait until s_faster_photon_event(1)'event;
+                end if;
 
-        -- Send Qubit 3
-        proc_model_photon_3v : process
-            -- Random SLV type generator
-            variable rand_slv : RandomPType;
-        begin
+                -- Test if this photon is faster as logic will differ for both cases
+                if PHOTON_V_DELAY_ABS_NS(p) > PHOTON_H_DELAY_ABS_NS(p) then
+                    wait_deltas(1);
+                    -- Create a unique seed (if the same seed is used in all qubits, detected qubits will be the same)
+                    rand_slv.InitSeed(RANDOM_SEED_1+(99+p**2+p**2));
+                    wait_deltas(1);
 
-            -- Wait for time reference event (faster photon 1)
-            if PHOTON_1V_DELAY_ABS_NS <= PHOTON_1H_DELAY_ABS_NS then
-                wait until s_faster_photon_event(0)'event;
-            else
-                wait until s_faster_photon_event(1)'event;
-            end if;
+                    wait for PHOTON_H_DELAY_ABS_NS(p) * 1.0 ns;
 
-            -- Test if this photon is faster as logic will differ for both cases
-            if PHOTON_3V_DELAY_ABS_NS <= PHOTON_3H_DELAY_ABS_NS then
-                wait for 0 ns;
-                -- Create a unique seed (if the same seed is used in all qubits, detected qubits will be the same)
-                rand_slv.InitSeed(RANDOM_SEED_1+3);
-                wait for 0 ns;
+                    loop
+                        -- Create the randomized values (Normal Distribution)
+                        s_qubits((p+1)*2-1 downto (p+1)*2-1) <= rand_slv.Randslv((0, 1), 1);
+                        wait_deltas(1);
+                        s_photon_value_latched((p+1)*2-1) <= s_qubits((p+1)*2-1);
+                        wait_deltas(1);
+                        s_faster_photon_event((p+1)*2-1) <= not s_faster_photon_event((p+1)*2-1);
+                        wait_deltas(1);
 
-                wait for PHOTON_3V_DELAY_ABS_NS * 1.0 ns;
+                        input_pads((p+1)*2-1) <= s_qubits((p+1)*2-1);
+                        wait_deltas(1);
+                        wait for REALISTIC_DETECTOR_HIGH_TIME_NS;
 
-                loop
-                    -- Create the randomized values (Normal Distribution)
-                    s_qubits(4 downto 4) <= rand_slv.Randslv((0, 1), 1);
-                    wait for 0 ns;
-                    s_qubits_latched(4) <= s_qubits(4);
-                    wait for 0 ns;
-                    s_faster_photon_event(4) <= not s_faster_photon_event(4);
-                    wait for 0 ns;
-                    
-                    input_pads(4) <= s_qubits(4);
-                    wait for 0 ns;
-                    wait for DETECTOR_HIGH_TIME_NS;
+                        -- Model Detector Dead Time (until next (1/80MHz) sec)
+                        input_pads((p+1)*2-1) <= '0';
+                        wait_deltas(1);
+                        
+                        -- Wait for next laser clk minus the time spent on transmitting a pulse
+                        if ctrl_input_emulation_mode = SEND_PHOTON_EVERY_LASER_CLK then
+                            wait for LASER_CLK_PERIOD-REALISTIC_DETECTOR_HIGH_TIME_NS;
 
-                    -- Model Detector Dead Time
-                    input_pads(4) <= '0';
-                    wait for 0 ns;
-                    wait for LASER_CLK_PERIOD-DETECTOR_HIGH_TIME_NS;
-                end loop;
-            else
-                -- If photon V is slower (has smaller delay) ensure 01/10 configuration
-                loop
-                    wait until s_faster_photon_event(5)'event;
-                    wait for PHOTON_3HV_DIFFERENCE_ABS_NS * 1.0 ns;
-                    s_qubits(4) <= not(s_qubits_latched(5));
-                    wait for 0 ns;
-                    input_pads(4) <= s_qubits(4);
-                    wait for 0 ns;
-                    wait for DETECTOR_HIGH_TIME_NS;
+                        -- Wait for an event on the first qubit
+                        elsif ctrl_input_emulation_mode = SEND_CLUSTER_THEN_WAIT then
+                            if PHOTON_1V_DELAY_ABS_NS <= PHOTON_1H_DELAY_ABS_NS then
+                                wait until s_faster_photon_event(0)'event;
+                            else
+                                wait until s_faster_photon_event(1)'event;
+                            end if;
+                            wait for PHOTON_H_DELAY_ABS_NS(p) * 1.0 ns;
 
-                    -- Model Detector Dead Time
-                    input_pads(4) <= '0';
-                    wait for 0 ns;
-                end loop;
-                
-            end if;
-        end process;
+                        end if;
 
-        proc_model_photon_3h : process
-            -- Random SLV type generator
-            variable rand_slv : RandomPType;
-        begin
+                    end loop;
+                else
+                    -- If photon H is slower (has smaller delay) ensure 01/10 configuration
+                    loop
+                        wait until s_faster_photon_event(p*2)'event;
+                        wait for PHOTON_HV_DIFFERENCE_ABS_NS(p) * 1.0 ns;
+                        s_qubits((p+1)*2-1) <= not(s_photon_value_latched(p*2));
+                        wait_deltas(1);
+                        input_pads((p+1)*2-1) <= s_qubits((p+1)*2-1);
+                        wait_deltas(1);
+                        wait for REALISTIC_DETECTOR_HIGH_TIME_NS;
 
-            -- Wait for time reference event (faster photon 1)
-            if PHOTON_1V_DELAY_ABS_NS <= PHOTON_1H_DELAY_ABS_NS then
-                wait until s_faster_photon_event(0)'event;
-            else
-                wait until s_faster_photon_event(1)'event;
-            end if;
+                        -- Model Detector Dead Time
+                        input_pads((p+1)*2-1) <= '0';
+                        wait_deltas(1);
+                    end loop;
 
-            -- Test if this photon is faster as logic will differ for both cases
-            if PHOTON_3V_DELAY_ABS_NS > PHOTON_3H_DELAY_ABS_NS then
-                wait for 0 ns;
-                -- Create a unique seed
-                rand_slv.InitSeed(RANDOM_SEED_1+3);
-                wait for 0 ns;
+                end if;
+            end process;
+        end generate;
 
-                wait for PHOTON_3H_DELAY_ABS_NS * 1.0 ns;
-
-                loop
-                    -- Create the randomized values (Normal Distribution)
-                    s_qubits(5 downto 5) <= rand_slv.Randslv((0, 1), 1);
-                    wait for 0 ns;
-                    s_qubits_latched(5) <= s_qubits(5);
-                    wait for 0 ns;
-                    s_faster_photon_event(5) <= not s_faster_photon_event(5);
-                    wait for 0 ns;
-                    
-                    input_pads(5) <= s_qubits(5);
-                    wait for 0 ns;
-                    wait for DETECTOR_HIGH_TIME_NS;
-
-                    -- -- Model Detector Dead Time
-                    input_pads(5) <= '0';
-                    wait for 0 ns;
-                    wait for LASER_CLK_PERIOD-DETECTOR_HIGH_TIME_NS;
-                end loop;
-            else
-                -- If photon H is slower (has smaller delay) ensure 01/10 configuration
-                loop
-                    wait until s_faster_photon_event(4)'event;
-                    wait for PHOTON_3HV_DIFFERENCE_ABS_NS * 1.0 ns;
-                    s_qubits(5) <= not(s_qubits_latched(4));
-                    wait for 0 ns;
-                    input_pads(5) <= s_qubits(5);
-                    wait for 0 ns;
-                    wait for DETECTOR_HIGH_TIME_NS;
-
-                    -- Model Detector Dead Time
-                    input_pads(5) <= '0';
-                    wait for 0 ns;
-                end loop;
-                
-            end if;
-        end process;
-
-
-        -- Send Qubit 4
-        proc_model_photon_4v : process
-            -- Random SLV type generator
-            variable rand_slv : RandomPType;
-        begin
-
-            -- Wait for time reference event (faster photon 1)
-            if PHOTON_1V_DELAY_ABS_NS <= PHOTON_1H_DELAY_ABS_NS then
-                wait until s_faster_photon_event(0)'event;
-            else
-                wait until s_faster_photon_event(1)'event;
-            end if;
-
-            -- Test if this photon is faster as logic will differ for both cases
-            if PHOTON_4V_DELAY_ABS_NS <= PHOTON_4H_DELAY_ABS_NS then
-                wait for 0 ns;
-                -- Create a unique seed (if the same seed is used in all qubits, detected qubits will be the same)
-                rand_slv.InitSeed(RANDOM_SEED_1+4);
-                wait for 0 ns;
-
-                wait for PHOTON_4V_DELAY_ABS_NS * 1.0 ns;
-
-                loop
-                    -- Create the randomized values (Normal Distribution)
-                    s_qubits(6 downto 6) <= rand_slv.Randslv((0, 1), 1);
-                    wait for 0 ns;
-                    s_qubits_latched(6) <= s_qubits(6);
-                    wait for 0 ns;
-                    s_faster_photon_event(6) <= not s_faster_photon_event(6);
-                    wait for 0 ns;
-                    
-                    input_pads(6) <= s_qubits(6);
-                    wait for 0 ns;
-                    wait for DETECTOR_HIGH_TIME_NS;
-
-                    -- Model Detector Dead Time
-                    input_pads(6) <= '0';
-                    wait for 0 ns;
-                    wait for LASER_CLK_PERIOD-DETECTOR_HIGH_TIME_NS;
-                end loop;
-            else
-                -- If photon V is slower (has smaller delay) ensure 01/10 configuration
-                loop
-                    wait until s_faster_photon_event(7)'event;
-                    wait for PHOTON_4HV_DIFFERENCE_ABS_NS * 1.0 ns;
-                    s_qubits(6) <= not(s_qubits_latched(7));
-                    wait for 0 ns;
-                    input_pads(6) <= s_qubits(6);
-                    wait for 0 ns;
-                    wait for DETECTOR_HIGH_TIME_NS;
-
-                    -- Model Detector Dead Time
-                    input_pads(6) <= '0';
-                    wait for 0 ns;
-                end loop;
-                
-            end if;
-        end process;
-
-        proc_model_photon_4h : process
-            -- Random SLV type generator
-            variable rand_slv : RandomPType;
-        begin
-
-            -- Wait for time reference event (faster photon 1)
-            if PHOTON_1V_DELAY_ABS_NS <= PHOTON_1H_DELAY_ABS_NS then
-                wait until s_faster_photon_event(0)'event;
-            else
-                wait until s_faster_photon_event(1)'event;
-            end if;
-
-            -- Test if this photon is faster as logic will differ for both cases
-            if PHOTON_4V_DELAY_ABS_NS > PHOTON_4H_DELAY_ABS_NS then
-                wait for 0 ns;
-                -- Create a unique seed (if the same seed is used in all qubits, detected qubits will be the same)
-                rand_slv.InitSeed(RANDOM_SEED_1+4);
-                wait for 0 ns;
-
-                wait for PHOTON_4H_DELAY_ABS_NS * 1.0 ns;
-
-                loop
-                    -- Create the randomized values (Normal Distribution)
-                    s_qubits(7 downto 7) <= rand_slv.Randslv((0, 1), 1);
-                    wait for 0 ns;
-                    s_qubits_latched(7) <= s_qubits(7);
-                    wait for 0 ns;
-                    s_faster_photon_event(7) <= not s_faster_photon_event(7);
-                    wait for 0 ns;
-                    
-                    input_pads(7) <= s_qubits(7);
-                    wait for 0 ns;
-                    wait for DETECTOR_HIGH_TIME_NS;
-
-                    -- -- Model Detector Dead Time
-                    input_pads(7) <= '0';
-                    wait for 0 ns;
-                    wait for LASER_CLK_PERIOD-DETECTOR_HIGH_TIME_NS;
-                end loop;
-            else
-                -- If photon H is slower (has smaller delay) ensure 01/10 configuration
-                loop
-                    wait until s_faster_photon_event(6)'event;
-                    wait for PHOTON_4HV_DIFFERENCE_ABS_NS * 1.0 ns;
-                    s_qubits(7) <= not(s_qubits_latched(6));
-                    wait for 0 ns;
-                    input_pads(7) <= s_qubits(7);
-                    wait for 0 ns;
-                    wait for DETECTOR_HIGH_TIME_NS;
-
-                    -- Model Detector Dead Time
-                    input_pads(7) <= '0';
-                    wait for 0 ns;
-                end loop;
-                
-            end if;
-        end process;
-
-
-
-
-        
 
 
         ---------------
@@ -752,11 +606,27 @@
             write(v_file_line_buffer, string'("q1_time,q2_time,q3_time,q4_time,q5_time,q6_time,q7_time,q8_time,,"));
             writeline(sim_result, v_file_line_buffer);
 
-            -- Run for ...
-            wait for 50 us; -- make timer: Build Duration: 00:00:37
-            -- wait for 500 us; -- make timer: Build Duration: 00:05:00
-            -- wait for 5000 us; -- make timer: Build Duration: 00:48:59
-            -- wait for 50000 us; -- make timer: Build Duration: 07:45:01
+            
+            -- Wait until MMCM is locked, then trigger input emulation
+            wait until rising_edge(<< signal.top_gflow_tb.dut_top_gflow.locked : std_logic >>);
+            
+            ctrl_input_emulation_mode <= SEND_CLUSTER_THEN_WAIT;
+            ctrl_sim_start <= '1';
+
+            
+            -- Run timulation for ...
+            wait for 50 us; -- make timer: Duration: 00:00:37
+            -- wait for 500 us; -- make timer: Duration: 00:05:00
+            -- wait for 5000 us; -- make timer: Duration: 00:48:59
+            -- wait for 50000 us; -- make timer: Duration: 07:45:01
+
+            -- ctrl_input_emulation_mode <= SEND_PHOTON_EVERY_LASER_CLK;
+
+            -- Run timulation for ...
+            -- wait for 50 us; -- make timer: Duration: 00:00:37
+            -- wait for 500 us; -- make timer: Duration: 00:05:00
+            -- wait for 5000 us; -- make timer: Duration: 00:48:59
+            -- wait for 50000 us; -- make timer: Duration: 07:45:01
 
             if readout_data_valid = '1' then
                 wait until falling_edge(readout_data_valid);

@@ -1,0 +1,59 @@
+
+SIMULATION REPORT          Generated on Mon Jun 17 21:05:29 2024
+
+
+Design simulated: C:/Git/zahapat/fpga-tools-qc/simulator/xil_iplib_verilog.glbl C:/Git/zahapat/fpga-tools-qc/simulator/work.clock_synthesizer_tb
+Number of signals/nets in design: 108
+Number of processes in design: 260
+Number of instances from user libraries in design: 6
+Number of executable statements in design: 3487
+
+Simulator Parameters:
+
+    Current directory: C:/Git/zahapat/fpga-tools-qc/simulator
+    Project file: modelsim.ini
+    Simulation time resolution: 1ps
+
+List of Design units used:
+
+    Module: BUFG , acc : <novopt>
+    Library: C:/Git/zahapat/fpga-tools-qc/simulator/vivado_precompiled_ver/unisims_ver
+    Source File: C:/Xilinx/Vivado/2020.2/data/verilog/src/unisims/BUFG.v
+    Timescale: 1ps / 1ps
+    Occurrences: 4
+
+    Module: MMCME2_ADV (cell) , acc : <novopt>
+    Library: C:/Git/zahapat/fpga-tools-qc/simulator/vivado_precompiled_ver/unisims_ver
+    Source File: C:/Xilinx/Vivado/2020.2/data/verilog/src/unisims/MMCME2_ADV.v
+    Timescale: 1ps / 1ps
+    Occurrences: 1
+
+    Module: clock_synthesizer , acc : <novopt>
+    Library: C:/Git/zahapat/fpga-tools-qc/simulator/work
+    Source File: C:/Git/zahapat/fpga-tools-qc/modules/clock_synthesizer/hdl/clock_synthesizer.sv
+    Timescale: 1ns / 1ps
+    Occurrences: 1
+
+    Module: clock_synthesizer_tb , acc : <novopt>
+    Library: C:/Git/zahapat/fpga-tools-qc/simulator/work
+    Source File: C:/Git/zahapat/fpga-tools-qc/modules/clock_synthesizer/sim/clock_synthesizer_tb.sv
+    Timescale: 1ns / 1ps
+    Occurrences: 1
+
+    Module: std , acc : <novopt>
+    Library: C:/intelFPGA/20.1/modelsim_ase/sv_std
+    Source File: $MODEL_TECH/../verilog_src/std/std.sv
+    Occurrences: 1
+
+    Module: glbl , acc : <novopt>
+    Library: C:/Git/zahapat/fpga-tools-qc/simulator/xil_iplib_verilog
+    Source File: C:/Xilinx/Vivado/2020.2/data/verilog/src/glbl.v
+    Timescale: 1ps / 1ps
+    Occurrences: 1
+
+    Module: IBUFDS , acc : <novopt>
+    Library: C:/Git/zahapat/fpga-tools-qc/simulator/vivado_precompiled_ver/unisims_ver
+    Source File: C:/Xilinx/Vivado/2020.2/data/verilog/src/unisims/IBUFDS.v
+    Timescale: 1ps / 1ps
+    Occurrences: 1
+

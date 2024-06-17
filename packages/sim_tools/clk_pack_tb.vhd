@@ -164,9 +164,13 @@ package body clk_pack_tb is
     procedure wait_deltas (
         constant deltas_cnt : positive
     ) is begin
-        for i in 0 to deltas_cnt loop
-            wait for 0 ns;
-        end loop;
+        if deltas_cnt = 0 then
+            null;
+        else
+            for i in 0 to deltas_cnt-1 loop
+                wait for 0 ns;
+            end loop;
+        end if;
     end procedure;
 
 end package body;
