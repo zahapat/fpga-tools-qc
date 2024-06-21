@@ -123,13 +123,6 @@
 
         type t_periods_q_2d is array (6-1 downto 0) of natural; 
         constant MAX_PERIODS_Q : t_periods_q_2d := (
-            -- get_largest_photon_delay_periods(PHOTON_6H_DELAY_NS, PHOTON_6V_DELAY_NS)-1, -- index 5
-            -- get_largest_photon_delay_periods(PHOTON_5H_DELAY_NS, PHOTON_5V_DELAY_NS)-1, -- index 4
-            -- get_largest_photon_delay_periods(PHOTON_4H_DELAY_NS, PHOTON_4V_DELAY_NS)-2, -- index 3
-            -- get_largest_photon_delay_periods(PHOTON_3H_DELAY_NS, PHOTON_3V_DELAY_NS)-1, -- index 2
-            -- get_largest_photon_delay_periods(PHOTON_2H_DELAY_NS, PHOTON_2V_DELAY_NS)-1, -- index 1
-            -- get_largest_photon_delay_periods(PHOTON_1H_DELAY_NS, PHOTON_1V_DELAY_NS)  -- index 0 (never used)
-
             get_largest_photon_delay_periods(PHOTON_6H_DELAY_NS, PHOTON_6V_DELAY_NS), -- index 5
             get_largest_photon_delay_periods(PHOTON_5H_DELAY_NS, PHOTON_5V_DELAY_NS), -- index 4
             get_largest_photon_delay_periods(PHOTON_4H_DELAY_NS, PHOTON_4V_DELAY_NS), -- index 3
@@ -604,7 +597,7 @@
                                 actual_qubit_valid <= '1';
                                 slv_time_stamp_buffer_2d(0) <= std_logic_vector(uns_actual_time_stamp_counter);
                                 -- Next state
-                                int_state_gflow <= int_state_gflow + 1;
+                                int_state_gflow_two_qubits <= int_state_gflow_two_qubits + 1;
                             end if;
 
                         end if;

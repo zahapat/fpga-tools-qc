@@ -95,7 +95,6 @@
 
         -- I/O Channels
         constant INPUT_PADS_CNT     : positive := 2*INT_QUBITS_CNT;
-        constant OUTPUT_PADS_CNT    : positive := 1;
 
         -- Top I/O signals
         signal sys_clk_p     : std_logic := '1';
@@ -104,7 +103,9 @@
         signal led : std_logic_vector(4-1 downto 0);
 
         signal input_pads : std_logic_vector(INPUT_PADS_CNT-1 downto 0) := (others => '0');
-        signal output_pads : std_logic_vector(OUTPUT_PADS_CNT-1 downto 0);
+        signal output_pads : std_logic_vector(1 downto 0);
+        signal o_pcd_ctrl_pulse : std_logic;
+        signal o_photon_sampled : std_logic;
 
         signal readout_clk        : std_logic := '0';
         signal readout_data_ready : std_logic := '0';
@@ -113,8 +114,29 @@
         signal readout_data_32b   : std_logic_vector(31 downto 0);
 
         signal s_qubits : std_logic_vector(2*INT_QUBITS_CNT-1 downto 0) := (others => '0');
-        signal s_faster_photon_event : std_logic_vector(2*INT_QUBITS_CNT-1 downto 0) := (others => '0');
+        signal s_photon_trans_event : std_logic_vector(2*INT_QUBITS_CNT-1 downto 0) := (others => '0');
         signal s_photon_value_latched : std_logic_vector(2*INT_QUBITS_CNT-1 downto 0) := (others => '0');
+
+        -- Signal spy
+        signal slv_cdcc_rd_qubits_to_fsm : std_logic_vector(2*INT_QUBITS_CNT-1 downto 0);
+
+        -- Analysis Sygnals
+        type t_natural_arr_allphotons_2d is array(2*INT_QUBITS_CNT-1 downto 0) of natural;
+        type t_time_arr_allphotons_2d is array(2*INT_QUBITS_CNT-1 downto 0) of time;
+        type t_natural_arr_qubits_2d is array(INT_QUBITS_CNT-1 downto 0) of natural;
+        type t_natural_arr_qubits_allcombinations_2d is array(INT_QUBITS_CNT**2-1 downto 0) of natural;
+        signal s_photons_allcombinations_acc : t_natural_arr_qubits_allcombinations_2d := (others => 0);
+        signal s_allphotons_transmitted_cnt : t_natural_arr_allphotons_2d := (others => 0);
+        signal s_qubits_transmitted_cnt : t_natural_arr_qubits_2d := (others => 0);
+        signal s_photons_sampled_in_flow : t_natural_arr_qubits_2d := (others => 0);
+        signal s_io_delay_upper_bound_ns : t_time_arr_allphotons_2d;
+        signal s_io_delay_lower_bound_ns : t_time_arr_allphotons_2d;
+        signal s_io_delay_avg_ns : t_time_arr_allphotons_2d;
+        signal s_i_to_fsm_gflow_delay_lower_bound_ns : t_time_arr_allphotons_2d;
+        signal s_i_to_fsm_gflow_delay_upper_bound_ns : t_time_arr_allphotons_2d;
+        signal s_i_to_fsm_gflow_delay_avg_ns : t_time_arr_allphotons_2d;
+        signal int_successful_flows_counter : integer := 0;
+        signal int_failed_flows_counter : integer := 0;
 
         -- Delta time of the arrival of a single photon
         constant DELTA_ARRIVAL_MIN_NS : real := -0.5;
@@ -152,7 +174,7 @@
             PHOTON_4V_DELAY_ABS_NS, -- index 3
             PHOTON_3V_DELAY_ABS_NS, -- index 2
             PHOTON_2V_DELAY_ABS_NS, -- index 1
-            PHOTON_1V_DELAY_ABS_NS  -- index 0 (never used)
+            PHOTON_1V_DELAY_ABS_NS  -- index 0
         );
         constant PHOTON_H_DELAY_ABS_NS : t_real_arr_2d := (
             PHOTON_6H_DELAY_ABS_NS, -- index 5
@@ -160,7 +182,7 @@
             PHOTON_4H_DELAY_ABS_NS, -- index 3
             PHOTON_3H_DELAY_ABS_NS, -- index 2
             PHOTON_2H_DELAY_ABS_NS, -- index 1
-            PHOTON_1H_DELAY_ABS_NS  -- index 0 (never used)
+            PHOTON_1H_DELAY_ABS_NS  -- index 0
         );
 
         impure function get_faster_photon_real (
@@ -212,12 +234,182 @@
             PHOTON_1HV_DIFFERENCE_ABS_NS
         );
 
-        -- Print to console "TEST OK."
-        procedure print_test_ok is
+        -- Print to console "TEST DONE."
+        procedure print_test_done is
             variable str : line;
         begin
-            write(str, string'("TEST OK."));
+            write(str, string'("TEST DONE."));
             writeline(output, str);
+        end procedure;
+
+        procedure print_analysis is
+            variable str : line;
+            variable v_time_lower_bound : time;
+            variable v_time_upper_bound : time;
+            variable v_time_average : time;
+        begin
+            write(str, string'("------------------------------------------------------"));
+            writeline(output, str);
+            write(str, string'("              Simulation Analysis Output              "));
+            writeline(output, str);
+            write(str, string'("------------------------------------------------------"));
+            writeline(output, str);
+
+            -- Total flows, successful and failed flows counter
+            write(str, string'("Initiated Flows: " & integer'image(s_qubits_transmitted_cnt(0))));
+            writeline(output, str);
+
+            write(str, string'("Completed Flows: " & integer'image(int_successful_flows_counter)));
+            writeline(output, str);
+
+            write(str, string'("Failed Flows: " & integer'image(int_failed_flows_counter)));
+            writeline(output, str);
+
+            write(str, string'(""));
+            writeline(output, str);
+
+            -- Delays In -> Out PCD Pulse
+            for i in 0 to 2*INT_QUBITS_CNT-1 loop
+                -- Print Upper Bound IO Delay
+                write(str, string'("IO Delay (Upper Bound)(channel " & to_string(i) & "): " & time'image(s_io_delay_upper_bound_ns(i))));
+                writeline(output, str);
+                if i = 0 then
+                    v_time_upper_bound := s_io_delay_upper_bound_ns(i);
+                else
+                    if v_time_upper_bound < s_io_delay_upper_bound_ns(i) then
+                        v_time_upper_bound := s_io_delay_upper_bound_ns(i);
+                    end if;
+                end if;
+            end loop;
+
+            write(str, string'(""));
+            writeline(output, str);
+            for i in 0 to 2*INT_QUBITS_CNT-1 loop
+                -- Print Lower Bound IO Delay
+                write(str, string'("IO Delay (Lower Bound)(channel " & to_string(i) & "): " & time'image(s_io_delay_lower_bound_ns(i))));
+                writeline(output, str);
+                if i = 0 then
+                    v_time_lower_bound := s_io_delay_lower_bound_ns(i);
+                else
+                    if v_time_lower_bound > s_io_delay_lower_bound_ns(i) then
+                        v_time_lower_bound := s_io_delay_lower_bound_ns(i);
+                    end if;
+                end if;
+            end loop;
+
+            write(str, string'(""));
+            writeline(output, str);
+            for i in 0 to 2*INT_QUBITS_CNT-1 loop
+                -- Print Lower Bound IO Delay
+                write(str, string'("IO Delay (Average)(channel " & to_string(i) & "): " & time'image(s_io_delay_avg_ns(i))));
+                writeline(output, str);
+                if i = 0 then
+                    v_time_average := s_io_delay_avg_ns(i);
+                else
+                    v_time_average := v_time_average + s_io_delay_avg_ns(i);
+                end if;
+            end loop;
+
+            write(str, string'("IO Delay (Upper Bound)(all channels): " & time'image(v_time_upper_bound)));
+            writeline(output, str);
+            write(str, string'("IO Delay (Lower Bound)(all channels): " & time'image(v_time_lower_bound)));
+            writeline(output, str);
+            write(str, string'("IO Delay (Average)(all channels): " & time'image(v_time_average/(2*INT_QUBITS_CNT))));
+            writeline(output, str);
+            write(str, string'(""));
+            writeline(output, str);
+
+
+            -- Delays In -> FSM GFLOW
+            write(str, string'(""));
+            writeline(output, str);
+            for i in 0 to 2*INT_QUBITS_CNT-1 loop
+                -- Print Upper Bound IO Delay
+                write(str, string'("I-to-FSM Delay (Upper Bound)(channel " & to_string(i) & "): " & time'image(s_i_to_fsm_gflow_delay_upper_bound_ns(i))));
+                writeline(output, str);
+                if i = 0 then
+                    v_time_upper_bound := s_i_to_fsm_gflow_delay_upper_bound_ns(i);
+                else
+                    if v_time_upper_bound < s_i_to_fsm_gflow_delay_upper_bound_ns(i) then
+                        v_time_upper_bound := s_i_to_fsm_gflow_delay_upper_bound_ns(i);
+                    end if;
+                end if;
+            end loop;
+
+            write(str, string'(""));
+            writeline(output, str);
+            for i in 0 to 2*INT_QUBITS_CNT-1 loop
+                -- Print Lower Bound IO Delay
+                write(str, string'("I-to-FSM Delay (Lower Bound)(channel " & to_string(i) & "): " & time'image(s_i_to_fsm_gflow_delay_lower_bound_ns(i))));
+                writeline(output, str);
+                if i = 0 then
+                    v_time_lower_bound := s_i_to_fsm_gflow_delay_lower_bound_ns(i);
+                else
+                    if v_time_lower_bound > s_i_to_fsm_gflow_delay_lower_bound_ns(i) then
+                        v_time_lower_bound := s_i_to_fsm_gflow_delay_lower_bound_ns(i);
+                    end if;
+                end if;
+            end loop;
+
+            write(str, string'(""));
+            writeline(output, str);
+            for i in 0 to 2*INT_QUBITS_CNT-1 loop
+                -- Print Lower Bound IO Delay
+                write(str, string'("I-to-FSM Delay (Average)(channel " & to_string(i) & "): " & time'image(s_i_to_fsm_gflow_delay_avg_ns(i))));
+                writeline(output, str);
+                if i = 0 then
+                    v_time_average := s_i_to_fsm_gflow_delay_avg_ns(i);
+                else
+                    v_time_average := v_time_average + s_i_to_fsm_gflow_delay_avg_ns(i);
+                end if;
+            end loop;
+
+            write(str, string'("I-to-FSM Delay (Upper Bound)(all channels): " & time'image(v_time_upper_bound)));
+            writeline(output, str);
+            write(str, string'("I-to-FSM Delay (Lower Bound)(all channels): " & time'image(v_time_lower_bound)));
+            writeline(output, str);
+            write(str, string'("I-to-FSM Delay (Average)(all channels): " & time'image(v_time_average/(2*INT_QUBITS_CNT))));
+            writeline(output, str);
+
+
+            -- Delay Compensation (after CDC)
+            write(str, string'(""));
+            writeline(output, str);
+            for i in 0 to INT_QUBITS_CNT-1 loop
+                -- Print Upper Bound IO Delay
+                write(str, string'("I-to-FSM Delay Compensation (Upper Bound)(qubit " & to_string(i) 
+                    & "): " & time'image(abs(s_i_to_fsm_gflow_delay_upper_bound_ns(i*2) - s_i_to_fsm_gflow_delay_upper_bound_ns((i+1)*2-1)))));
+                writeline(output, str);
+            end loop;
+
+            write(str, string'(""));
+            writeline(output, str);
+            for i in 0 to INT_QUBITS_CNT-1 loop
+                -- Print Upper Bound IO Delay
+                write(str, string'("I-to-FSM Delay Compensation (Lower Bound)(qubit " & to_string(i) 
+                    & "): " & time'image(abs(s_i_to_fsm_gflow_delay_lower_bound_ns(i*2) - s_i_to_fsm_gflow_delay_lower_bound_ns((i+1)*2-1)))));
+                writeline(output, str);
+            end loop;
+
+            write(str, string'(""));
+            writeline(output, str);
+            for i in 0 to INT_QUBITS_CNT-1 loop
+                -- Print Upper Bound IO Delay
+                write(str, string'("I-to-FSM Delay Compensation (Average)(qubit " & to_string(i) 
+                    & "): " & time'image(abs(s_i_to_fsm_gflow_delay_avg_ns(i*2) - s_i_to_fsm_gflow_delay_avg_ns((i+1)*2-1)))));
+                writeline(output, str);
+            end loop;
+
+            write(str, string'(""));
+            writeline(output, str);
+            for i in 0 to INT_QUBITS_CNT**2-1 loop
+                -- Print accumulated photon combinations after successful flows (1 = Horizontal, 0 = Vertical Photon)
+                write(str, string'("Combination " & to_string(to_unsigned(i, INT_QUBITS_CNT)) 
+                    & ": " & integer'image(s_photons_allcombinations_acc(i))));
+                writeline(output, str);
+            end loop;
+
+
         end procedure;
 
     begin
@@ -227,9 +419,9 @@
         ------------------
         dut_top_gflow : entity lib_src.top_gflow(str)
         generic map (
-            RST_VAL                      => RST_VAL,
-            INT_QUBITS_CNT               => INT_QUBITS_CNT,
-            INT_EMULATE_INPUTS           => INT_EMULATE_INPUTS,
+            RST_VAL            => RST_VAL,
+            INT_QUBITS_CNT     => INT_QUBITS_CNT,
+            INT_EMULATE_INPUTS => INT_EMULATE_INPUTS,
             INT_WHOLE_PHOTON_1H_DELAY_NS => INT_WHOLE_PHOTON_1H_DELAY_NS,
             INT_DECIM_PHOTON_1H_DELAY_NS => INT_DECIM_PHOTON_1H_DELAY_NS,
             INT_WHOLE_PHOTON_1V_DELAY_NS => INT_WHOLE_PHOTON_1V_DELAY_NS,
@@ -258,48 +450,233 @@
             -- PCD Control Pulse Design & Delay
             INT_CTRL_PULSE_HIGH_DURATION_NS => INT_CTRL_PULSE_HIGH_DURATION_NS,
             INT_CTRL_PULSE_DEAD_DURATION_NS => INT_CTRL_PULSE_DEAD_DURATION_NS,
-            INT_CTRL_PULSE_EXTRA_DELAY_NS   => INT_CTRL_PULSE_EXTRA_DELAY_NS,
+            INT_CTRL_PULSE_EXTRA_DELAY_NS => INT_CTRL_PULSE_EXTRA_DELAY_NS,
 
-            WRITE_ON_VALID               => WRITE_ON_VALID
+            WRITE_ON_VALID => WRITE_ON_VALID
         )
         port map (
-            -- External 200MHz oscillator
-            sys_clk_p => sys_clk_p,
+            sys_clk_p => sys_clk_p,                   -- External 200MHz oscillator
             sys_clk_n => sys_clk_n,
 
-            -- Readout Endpoint Signals
-            readout_clk => readout_clk,
+            readout_clk => readout_clk,               -- Readout Endpoint Signals
             readout_data_ready => readout_data_ready,
             readout_data_valid => readout_data_valid,
             readout_enable => readout_enable,
             readout_data_32b => readout_data_32b,
 
-            -- Debug LEDs
-            led => led,
-
-            -- Inputs from SPCM
-            input_pads => input_pads,
-
-            -- PCD Trigger
-            output_pads => output_pads
+            led => led,                               -- Debug LEDs
+            input_pads => input_pads,                 -- Inputs from SPCM
+            o_pcd_ctrl_pulse => o_pcd_ctrl_pulse, -- PCD Trigger
+            o_photon_sampled => o_photon_sampled
         );
 
         -----------------------
         -- Clock Oscillators --
         -----------------------
-        -- 1) ACQUISITION 250 MHz, 2) NEW_QUBIT 78 MHz, 3) DETECTOR 31 MHz
-        -- The Laser frequency of 78 MHz must be downconverted to 31.24999 MHz to prevent detector saturation
+        -- 1) BOARD OSCILLATOR 200 MHz Differential, 2) LASER 80 MHz, 3) Readout 100 MHz
         sys_clk_p <= not sys_clk_p after CLK_PERIOD / 2;
         sys_clk_n <= not sys_clk_p;
         laser_clk <= not laser_clk after LASER_CLK_PERIOD / 2.0;
         readout_clk <= not readout_clk after 5 ns;
 
-        -----------------------------------------------------------
-        -- GENERATE RANDOM QUBITS AT A LASER FREQUENCY OF 80 MHz --
-        -----------------------------------------------------------
+        --------------
+        -- Monitors --
+        --------------
+        slv_cdcc_rd_qubits_to_fsm <= << signal.top_gflow_tb.dut_top_gflow.slv_cdcc_rd_qubits_to_fsm : std_logic_vector >>;
+        gen_monitors_all_qubits : for q in 0 to INT_QUBITS_CNT-1 generate
+            monitor_qubits_transmitted_counter : process
+            begin
+                loop
+                    if PHOTON_V_DELAY_ABS_NS(q) <= PHOTON_H_DELAY_ABS_NS(q) then
+                        wait until s_photon_trans_event(q*2)'event;
+                    else
+                        wait until s_photon_trans_event((q+1)*2-1)'event;
+                    end if;
+                    s_qubits_transmitted_cnt(q) <= s_qubits_transmitted_cnt(q) + 1;
+                end loop;
+            end process;
+
+        end generate;
+
+        gen_monitors_all_channels : for c in 0 to 2*INT_QUBITS_CNT-1 generate
+            monitors_all_channels_events_counter : process
+            begin
+                loop
+                    wait until s_photon_trans_event(c)'event;
+                    if s_qubits(c) = '1' then
+                        s_allphotons_transmitted_cnt(c) <= s_allphotons_transmitted_cnt(c) + 1;
+                    end if;
+                end loop;
+            end process;
+
+            -- Measure the delay between producing an input pulse and receiving output pulse
+            proc_measure_io_delay : process
+                variable v_time_start_real : real := 0.0;
+                variable v_time_delta_real : real := 0.0;
+                variable v_time_delta_acc_real : real := 0.0;
+                variable v_time_avg_real : real := 0.0;
+                variable v_cntr_real : real := 0.0;
+
+                variable v_time_start : time := 0.0 ns;
+                variable v_time_delta : time := 0.0 ns;
+                variable v_time_delta_acc : time := 0.0 ns;
+                variable v_time_avg : time := 0.0 ns;
+                variable v_time_lower_bound : time := 0.0 ns;
+                variable v_time_upper_bound : time := 0.0 ns;
+            begin
+                loop
+                    -- Capture the time in each
+                    wait until rising_edge(input_pads(c));
+                    if ctrl_input_emulation_mode = SEND_CLUSTER_THEN_WAIT then
+                        v_time_start_real := real(now / 1 ps) / 1000.0; -- 'now' base time unit is in ps -> convert to ns
+                    end if;
+
+                    -- Wait until valid pulse being transmitted along with the pcd ctrl pulse
+                    wait until rising_edge(o_photon_sampled);
+
+                    if ctrl_input_emulation_mode = SEND_CLUSTER_THEN_WAIT then
+                        v_time_delta_real := (real(now / 1 ps) / 1000.0) - v_time_start_real; -- 'now' base time unit is in ps -> convert to ns
+                        v_cntr_real := v_cntr_real + 1.0;
+                        v_time_delta_acc_real := v_time_delta_acc_real + v_time_delta_real;
+                        v_time_avg_real := v_time_delta_acc_real / v_cntr_real;
+
+                        v_time_start := v_time_start_real * 1 ns;
+                        v_time_delta := v_time_delta_real * 1 ns;
+                        v_time_avg := v_time_avg_real * 1 ns;
+
+                        -- Measure upper bound delay
+                        if v_time_delta > v_time_upper_bound then
+                            v_time_upper_bound := v_time_delta;
+                        end if;
+
+                        -- Measure lower bound delay
+                        if v_cntr_real = 1.0 then
+                            v_time_lower_bound := v_time_delta;
+                        else
+                            if v_time_delta < v_time_lower_bound then
+                                v_time_lower_bound := v_time_delta;
+                            end if;
+                        end if;
+
+                        s_io_delay_upper_bound_ns(c) <= v_time_upper_bound;
+                        s_io_delay_lower_bound_ns(c) <= v_time_lower_bound;
+                        s_io_delay_avg_ns(c) <= v_time_avg;
+
+                    end if;
+                end loop;
+            end process;
+
+            -- Check if the fsm_gflow module captured the transmitted photons
+            monitors_delay_in_to_fsm_gflow : process
+                variable v_time_start_real : real := 0.0;
+                variable v_time_delta_real : real := 0.0;
+                variable v_time_delta_acc_real : real := 0.0;
+                variable v_time_avg_real : real := 0.0;
+                variable v_cntr_real : real := 0.0;
+
+                variable v_time_start : time := 0.0 ns;
+                variable v_time_delta : time := 0.0 ns;
+                variable v_time_delta_acc : time := 0.0 ns;
+                variable v_time_avg : time := 0.0 ns;
+                variable v_time_lower_bound : time := 0.0 ns;
+                variable v_time_upper_bound : time := 0.0 ns;
+            begin
+                loop
+                    wait until rising_edge(input_pads(c));
+                    if ctrl_input_emulation_mode = SEND_CLUSTER_THEN_WAIT then
+                        v_time_start_real := real(now / 1 ps) / 1000.0; -- 'now' base time unit is in ps -> convert to ns
+                    end if;
+
+                    wait until rising_edge(slv_cdcc_rd_qubits_to_fsm(c));
+                    if ctrl_input_emulation_mode = SEND_CLUSTER_THEN_WAIT then
+                        v_time_delta_real := (real(now / 1 ps) / 1000.0) - v_time_start_real; -- 'now' base time unit is in ps -> convert to ns
+                        v_cntr_real := v_cntr_real + 1.0;
+                        v_time_delta_acc_real := v_time_delta_acc_real + v_time_delta_real;
+                        v_time_avg_real := v_time_delta_acc_real / v_cntr_real;
+
+                        v_time_start := v_time_start_real * 1 ns;
+                        v_time_delta := v_time_delta_real * 1 ns;
+                        v_time_avg := v_time_avg_real * 1 ns;
+
+                        -- Measure upper bound delay
+                        if v_time_delta > v_time_upper_bound then
+                            v_time_upper_bound := v_time_delta;
+                        end if;
+
+                        -- Measure lower bound delay
+                        if v_cntr_real = 1.0 then
+                            v_time_lower_bound := v_time_delta;
+                        else
+                            if v_time_delta < v_time_lower_bound then
+                                v_time_lower_bound := v_time_delta;
+                            end if;
+                        end if;
+
+                        s_i_to_fsm_gflow_delay_upper_bound_ns(c) <= v_time_upper_bound;
+                        s_i_to_fsm_gflow_delay_lower_bound_ns(c) <= v_time_lower_bound;
+                        s_i_to_fsm_gflow_delay_avg_ns(c) <= v_time_avg;
+                    end if;
+                 end loop;
+            end process;
+
+        end generate;
+
+        monitor_successful_and_failed_flows_counter : process
+            variable v_prev_state : natural range 0 to INT_QUBITS_CNT-1 := 0;
+            variable v_curr_state : natural range 0 to INT_QUBITS_CNT-1 := 0;
+            variable v_success_flag : std_logic := '0';
+        begin
+            loop
+                v_prev_state := << signal.top_gflow_tb.dut_top_gflow.state_gflow : natural range 0 to INT_QUBITS_CNT-1 >>;
+
+                wait until rising_edge(o_photon_sampled);
+                v_curr_state := << signal.top_gflow_tb.dut_top_gflow.state_gflow : natural range 0 to INT_QUBITS_CNT-1 >>;
+                v_success_flag := << signal.top_gflow_tb.dut_top_gflow.sl_gflow_success_flag : std_logic >>;
+
+                if v_prev_state > 0 and v_curr_state = 0 and v_success_flag = '0' then
+                    int_failed_flows_counter <= int_failed_flows_counter + 1;
+                end if;
+
+                if v_prev_state = INT_QUBITS_CNT-1 and v_curr_state = 0 and v_success_flag = '1' then
+                    int_successful_flows_counter <= int_successful_flows_counter + 1;
+                end if;
+            end loop;
+        end process;
+
+
+        -- Use readout for monitoring the sampled qubits
+        monitor_photons_flow_accumulation : process
+            variable v_binary_to_integer : unsigned(6**2-1 downto 0) := (others => '0');
+        begin
+                wait until rising_edge(readout_data_valid);
+                wait until rising_edge(readout_clk);
+
+                while readout_data_valid = '1' loop
+                    if readout_data_32b(3 downto 0) = x"1" then
+                        v_binary_to_integer(0) := readout_data_32b(31); -- H photon bit; if H=0, the V=1
+                        v_binary_to_integer(1) := readout_data_32b(29); -- H photon bit; if H=0, the V=1
+                        v_binary_to_integer(2) := readout_data_32b(27); -- H photon bit; if H=0, the V=1
+                        v_binary_to_integer(3) := readout_data_32b(25); -- H photon bit; if H=0, the V=1
+                    end if;
+
+                    -- Parse the data vector
+                    if readout_data_32b(3 downto 0) = x"5" then
+                        v_binary_to_integer(5) := readout_data_32b(31); -- H photon bit; if H=0, the V=1
+                        v_binary_to_integer(6) := readout_data_32b(29); -- H photon bit; if H=0, the V=1
+                        s_photons_allcombinations_acc(to_integer(v_binary_to_integer(INT_QUBITS_CNT-1 downto 0))) 
+                            <= s_photons_allcombinations_acc(to_integer(v_binary_to_integer(INT_QUBITS_CNT-1 downto 0))) + 1;
+                    end if;
+
+                    -- Parse the next transaction
+                    wait until rising_edge(readout_clk);
+                end loop;
+        end process;
+
+        ------------------------------------
+        -- Transactors (Input Generators) --
+        ------------------------------------
         proc_model_photon_1v : process
-            -- Random SLV type generator
-            variable rand_slv : RandomPType;
+            variable rand_slv : RandomPType; -- Random SLV type generator
         begin
 
             -- Triggers this block
@@ -322,7 +699,7 @@
                     wait_deltas(1);
                     s_photon_value_latched(0) <= s_qubits(0);
                     wait_deltas(1);
-                    s_faster_photon_event(0) <= not s_faster_photon_event(0);
+                    s_photon_trans_event(0) <= not s_photon_trans_event(0);
                     wait_deltas(1);
 
                     input_pads(0) <= s_qubits(0);
@@ -346,8 +723,10 @@
             else
                 -- If photon V is slower (has smaller delay) ensure 01/10 configuration
                 loop
-                    wait until s_faster_photon_event(1)'event;
+                    wait until s_photon_trans_event(1)'event;
                     wait for PHOTON_1HV_DIFFERENCE_ABS_NS * 1.0 ns;
+                    s_photon_trans_event(0) <= not s_photon_trans_event(0);
+                    wait_deltas(1);
                     s_qubits(0) <= not(s_photon_value_latched(1));
                     wait_deltas(1);
                     input_pads(0) <= s_qubits(0);
@@ -388,7 +767,7 @@
                     wait_deltas(1);
                     s_photon_value_latched(1) <= s_qubits(1);
                     wait_deltas(1);
-                    s_faster_photon_event(1) <= not s_faster_photon_event(1);
+                    s_photon_trans_event(1) <= not s_photon_trans_event(1);
                     wait_deltas(1);
 
                     input_pads(1) <= s_qubits(1);
@@ -412,8 +791,10 @@
             else
                 -- If photon H is slower (has smaller delay) ensure 01/10 configuration
                 loop
-                    wait until s_faster_photon_event(0)'event;
+                    wait until s_photon_trans_event(0)'event;
                     wait for PHOTON_1HV_DIFFERENCE_ABS_NS * 1.0 ns;
+                    s_photon_trans_event(1) <= not s_photon_trans_event(1);
+                    wait_deltas(1);
                     s_qubits(1) <= not(s_photon_value_latched(0));
                     wait_deltas(1);
                     input_pads(1) <= s_qubits(1);
@@ -441,9 +822,9 @@
 
                 -- Wait for time reference event (faster photon 1)
                 if PHOTON_1V_DELAY_ABS_NS <= PHOTON_1H_DELAY_ABS_NS then
-                    wait until s_faster_photon_event(0)'event;
+                    wait until s_photon_trans_event(0)'event;
                 else
-                    wait until s_faster_photon_event(1)'event;
+                    wait until s_photon_trans_event(1)'event;
                 end if;
 
                 -- Test if this photon is faster as logic will differ for both cases
@@ -462,7 +843,7 @@
                         wait_deltas(1);
                         s_photon_value_latched(p*2) <= s_qubits(p*2);
                         wait_deltas(1);
-                        s_faster_photon_event(p*2) <= not s_faster_photon_event(p*2);
+                        s_photon_trans_event(p*2) <= not s_photon_trans_event(p*2);
                         wait_deltas(1);
 
                         input_pads(p*2) <= s_qubits(p*2);
@@ -480,9 +861,9 @@
                         -- Wait for an event on the first qubit
                         elsif ctrl_input_emulation_mode = SEND_CLUSTER_THEN_WAIT then
                             if PHOTON_1V_DELAY_ABS_NS <= PHOTON_1H_DELAY_ABS_NS then
-                                wait until s_faster_photon_event(0)'event;
+                                wait until s_photon_trans_event(0)'event;
                             else
-                                wait until s_faster_photon_event(1)'event;
+                                wait until s_photon_trans_event(1)'event;
                             end if;
                             wait for PHOTON_V_DELAY_ABS_NS(p) * 1.0 ns;
 
@@ -491,8 +872,10 @@
                 else
                     -- If photon V is slower (has smaller delay) ensure 01/10 configuration
                     loop
-                        wait until s_faster_photon_event((p+1)*2-1)'event;
+                        wait until s_photon_trans_event((p+1)*2-1)'event;
                         wait for PHOTON_HV_DIFFERENCE_ABS_NS(p) * 1.0 ns;
+                        s_photon_trans_event(p*2) <= not s_photon_trans_event(p*2);
+                        wait_deltas(1);
                         s_qubits(p*2) <= not(s_photon_value_latched((p+1)*2-1));
                         wait_deltas(1);
                         input_pads(p*2) <= s_qubits(p*2);
@@ -517,9 +900,9 @@
 
                 -- Wait for time reference event (faster photon 1)
                 if PHOTON_1V_DELAY_ABS_NS <= PHOTON_1H_DELAY_ABS_NS then
-                    wait until s_faster_photon_event(0)'event;
+                    wait until s_photon_trans_event(0)'event;
                 else
-                    wait until s_faster_photon_event(1)'event;
+                    wait until s_photon_trans_event(1)'event;
                 end if;
 
                 -- Test if this photon is faster as logic will differ for both cases
@@ -537,7 +920,7 @@
                         wait_deltas(1);
                         s_photon_value_latched((p+1)*2-1) <= s_qubits((p+1)*2-1);
                         wait_deltas(1);
-                        s_faster_photon_event((p+1)*2-1) <= not s_faster_photon_event((p+1)*2-1);
+                        s_photon_trans_event((p+1)*2-1) <= not s_photon_trans_event((p+1)*2-1);
                         wait_deltas(1);
 
                         input_pads((p+1)*2-1) <= s_qubits((p+1)*2-1);
@@ -547,7 +930,7 @@
                         -- Model Detector Dead Time (until next (1/80MHz) sec)
                         input_pads((p+1)*2-1) <= '0';
                         wait_deltas(1);
-                        
+
                         -- Wait for next laser clk minus the time spent on transmitting a pulse
                         if ctrl_input_emulation_mode = SEND_PHOTON_EVERY_LASER_CLK then
                             wait for LASER_CLK_PERIOD-REALISTIC_DETECTOR_HIGH_TIME_NS;
@@ -555,9 +938,9 @@
                         -- Wait for an event on the first qubit
                         elsif ctrl_input_emulation_mode = SEND_CLUSTER_THEN_WAIT then
                             if PHOTON_1V_DELAY_ABS_NS <= PHOTON_1H_DELAY_ABS_NS then
-                                wait until s_faster_photon_event(0)'event;
+                                wait until s_photon_trans_event(0)'event;
                             else
-                                wait until s_faster_photon_event(1)'event;
+                                wait until s_photon_trans_event(1)'event;
                             end if;
                             wait for PHOTON_H_DELAY_ABS_NS(p) * 1.0 ns;
 
@@ -567,8 +950,10 @@
                 else
                     -- If photon H is slower (has smaller delay) ensure 01/10 configuration
                     loop
-                        wait until s_faster_photon_event(p*2)'event;
+                        wait until s_photon_trans_event(p*2)'event;
                         wait for PHOTON_HV_DIFFERENCE_ABS_NS(p) * 1.0 ns;
+                        s_photon_trans_event((p+1)*2-1) <= not s_photon_trans_event((p+1)*2-1);
+                        wait_deltas(1);
                         s_qubits((p+1)*2-1) <= not(s_photon_value_latched(p*2));
                         wait_deltas(1);
                         input_pads((p+1)*2-1) <= s_qubits((p+1)*2-1);
@@ -615,9 +1000,9 @@
 
             
             -- Run timulation for ...
-            wait for 50 us; -- make timer: Duration: 00:00:37
-            -- wait for 500 us; -- make timer: Duration: 00:05:00
-            -- wait for 5000 us; -- make timer: Duration: 00:48:59
+            -- wait for 50 us; -- make timer: Duration: 00:00:37
+            wait for 500 us; -- make timer: Duration: 00:05:00
+            -- wait for 5000 us; -- make timer: Elapsed time: 1:04:16
             -- wait for 50000 us; -- make timer: Duration: 07:45:01
 
             -- ctrl_input_emulation_mode <= SEND_PHOTON_EVERY_LASER_CLK;
@@ -633,7 +1018,8 @@
                 wait for 1 ns;
             end if;
 
-            print_test_ok;
+            print_test_done;
+            print_analysis;
             file_close(sim_result);
             finish;
             wait;
@@ -664,7 +1050,6 @@
 
                 -- Do not wait each clk cycle, but on an event
                 wait until rising_edge(readout_data_valid);
-                -- file_open(sim_result, "C:/Git/zahapat/fpga-tools-qc/modules/top_gflow/sim/sim_reports/sim_result.txt", write_mode);
 
                 -- Synchronize readout with readout clock
                 wait until rising_edge(readout_clk);
@@ -843,12 +1228,6 @@
             variable sx_sz_q6 : std_logic_vector(1 downto 0);
             variable result_q6 : integer; -- mod_q6
 
-            variable sx_sz_q7 : std_logic_vector(1 downto 0);
-            variable result_q7 : integer; -- mod_q7
-
-            variable sx_sz_q8 : std_logic_vector(1 downto 0);
-            variable result_q8 : integer; -- mod_q8
-
             constant PI : natural := 2;
         begin
             -- Wait until readout transaction
@@ -938,26 +1317,6 @@
                         assert mod_q6 = result_q6
                             report "Error: Qubit 6: Actual result is : " & integer'image(mod_q6)
                                     & " . Expected result is : " & integer'image(result_q6)
-                            severity failure;
-                    end if;
-
-                    if INT_QUBITS_CNT > 6 then
-                        sx_sz_q7 := std_logic_vector(to_unsigned(mod_q6, 2));
-                        result_q7 := (((-1)**to_integer(unsigned(sx_sz_q7(0 downto 0))) * 2)
-                                    + (to_integer(unsigned(sx_sz_q7(1 downto 1))) + rand_q7)*PI) mod 4;
-                        assert mod_q7 = result_q7
-                            report "Error: Qubit 7: Actual result is : " & integer'image(mod_q7)
-                                    & " . Expected result is : " & integer'image(result_q7)
-                            severity failure;
-                    end if;
-
-                    if INT_QUBITS_CNT > 7 then
-                        sx_sz_q8 := std_logic_vector(to_unsigned(mod_q7, 2));
-                        result_q8 := (((-1)**to_integer(unsigned(sx_sz_q8(0 downto 0))) * 3)
-                                    + (to_integer(unsigned(sx_sz_q8(1 downto 1))) + rand_q8)*PI) mod 4;
-                        assert mod_q8 = result_q8
-                            report "Error: Qubit 8: Actual result is : " & integer'image(mod_q8) 
-                                    & " . Expected result is : " & integer'image(result_q8)
                             severity failure;
                     end if;
                 end if;

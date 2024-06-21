@@ -22,10 +22,7 @@
             CLK_SYS_HZ             : natural := 100e6;
             CLK_SAMPL_HZ           : natural := 250e6;
 
-            QUBITS_CNT             : positive := 4;
-
-            INPUT_PADS_CNT         : positive := 8;
-            OUTPUT_PADS_CNT        : positive := 1;
+            INT_QUBITS_CNT         : positive := INT_QUBITS_CNT;
 
             -- Integer parameters from Makefile
             INT_EMULATE_INPUTS           : integer := INT_EMULATE_INPUTS;
@@ -68,10 +65,11 @@
             led : out std_logic_vector(3 downto 0);
 
             -- Inputs from SPCM
-            input_pads : in std_logic_vector(INPUT_PADS_CNT-1 downto 0);
+            input_pads : in std_logic_vector(2*INT_QUBITS_CNT-1 downto 0);
 
-            -- PCD Trigger
-            output_pads : out std_logic_vector(OUTPUT_PADS_CNT-1 downto 0)
+            -- PCD Trigger & valid signal for IO delay measurements
+            o_pcd_ctrl_pulse : out std_logic;
+            o_photon_sampled : out std_logic
 
         );
     end top_gflow_ok_wrapper;
@@ -119,7 +117,7 @@
 
         -- USB FIFO Control
         signal sl_led_fifo_full_latched : std_logic := '0';
-        signal slv_fifo_wr_valid_qubit_flags : std_logic_vector(QUBITS_CNT-1 downto 0);
+        signal slv_fifo_wr_valid_qubit_flags : std_logic_vector(INT_QUBITS_CNT-1 downto 0);
         signal sl_usb_fifo_empty : std_logic := '0';
         signal sl_usb_fifo_full : std_logic := '0';
         signal sl_usb_fifo_prog_empty : std_logic := '0';
@@ -327,7 +325,8 @@
             input_pads => input_pads,
 
             -- PCD Trigger
-            output_pads => output_pads
+            o_pcd_ctrl_pulse => o_pcd_ctrl_pulse,
+            o_photon_sampled => o_photon_sampled
         );
 
     end architecture;

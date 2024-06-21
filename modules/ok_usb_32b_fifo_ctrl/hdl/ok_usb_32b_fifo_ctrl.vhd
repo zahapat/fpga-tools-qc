@@ -220,23 +220,15 @@
                 if wr_valid_gflow_success_done_p2 = '1' then
                     slv_wr_data_stream_32b_2(31 downto 30) <= wr_data_qubit_buffer(4); -- Qubit 5
                     slv_wr_data_stream_32b_2(29 downto 28) <= wr_data_qubit_buffer(5);
-                    -- slv_wr_data_stream_32b_2(27 downto 26) <= wr_data_qubit_buffer(6);
-                    -- slv_wr_data_stream_32b_2(25 downto 24) <= wr_data_qubit_buffer(7);
 
                     slv_wr_data_stream_32b_2(23 downto 22) <= wr_data_alpha_buffer(4);
                     slv_wr_data_stream_32b_2(21 downto 20) <= wr_data_alpha_buffer(5);
-                    -- slv_wr_data_stream_32b_2(19 downto 18) <= wr_data_alpha_buffer(6);
-                    -- slv_wr_data_stream_32b_2(17 downto 16) <= wr_data_alpha_buffer(7);
 
                     slv_wr_data_stream_32b_2(15 downto 15) <= wr_data_random_buffer(4);
                     slv_wr_data_stream_32b_2(14 downto 14) <= wr_data_random_buffer(5);
-                    -- slv_wr_data_stream_32b_2(13 downto 13) <= wr_data_random_buffer(6);
-                    -- slv_wr_data_stream_32b_2(12 downto 12) <= wr_data_random_buffer(7);
 
                     slv_wr_data_stream_32b_2(11 downto 10) <= wr_data_modulo_buffer(4);
                     slv_wr_data_stream_32b_2(9 downto 8) <= wr_data_modulo_buffer(5);
-                    -- slv_wr_data_stream_32b_2(7 downto 6) <= wr_data_modulo_buffer(6);
-                    -- slv_wr_data_stream_32b_2(5 downto 4) <= wr_data_modulo_buffer(7);
                 end if;
             end if;
         end process;

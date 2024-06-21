@@ -71,8 +71,9 @@
             -- Inputs from SPCM
             input_pads : in std_logic_vector(2*INT_QUBITS_CNT-1 downto 0);
 
-            -- PCD Trigger
-            output_pads : out std_logic_vector(1-1 downto 0)
+            -- PCD Trigger + signal valid (for IO delay measuring)
+            o_pcd_ctrl_pulse : out std_logic;
+            o_photon_sampled : out std_logic
 
         );
     end top_gflow;
@@ -150,7 +151,6 @@
         -- Constants --
         ---------------
         constant INPUT_PADS_CNT : positive := INT_QUBITS_CNT*2;
-        constant OUTPUT_PADS_CNT : positive := 1;
 
         -- Noisy rising edge detection & keep input
         constant CHANNELS_CNT                     : positive := INPUT_PADS_CNT;
@@ -228,6 +228,8 @@
         signal slv_modulo_bit_pulse_delayed : std_logic_vector(0 downto 0) := (others => '0');
         signal pcd_ctrl_pulse_ready         : std_logic_vector(0 downto 0) := (others => '0');
         signal pcd_ctrl_pulse_ready_delayed : std_logic_vector(0 downto 0) := (others => '0');
+        signal pcd_ctrl_pulse_busy         : std_logic_vector(0 downto 0) := (others => '0');
+        signal pcd_ctrl_pulse_busy_delayed : std_logic_vector(0 downto 0) := (others => '0');
 
         -- Data buffers from G-Flow protocol module
         signal slv_qubit_buffer_2d      : t_qubit_buffer_2d := (others => (others => '0'));
@@ -244,6 +246,9 @@
         signal slv_random_buffer_transferred_2d     : t_random_buffer_2d := (others => (others => '0'));
         signal sl_gflow_success_done_transferred    : std_logic := '0';
 
+        -- Output Signals
+        signal slv_pcd_ctrl_pulse : std_logic_vector(0 downto 0) := (others => '0');
+        signal slv_photon_sampled : std_logic_vector(0 downto 0) := (others => '0');
 
         -- Keep the input logic at all cost
         attribute DONT_TOUCH : string;
@@ -274,6 +279,24 @@
         constant PHOTON_5V_DELAY_NS : real := real(INT_WHOLE_PHOTON_5V_DELAY_NS) + real(INT_DECIM_PHOTON_5V_DELAY_NS) / real(get_divisor(INT_DECIM_PHOTON_5V_DELAY_NS));
         constant PHOTON_6H_DELAY_NS : real := real(INT_WHOLE_PHOTON_6H_DELAY_NS) + real(INT_DECIM_PHOTON_6H_DELAY_NS) / real(get_divisor(INT_DECIM_PHOTON_6H_DELAY_NS));
         constant PHOTON_6V_DELAY_NS : real := real(INT_WHOLE_PHOTON_6V_DELAY_NS) + real(INT_DECIM_PHOTON_6V_DELAY_NS) / real(get_divisor(INT_DECIM_PHOTON_6V_DELAY_NS));
+
+        type t_periods_q_2d is array (6-1 downto 0) of real; 
+        constant PHOTON_XH_DELAY_NS : t_periods_q_2d := (
+            PHOTON_6H_DELAY_NS, -- index 5
+            PHOTON_5H_DELAY_NS, -- index 4
+            PHOTON_4H_DELAY_NS, -- index 3
+            PHOTON_3H_DELAY_NS, -- index 2
+            PHOTON_2H_DELAY_NS, -- index 1
+            PHOTON_1H_DELAY_NS  -- index 0
+        );
+        constant PHOTON_XV_DELAY_NS : t_periods_q_2d := (
+            PHOTON_6V_DELAY_NS, -- index 5
+            PHOTON_5V_DELAY_NS, -- index 4
+            PHOTON_4V_DELAY_NS, -- index 3
+            PHOTON_3V_DELAY_NS, -- index 2
+            PHOTON_2V_DELAY_NS, -- index 1
+            PHOTON_1V_DELAY_NS  -- index 0
+        );
 
     begin
 
@@ -372,8 +395,6 @@
             -- Write endpoint signals
             wr_sys_clk => sys_clk,
 
-            -- wr_valid_qubit_flags => slv_fifo_wr_valid_qubit_flags,
-
             wr_valid_gflow_success_done => sl_gflow_success_done_transferred,
             wr_data_qubit_buffer => slv_qubit_buffer_transferred_2d,
             wr_data_time_stamp_buffer => slv_time_stamp_buffer_transferred_2d,
@@ -465,7 +486,6 @@
                 PINS_CNT => INPUT_PADS_CNT
             )
             port map (
-                -- clk => sampl_clk,
                 clk => acq_clk,
                 data_in => input_pads,
                 data_out => s_noisy_channels(CHANNELS_CNT-1 downto 0)
@@ -526,263 +546,76 @@
         );
 
         -- Input metastability filter and qubit deskew
-        -- QUBIT 1
-        inst_qubit1_deskew : entity lib_src.qubit_deskew(rtl)
-        generic map (
-            RST_VAL                   => RST_VAL,
-            BUFFER_DEPTH              => BUFFER_DEPTH,
-            PATTERN_WIDTH             => PATTERN_WIDTH,
-            BUFFER_PATTERN            => BUFFER_PATTERN,
-            CLK_HZ                    => REAL_CLK_ACQ_HZ,
+        gen_photon_delay_compensation : for i in 0 to INT_QUBITS_CNT-1 generate
+            inst_photon_delay_compensation : entity lib_src.qubit_deskew(rtl)
+            generic map (
+                RST_VAL                   => RST_VAL,
+                BUFFER_DEPTH              => BUFFER_DEPTH,
+                PATTERN_WIDTH             => PATTERN_WIDTH,
+                BUFFER_PATTERN            => BUFFER_PATTERN,
+                CLK_HZ                    => REAL_CLK_ACQ_HZ,
 
-            CNT_ONEHOT_WIDTH          => CNT_ONEHOT_WIDTH,
-            DETECTOR_ACTIVE_PERIOD_NS => DETECTOR_ACTIVE_PERIOD_NS,
-            DETECTOR_DEAD_PERIOD_NS   => DETECTOR_DEAD_PERIOD_NS,
+                CNT_ONEHOT_WIDTH          => CNT_ONEHOT_WIDTH,
+                DETECTOR_ACTIVE_PERIOD_NS => DETECTOR_ACTIVE_PERIOD_NS,
+                DETECTOR_DEAD_PERIOD_NS   => DETECTOR_DEAD_PERIOD_NS,
 
-            TOLERANCE_KEEP_FASTER_BIT_CYCLES => TOLERANCE_KEEP_FASTER_BIT_CYCLES,
-            IGNORE_CYCLES_AFTER_TIMEUP => IGNORE_CYCLES_AFTER_TIMEUP,
+                TOLERANCE_KEEP_FASTER_BIT_CYCLES => TOLERANCE_KEEP_FASTER_BIT_CYCLES,
+                IGNORE_CYCLES_AFTER_TIMEUP => IGNORE_CYCLES_AFTER_TIMEUP,
 
-            PHOTON_H_DELAY_NS => PHOTON_1H_DELAY_NS,
-            PHOTON_V_DELAY_NS => PHOTON_1V_DELAY_NS
-        )
-        port map (
-            -- clk => sampl_clk,
-            clk => acq_clk,
-            rst => sl_rst_samplclk,
-            noisy_channels_in => s_noisy_channels(1 downto 0),
-            
-            qubit_valid_250MHz => s_valid_qubits_stable_to_cdcc(0),
-            qubit_250MHz => s_stable_channels_to_cdcc(1 downto 0),
+                PHOTON_H_DELAY_NS => PHOTON_XH_DELAY_NS(i),
+                PHOTON_V_DELAY_NS => PHOTON_XV_DELAY_NS(i)
+            )
+            port map (
+                clk => acq_clk,
+                rst => sl_rst_samplclk,
+                noisy_channels_in => s_noisy_channels((i+1)*2-1 downto (i*2)),
+                
+                qubit_valid_250MHz => s_valid_qubits_stable_to_cdcc(i),
+                qubit_250MHz => s_stable_channels_to_cdcc((i+1)*2-1 downto (i*2)),
 
-            channels_redge_synchronized => s_channels_redge_synchronized_to_cdcc(1 downto 0)
-        );
+                channels_redge_synchronized => s_channels_redge_synchronized_to_cdcc((i+1)*2-1 downto (i*2))
+            );
 
-        -- QUBIT 2
-        inst_qubit2_deskew : entity lib_src.qubit_deskew(rtl)
-        generic map (
-            RST_VAL                   => RST_VAL,
-            BUFFER_DEPTH              => BUFFER_DEPTH,
-            PATTERN_WIDTH             => PATTERN_WIDTH,
-            BUFFER_PATTERN            => BUFFER_PATTERN,
-            CLK_HZ                    => REAL_CLK_ACQ_HZ,
-
-            CNT_ONEHOT_WIDTH          => CNT_ONEHOT_WIDTH,
-            DETECTOR_ACTIVE_PERIOD_NS => DETECTOR_ACTIVE_PERIOD_NS,
-            DETECTOR_DEAD_PERIOD_NS   => DETECTOR_DEAD_PERIOD_NS,
-
-            TOLERANCE_KEEP_FASTER_BIT_CYCLES => TOLERANCE_KEEP_FASTER_BIT_CYCLES,
-            IGNORE_CYCLES_AFTER_TIMEUP => IGNORE_CYCLES_AFTER_TIMEUP,
-
-            PHOTON_H_DELAY_NS => PHOTON_2H_DELAY_NS,
-            PHOTON_V_DELAY_NS => PHOTON_2V_DELAY_NS
-        )
-        port map (
-            -- clk => sampl_clk,
-            clk => acq_clk,
-            rst => sl_rst_samplclk,
-            noisy_channels_in => s_noisy_channels(3 downto 2),
-
-            qubit_valid_250MHz => s_valid_qubits_stable_to_cdcc(1),
-            qubit_250MHz => s_stable_channels_to_cdcc(3 downto 2),
-
-            channels_redge_synchronized => s_channels_redge_synchronized_to_cdcc(3 downto 2)
-        );
-
-        -- QUBIT 3
-        inst_qubit3_deskew : entity lib_src.qubit_deskew(rtl)
-        generic map (
-            RST_VAL                   => RST_VAL,
-            BUFFER_DEPTH              => BUFFER_DEPTH,
-            PATTERN_WIDTH             => PATTERN_WIDTH,
-            BUFFER_PATTERN            => BUFFER_PATTERN,
-            CLK_HZ                    => REAL_CLK_ACQ_HZ,
-
-            CNT_ONEHOT_WIDTH          => CNT_ONEHOT_WIDTH,
-            DETECTOR_ACTIVE_PERIOD_NS => DETECTOR_ACTIVE_PERIOD_NS,
-            DETECTOR_DEAD_PERIOD_NS   => DETECTOR_DEAD_PERIOD_NS,
-
-            TOLERANCE_KEEP_FASTER_BIT_CYCLES => TOLERANCE_KEEP_FASTER_BIT_CYCLES,
-            IGNORE_CYCLES_AFTER_TIMEUP => IGNORE_CYCLES_AFTER_TIMEUP,
-
-            PHOTON_H_DELAY_NS => PHOTON_3H_DELAY_NS,
-            PHOTON_V_DELAY_NS => PHOTON_3V_DELAY_NS
-        )
-        port map (
-            -- clk => sampl_clk,
-            clk => acq_clk,
-            rst => sl_rst_samplclk,
-            noisy_channels_in => s_noisy_channels(5 downto 4),
-
-            qubit_valid_250MHz => s_valid_qubits_stable_to_cdcc(2),
-            qubit_250MHz => s_stable_channels_to_cdcc(5 downto 4),
-
-            channels_redge_synchronized => s_channels_redge_synchronized_to_cdcc(5 downto 4)
-        );
-
-        -- QUBIT 4
-        inst_qubit4_deskew : entity lib_src.qubit_deskew(rtl)
-        generic map (
-            RST_VAL                   => RST_VAL,
-            BUFFER_DEPTH              => BUFFER_DEPTH,
-            PATTERN_WIDTH             => PATTERN_WIDTH,
-            BUFFER_PATTERN            => BUFFER_PATTERN,
-            CLK_HZ                    => REAL_CLK_ACQ_HZ,
-
-            CNT_ONEHOT_WIDTH          => CNT_ONEHOT_WIDTH,
-            DETECTOR_ACTIVE_PERIOD_NS => DETECTOR_ACTIVE_PERIOD_NS,
-            DETECTOR_DEAD_PERIOD_NS   => DETECTOR_DEAD_PERIOD_NS,
-
-            TOLERANCE_KEEP_FASTER_BIT_CYCLES => TOLERANCE_KEEP_FASTER_BIT_CYCLES,
-            IGNORE_CYCLES_AFTER_TIMEUP => IGNORE_CYCLES_AFTER_TIMEUP,
-
-            PHOTON_H_DELAY_NS => PHOTON_4H_DELAY_NS,
-            PHOTON_V_DELAY_NS => PHOTON_4V_DELAY_NS
-        )
-        port map (
-            -- clk => sampl_clk,
-            clk => acq_clk,
-            rst => sl_rst_samplclk,
-            noisy_channels_in => s_noisy_channels(7 downto 6),
-
-            qubit_valid_250MHz => s_valid_qubits_stable_to_cdcc(3),
-            qubit_250MHz => s_stable_channels_to_cdcc(7 downto 6),
-
-            channels_redge_synchronized => s_channels_redge_synchronized_to_cdcc(7 downto 6)
-        );
-
-        -- QUBIT 5
-        inst_qubit5_deskew : entity lib_src.qubit_deskew(rtl)
-        generic map (
-            RST_VAL                   => RST_VAL,
-            BUFFER_DEPTH              => BUFFER_DEPTH,
-            PATTERN_WIDTH             => PATTERN_WIDTH,
-            BUFFER_PATTERN            => BUFFER_PATTERN,
-            CLK_HZ                    => REAL_CLK_ACQ_HZ,
-
-            CNT_ONEHOT_WIDTH          => CNT_ONEHOT_WIDTH,
-            DETECTOR_ACTIVE_PERIOD_NS => DETECTOR_ACTIVE_PERIOD_NS,
-            DETECTOR_DEAD_PERIOD_NS   => DETECTOR_DEAD_PERIOD_NS,
-
-            TOLERANCE_KEEP_FASTER_BIT_CYCLES => TOLERANCE_KEEP_FASTER_BIT_CYCLES,
-            IGNORE_CYCLES_AFTER_TIMEUP => IGNORE_CYCLES_AFTER_TIMEUP,
-
-            PHOTON_H_DELAY_NS => PHOTON_5H_DELAY_NS,
-            PHOTON_V_DELAY_NS => PHOTON_5V_DELAY_NS
-        )
-        port map (
-            clk => acq_clk,
-            -- clk => sampl_clk,
-            rst => sl_rst_samplclk,
-            noisy_channels_in => s_noisy_channels(9 downto 8),
-
-            qubit_valid_250MHz => s_valid_qubits_stable_to_cdcc(4),
-            qubit_250MHz => s_stable_channels_to_cdcc(9 downto 8),
-
-            channels_redge_synchronized => s_channels_redge_synchronized_to_cdcc(9 downto 8)
-        );
-
-        -- QUBIT 6
-        inst_qubit6_deskew : entity lib_src.qubit_deskew(rtl)
-        generic map (
-            RST_VAL                   => RST_VAL,
-            BUFFER_DEPTH              => BUFFER_DEPTH,
-            PATTERN_WIDTH             => PATTERN_WIDTH,
-            BUFFER_PATTERN            => BUFFER_PATTERN,
-            CLK_HZ                    => REAL_CLK_ACQ_HZ,
-
-            CNT_ONEHOT_WIDTH          => CNT_ONEHOT_WIDTH,
-            DETECTOR_ACTIVE_PERIOD_NS => DETECTOR_ACTIVE_PERIOD_NS,
-            DETECTOR_DEAD_PERIOD_NS   => DETECTOR_DEAD_PERIOD_NS,
-
-            TOLERANCE_KEEP_FASTER_BIT_CYCLES => TOLERANCE_KEEP_FASTER_BIT_CYCLES,
-            IGNORE_CYCLES_AFTER_TIMEUP => IGNORE_CYCLES_AFTER_TIMEUP,
-
-            PHOTON_H_DELAY_NS => PHOTON_6H_DELAY_NS,
-            PHOTON_V_DELAY_NS => PHOTON_6V_DELAY_NS
-        )
-        port map (
-            clk => sampl_clk,
-            rst => sl_rst_samplclk,
-            noisy_channels_in => s_noisy_channels(11 downto 10),
-
-            qubit_valid_250MHz => s_valid_qubits_stable_to_cdcc(5),
-            qubit_250MHz => s_stable_channels_to_cdcc(11 downto 10),
-
-            channels_redge_synchronized => s_channels_redge_synchronized_to_cdcc(11 downto 10)
-        );
+        end generate;
 
 
         -- n-FF CDCC (Cross Domain Crossing Circuit)
         gen_nff_cdcc_sysclk : for i in 0 to INT_QUBITS_CNT-1 generate
             slv_cdcc_rd_valid_to_fsm(i) <= slv_cdcc_rd_qubits_to_fsm((i+1)*2-1) or slv_cdcc_rd_qubits_to_fsm(i*2);
-            inst_nff_cdcc_cntcross_samplclk_bit1 : entity lib_src.nff_cdcc(rtl)
+            inst_nff_cdcc_cntcross_samplclk_bit1 : entity lib_src.nff_cdcc_flag(rtl)
             generic map (
                 BYPASS => CDCC_BYPASS,
                 ASYNC_FLOPS_CNT => 2,
-                DATA_WIDTH => 1,
                 FLOPS_BEFORE_CROSSING_CNT => 1,
                 WR_READY_DEASSERTED_CYCLES => 4
             )
             port map (
                 -- sampl_clk
                 clk_write => acq_clk,
-                -- clk_write => sampl_clk,
-
-                -- wr_en     => s_valid_qubits_stable_to_cdcc(i),
-                -- wr_en     => s_stable_channels_to_cdcc((i+1)*2-1),
-
-                -- wr_en => s_channels_redge_synchronized_to_cdcc((i+1)*2-1), -- Synthesized OK
-                wr_en => s_stable_channels_to_cdcc((i+1)*2-1), -- Test
-
-                -- wr_data   => s_stable_channels_to_cdcc((i+1)*2-1 downto (i+1)*2-1),
-                -- wr_data   => open,
-                wr_data   => (others => '0'),
-
+                wr_en => s_stable_channels_to_cdcc((i+1)*2-1),
                 wr_ready  => open,
 
                 -- sys_clk
                 clk_read => sampl_clk,
-
-                -- rd_valid => slv_cdcc_rd_valid_to_fsm(i),
-                rd_valid => slv_cdcc_rd_qubits_to_fsm((i+1)*2-1),
-
-                -- rd_data  => slv_cdcc_rd_qubits_to_fsm((i+1)*2-1 downto (i+1)*2-1)
-                rd_data  => open
+                rd_valid => slv_cdcc_rd_qubits_to_fsm((i+1)*2-1)
             );
 
-            inst_nff_cdcc_cntcross_samplclk_bit2 : entity lib_src.nff_cdcc(rtl)
+            inst_nff_cdcc_cntcross_samplclk_bit2 : entity lib_src.nff_cdcc_flag(rtl)
             generic map (
                 BYPASS => CDCC_BYPASS,
                 ASYNC_FLOPS_CNT => 2,
-                DATA_WIDTH => 1,
                 FLOPS_BEFORE_CROSSING_CNT => 1,
                 WR_READY_DEASSERTED_CYCLES => 4
             )
             port map (
                 -- sampl_clk
                 clk_write => acq_clk,
-                -- clk_write => sampl_clk,
-                -- wr_en     => s_valid_qubits_stable_to_cdcc(i),
-                -- wr_en     => s_stable_channels_to_cdcc(i*2),
-
-                -- wr_en => s_channels_redge_synchronized_to_cdcc(i*2), -- Synthesized OK
-                wr_en => s_stable_channels_to_cdcc(i*2), -- Test
-                
-
-                -- wr_data   => s_stable_channels_to_cdcc(i*2 downto i*2),
-                -- wr_data   => open,
-                wr_data   => (others => '0'),
-
+                wr_en => s_stable_channels_to_cdcc(i*2),
                 wr_ready  => open,
 
                 -- sys_clk
                 clk_read => sampl_clk,
-
-                -- rd_valid => open,
-                rd_valid => slv_cdcc_rd_qubits_to_fsm(i*2),
-
-                -- rd_data  => slv_cdcc_rd_qubits_to_fsm(i*2 downto i*2)
-                rd_data  => open
+                rd_valid => slv_cdcc_rd_qubits_to_fsm(i*2)
             );
         end generate;
 
@@ -1027,7 +860,8 @@
             PULSE_TRIGGER => sl_math_data_valid,
             IN_DATA       => slv_math_data_modulo(1 downto 1), -- take higher modulo bit
             PULSES_OUT    => slv_modulo_bit_pulse,
-            READY         => pcd_ctrl_pulse_ready
+            READY         => pcd_ctrl_pulse_ready,
+            BUSY          => pcd_ctrl_pulse_busy
         );
 
 
@@ -1061,17 +895,43 @@
             o_data => pcd_ctrl_pulse_ready_delayed
         );
 
+        inst_reg_delay_pulse_gen_busy : entity lib_src.reg_delay(rtl)
+        generic map (
+            RST_VAL => RST_VAL,
+            DATA_WIDTH => 1,
+            DELAY_CYCLES => 0, -- Keep DELAY_CYCLES zero to allow DELAY_NS value to be the base for the delay calculation
+            DELAY_NS => INT_CTRL_PULSE_EXTRA_DELAY_NS -- This value should be a multiple of clock period for precise results
+        )
+        port map (
+            clk    => sampl_clk,
+            i_data => pcd_ctrl_pulse_busy,
+            o_data => pcd_ctrl_pulse_busy_delayed
+        );
+
 
         -- Xilinx OBUFs
         -- +1 clk cycle delay
-        inst_xilinx_obufs : entity lib_src.xilinx_obufs(rtl)
+        o_pcd_ctrl_pulse <= slv_pcd_ctrl_pulse(0);
+        inst_xilinx_obuf_pcd : entity lib_src.xilinx_obufs(rtl)
         generic map (
             PINS_CNT => 1
         )
         port map (
             clk      => sampl_clk,
             data_in  => slv_modulo_bit_pulse_delayed,
-            data_out => output_pads
+            data_out => slv_pcd_ctrl_pulse(0 downto 0)
+        );
+
+        -- +1 clk cycle delay
+        o_photon_sampled <= slv_photon_sampled(0);
+        inst_xilinx_obuf_busy : entity lib_src.xilinx_obufs(rtl)
+        generic map (
+            PINS_CNT => 1
+        )
+        port map (
+            clk      => sampl_clk,
+            data_in  => pcd_ctrl_pulse_busy_delayed,
+            data_out => slv_photon_sampled(0 downto 0)
         );
 
     end architecture;

@@ -19,7 +19,7 @@ package generics is
     constant INT_WHOLE_PHOTON_4H_DELAY_NS : integer := -3177;
     constant INT_DECIM_PHOTON_4H_DELAY_NS : integer := 95;
     constant INT_WHOLE_PHOTON_4V_DELAY_NS : integer := -3181;
-    constant INT_DECIM_PHOTON_4V_DELAY_NS : integer := 05;
+    constant INT_DECIM_PHOTON_4V_DELAY_NS : integer := 0;
     constant INT_WHOLE_PHOTON_5H_DELAY_NS : integer := -4177;
     constant INT_DECIM_PHOTON_5H_DELAY_NS : integer := 1;
     constant INT_WHOLE_PHOTON_5V_DELAY_NS : integer := -4181;

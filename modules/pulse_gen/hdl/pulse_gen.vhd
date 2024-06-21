@@ -21,7 +21,8 @@
             PULSE_TRIGGER : in  std_logic;
             IN_DATA       : in  std_logic_vector(DATA_WIDTH-1 downto 0);
             PULSES_OUT    : out std_logic_vector(DATA_WIDTH-1 downto 0);
-            READY         : out std_logic_vector(DATA_WIDTH-1 downto 0)
+            READY         : out std_logic_vector(DATA_WIDTH-1 downto 0);
+            BUSY          : out std_logic_vector(DATA_WIDTH-1 downto 0)
         );
     end entity pulse_gen;
 
@@ -59,6 +60,7 @@
         ----------------------------
         PULSES_OUT <= s_pulses_val_high;
         READY <= not slv_busy_flag;
+        BUSY <= slv_busy_flag;
         gen_pulses : for i in 0 to DATA_WIDTH-1 generate
 
             proc_bit_pulse_gen : process(CLK)

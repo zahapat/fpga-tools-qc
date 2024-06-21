@@ -2,11 +2,10 @@
     use ieee.std_logic_1164.all;
     use ieee.numeric_std.all;
 
-    entity nff_cdcc is
+    entity nff_cdcc_flag is
         generic (
             BYPASS : boolean := false;
             ASYNC_FLOPS_CNT : positive := 2;
-            DATA_WIDTH : natural := 2;
             FLOPS_BEFORE_CROSSING_CNT : natural := 1;
             WR_READY_DEASSERTED_CYCLES : positive := 3
         );
@@ -14,37 +13,26 @@
             -- Write ports (faster clock, wr_en at rate A)
             clk_write : in  std_logic;
             wr_en     : in  std_logic;
-            wr_data   : in  std_logic_vector(DATA_WIDTH-1 downto 0);
             wr_ready  : out std_logic;
 
             -- Read ports (slower clock, rd_en_pulse at rate similar to A)
             clk_read : in  std_logic;
-            rd_valid : out std_logic;
-            rd_data  : out std_logic_vector(DATA_WIDTH-1 downto 0)
+            rd_valid : out std_logic
         );
-    end nff_cdcc;
+    end nff_cdcc_flag;
 
-    architecture rtl of nff_cdcc is
+    architecture rtl of nff_cdcc_flag is
 
         -- Sample and latch data
-        signal slv_data_to_cross_latched : std_logic_vector(DATA_WIDTH-1 downto 0) := (others => '0');
         signal sl_bit_to_cross_latched : std_logic := '0';
 
-        type t_slv_data_to_cross_2d is array(FLOPS_BEFORE_CROSSING_CNT downto 0) of std_logic_vector(DATA_WIDTH-1 downto 0);
-        signal slv_data_to_cross_2d : t_slv_data_to_cross_2d := (others => (others => '0'));
         signal slv_wr_en_event_to_cross : std_logic_vector(FLOPS_BEFORE_CROSSING_CNT downto 0) := (others => '0');
 
-
         -- CDCC: Async n-FF synchronizer
-        type t_slv_data_async_2ff_2d is array(ASYNC_FLOPS_CNT downto 0) of std_logic_vector(DATA_WIDTH-1 downto 0);
-        signal slv_data_asyncff_2d : t_slv_data_async_2ff_2d := (others => (others => '0'));
         signal slv_wr_en_event_asyncff : std_logic_vector(ASYNC_FLOPS_CNT downto 0) := (others => '0');
-        signal slv_data_synchronized : std_logic_vector(DATA_WIDTH-1 downto 0) := (others => '0');
         signal sl_wr_en_event_synchronized : std_logic := '0';
 
-
         -- Output logic
-        signal slv_data_synchronized_p1 : std_logic_vector(DATA_WIDTH-1 downto 0) := (others => '0');
         signal sl_wr_en_event_synchronized_p1 : std_logic := '0';
 
 
@@ -52,25 +40,17 @@
         attribute KEEP : string;
         attribute KEEP of slv_wr_en_event_asyncff : signal is "TRUE";
         attribute KEEP of slv_wr_en_event_to_cross : signal is "TRUE";
-        attribute KEEP of slv_data_asyncff_2d : signal is "TRUE";
-        attribute KEEP of slv_data_to_cross_2d : signal is "TRUE";
 
         attribute DONT_TOUCH : string;
         attribute DONT_TOUCH of slv_wr_en_event_asyncff: signal is "TRUE";
         attribute DONT_TOUCH of slv_wr_en_event_to_cross: signal is "TRUE";
-        attribute DONT_TOUCH of slv_data_asyncff_2d: signal is "TRUE";
-        attribute DONT_TOUCH of slv_data_to_cross_2d: signal is "TRUE";
 
         -- Ucomment if necessary
         -- attribute SHREG_EXTRACT : string;
-        -- attribute SHREG_EXTRACT of slv_data_asyncff_2d: signal is "FALSE";
         -- attribute SHREG_EXTRACT of slv_wr_en_event_asyncff: signal is "FALSE";
-        -- attribute SHREG_EXTRACT of slv_data_to_cross_2d: signal is "FALSE";
         -- attribute SHREG_EXTRACT of slv_wr_en_event_to_cross: signal is "FALSE";
 
-        -- Registers capable of receiving asynchronous data in the D input pin relative to the source clock
         attribute ASYNC_REG : boolean;
-        attribute ASYNC_REG of slv_data_asyncff_2d : signal is true;
         attribute ASYNC_REG of slv_wr_en_event_asyncff : signal is true;
 
         signal sl_wr_ready : std_logic := '0';
@@ -110,21 +90,17 @@
                 end if;
             end process;
 
-            proc_latch_data_writeclk : process(clk_write)
+            proc_latch_writeclk : process(clk_write)
             begin
                 if rising_edge(clk_write) then
 
                     for i in 1 to FLOPS_BEFORE_CROSSING_CNT loop
-                        -- Synchronize data (changes infrequently)
-                        slv_data_to_cross_2d(i) <= slv_data_to_cross_2d(i-1);
-
                         -- Synchronize 1 bit (changes infrequently)
                         slv_wr_en_event_to_cross(i) <= slv_wr_en_event_to_cross(i-1);
                     end loop;
 
                     -- if wr_en = '1' and sl_wr_busy = '0' then
                     if wr_en = '1' then
-                        slv_data_to_cross_2d(0) <= wr_data;
                         slv_wr_en_event_to_cross(0) <= not slv_wr_en_event_to_cross(0);
                     end if;
 
@@ -138,22 +114,16 @@
                 if rising_edge(clk_read) then
 
                     -- #TODO PERFORMANCE BOTTLENECK
-                    -- #TODO Should this be in the clk_write domain? I guess not... 
-                    slv_data_asyncff_2d(0) <= slv_data_to_cross_2d(FLOPS_BEFORE_CROSSING_CNT);  -- set_false_path
                     slv_wr_en_event_asyncff(0) <= slv_wr_en_event_to_cross(FLOPS_BEFORE_CROSSING_CNT);          -- set_false_path
 
                     -- Async flops
                     -- #TODO Redo this. One can not specify the number of flip-flops in total (ASYNC_FLOPS_CNT=1 is actually 2)
                     for i in 1 to ASYNC_FLOPS_CNT loop
-                        -- Synchronize data (changes infrequently)
-                        slv_data_asyncff_2d(i) <= slv_data_asyncff_2d(i-1);
-
                         -- Synchronize 1 bit (changes infrequently)
                         slv_wr_en_event_asyncff(i) <= slv_wr_en_event_asyncff(i-1);
                     end loop;
 
                     -- Sync flop
-                    slv_data_synchronized <= slv_data_asyncff_2d(ASYNC_FLOPS_CNT);
                     sl_wr_en_event_synchronized <= slv_wr_en_event_asyncff(ASYNC_FLOPS_CNT);
 
                 end if;
@@ -166,11 +136,7 @@
                 if rising_edge(clk_read) then
 
                     -- Default
-                    slv_data_synchronized_p1 <= slv_data_synchronized;
                     sl_wr_en_event_synchronized_p1 <= sl_wr_en_event_synchronized;
-
-                    -- Data always propagate further
-                    rd_data <= slv_data_synchronized;
 
                     -- Valid pulldown
                     rd_valid <= '0';
@@ -190,9 +156,6 @@
 
             sl_wr_en_event_synchronized <= wr_en;
             rd_valid <= sl_wr_en_event_synchronized;
-
-            slv_data_synchronized <= wr_data;
-            rd_data  <= slv_data_synchronized;
         end generate;
 
     end architecture;

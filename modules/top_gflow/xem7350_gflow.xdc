@@ -25,12 +25,6 @@ set_property PACKAGE_PIN AC3 [get_ports sys_clk_n]
 create_clock -period 5.0 [get_ports sys_clk_p]
 set_input_jitter [get_clocks -of_objects [get_ports sys_clk_p]] 0.05
 
-# MMCM output clocks
-set inst_name "inst_clock_synthesizer"
-create_clock -name acq_clk -period 1.666667 [get_ports inst_gflow/${inst_name}/mmcm_out_clk[0]]
-create_clock -name sampl_clk -period 3.333334 [get_ports inst_gflow/${inst_name}/mmcm_out_clk[1]]
-create_clock -name sys_clk -period 5 [get_ports inst_gflow/${inst_name}/mmcm_out_clk[2]]
-
 
 ############################################################################
 ## FPGA PINS ON FMC BOARD KAYA INSTRUMENTS
@@ -69,11 +63,15 @@ set_property PACKAGE_PIN A17 [get_ports input_pads[0]]
 
 # ----- OUTPUTS -----
 # Properties:
-set_property IOSTANDARD LVTTL [get_ports output_pads[*]]
-set_property SLEW FAST [get_ports {output_pads[*]}]
-
 # 09) PCD Trigger: (FMC Board Pin A05 | ANSI No. C11 LA_06_N | FPGA Pin B19)
-set_property PACKAGE_PIN B19 [get_ports output_pads[0]]
+set_property IOSTANDARD LVTTL [get_ports o_pcd_ctrl_pulse]
+set_property SLEW FAST [get_ports {o_pcd_ctrl_pulse}]
+set_property PACKAGE_PIN B19 [get_ports o_pcd_ctrl_pulse]
+
+# 10) PHOTON SAMPLED: (FMC Board Pin C10 | ANSI No. C11 LA_06_P | FPGA Pin C19)
+set_property IOSTANDARD LVTTL [get_ports o_photon_sampled]
+set_property SLEW FAST [get_ports {o_photon_sampled}]
+set_property PACKAGE_PIN C19 [get_ports o_photon_sampled]
 
 # 10) A04: H11 LA_04_N D20
 # set_property IOSTANDARD LVTTL [get_ports clk_out10_0]
@@ -88,9 +86,9 @@ set_property PACKAGE_PIN B19 [get_ports output_pads[0]]
 # *** Do not remove this in "nff_cdcc" to pass timing
 #       attribute KEEP : string; and attribute DONT_TOUCH : string;
 
-# set max_delay1 1.59 (best found)
+# Setting for 600 MHz -> 300 Mhz and 300 MHz -> 200 MHz
 set max_delay1 1.59
-set max_delay2 1.65
+set max_delay2 1.68
 
 # Uncertainty 0.176
 set min_delay1 [expr - 0.176]
@@ -103,18 +101,10 @@ set min_delay2 [expr - 0.178]
 set inst_name "inst_nff_cdcc_cntcross_samplclk_bit1"
 set_max_delay $max_delay1 -from [get_cells inst_gflow/gen_nff_cdcc_sysclk[*].${inst_name}/gen_if_clocks_different.slv_wr_en_event_to_cross_reg[1]] -to [get_cells inst_gflow/gen_nff_cdcc_sysclk[*].${inst_name}/gen_if_clocks_different.slv_wr_en_event_asyncff_reg[0]];
 set_min_delay $min_delay1 -from [get_cells inst_gflow/gen_nff_cdcc_sysclk[*].${inst_name}/gen_if_clocks_different.slv_wr_en_event_to_cross_reg[1]] -to [get_cells inst_gflow/gen_nff_cdcc_sysclk[*].${inst_name}/gen_if_clocks_different.slv_wr_en_event_asyncff_reg[0]];
-set_max_delay $max_delay1 -from [get_cells inst_gflow/gen_nff_cdcc_sysclk[*].${inst_name}/gen_if_clocks_different.slv_data_to_cross_2d_reg[1][*]] -to [get_cells inst_gflow/gen_nff_cdcc_sysclk[*].${inst_name}/gen_if_clocks_different.slv_data_asyncff_2d_reg[0][*]];
-set_min_delay $min_delay1 -from [get_cells inst_gflow/gen_nff_cdcc_sysclk[*].${inst_name}/gen_if_clocks_different.slv_data_to_cross_2d_reg[1][*]] -to [get_cells inst_gflow/gen_nff_cdcc_sysclk[*].${inst_name}/gen_if_clocks_different.slv_data_asyncff_2d_reg[0][*]];
 
 set inst_name "inst_nff_cdcc_cntcross_samplclk_bit2"
 set_max_delay $max_delay1 -from [get_cells inst_gflow/gen_nff_cdcc_sysclk[*].${inst_name}/gen_if_clocks_different.slv_wr_en_event_to_cross_reg[1]] -to [get_cells inst_gflow/gen_nff_cdcc_sysclk[*].${inst_name}/gen_if_clocks_different.slv_wr_en_event_asyncff_reg[0]];
 set_min_delay $min_delay1 -from [get_cells inst_gflow/gen_nff_cdcc_sysclk[*].${inst_name}/gen_if_clocks_different.slv_wr_en_event_to_cross_reg[1]] -to [get_cells inst_gflow/gen_nff_cdcc_sysclk[*].${inst_name}/gen_if_clocks_different.slv_wr_en_event_asyncff_reg[0]];
-set_max_delay $max_delay1 -from [get_cells inst_gflow/gen_nff_cdcc_sysclk[*].${inst_name}/gen_if_clocks_different.slv_data_to_cross_2d_reg[1][*]] -to [get_cells inst_gflow/gen_nff_cdcc_sysclk[*].${inst_name}/gen_if_clocks_different.slv_data_asyncff_2d_reg[0][*]];
-set_min_delay $min_delay1 -from [get_cells inst_gflow/gen_nff_cdcc_sysclk[*].${inst_name}/gen_if_clocks_different.slv_data_to_cross_2d_reg[1][*]] -to [get_cells inst_gflow/gen_nff_cdcc_sysclk[*].${inst_name}/gen_if_clocks_different.slv_data_asyncff_2d_reg[0][*]];
-
-set inst_name "inst_nff_cdcc_cntcross_samplclk_bit2"
-set_max_delay $max_delay2 -from [get_cells inst_gflow/gen_nff_cdcc_sysclk[*].${inst_name}/gen_if_clocks_different.rd_valid_reg] -to [get_cells inst_gflow/inst_okHost_fifo_ctrl/slv_wr_valid_qubit_flags_p1_reg[*]];
-set_min_delay $min_delay2 -from [get_cells inst_gflow/gen_nff_cdcc_sysclk[*].${inst_name}/gen_if_clocks_different.rd_valid_reg] -to [get_cells inst_gflow/inst_okHost_fifo_ctrl/slv_wr_valid_qubit_flags_p1_reg[*]];
 
 set inst_name "inst_nff_cdcc_success_done"
 set_max_delay $max_delay2 -from [get_cells inst_gflow/${inst_name}/gen_if_clocks_different.slv_wr_en_event_to_cross_reg[1]] -to [get_cells inst_gflow/${inst_name}/gen_if_clocks_different.slv_wr_en_event_asyncff_reg[0]];

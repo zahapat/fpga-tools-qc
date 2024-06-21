@@ -5,8 +5,6 @@
 ./modules/ok_usb_32b_fifo_ctrl/hdl/ok_usb_32b_fifo_ctrl.vhd
 ./modules/reset/sim/reset_tb.vhd
 ./modules/reset/hdl/reset.vhd
-./modules/qubit_deskew/sim/qubit_deskew_tb.vhd
-./modules/qubit_deskew/hdl/qubit_deskew.vhd
 ./modules/fsm_gflow/sim/fsm_gflow_tb.vhd
 ./modules/fsm_gflow/hdl/fsm_gflow.vhd
 ./modules/lfsr_bitgen/sim/lfsr_bitgen_tb.vhd
@@ -31,6 +29,10 @@
 ./modules/lfsr_inemul/sim/pack/types_lfsr_inemul_pack_tb.vhd
 ./modules/lfsr_inemul/sim/pack/const_lfsr_inemul_pack_tb.vhd
 ./modules/lfsr_inemul/hdl/lfsr_inemul.vhd
+./modules/qubit_deskew/sim/qubit_deskew_tb.vhd
+./modules/qubit_deskew/hdl/qubit_deskew.vhd
+./modules/nff_cdcc_flag/sim/nff_cdcc_flag_tb.vhd
+./modules/nff_cdcc_flag/hdl/nff_cdcc_flag.vhd
 ./packages/global_sim/signals_pack_tb.vhd
 ./packages/global_sim/types_pack_tb.vhd
 ./packages/global_sim/const_pack_tb.vhd

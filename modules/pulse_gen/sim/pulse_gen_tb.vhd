@@ -30,6 +30,7 @@
         signal IN_DATA       : std_logic_vector(DATA_WIDTH-1 downto 0) := (others => '0');
         signal PULSES_OUT    : std_logic_vector(DATA_WIDTH-1 downto 0);
         signal READY         : std_logic_vector(DATA_WIDTH-1 downto 0);
+        signal BUSY          : std_logic_vector(DATA_WIDTH-1 downto 0);
 
         -- Print to console "TEST OK."
         procedure print_test_ok is
@@ -56,7 +57,8 @@
             PULSE_TRIGGER => PULSE_TRIGGER,
             IN_DATA       => IN_DATA,
             PULSES_OUT    => PULSES_OUT,
-            READY         => READY
+            READY         => READY,
+            BUSY          => BUSY
         );
 
         --CLK generator
