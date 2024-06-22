@@ -13,10 +13,6 @@ This modules calculates the alpha_prime for every input value at every time inst
 2. tact: Calculate modulo
 3. tact: Modulo is ready
 
-The module supports also asynchrnous regime to calculate separate factors of the equation by setting SYNCH_FACTORS_CALCULATION generic to false to save one clock cycle, but I don't recommend it.
+The module supports also asynchrnous regime to calculate separate factors of the equation by setting SYNCH_FACTORS_CALCULATION generic to false to save one clock cycle.
 
 The module also samples intermediate values, such as alpha, random bit and also modulo (alpha_prime) and sends them to the temporary buffer and then to TX USB3 FIFO once qubit_valid is asserted.
-
-## TODO
-
-Change static generics to constants

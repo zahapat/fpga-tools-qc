@@ -1,4 +1,5 @@
 
+
 # -------------------------------------------------------
 # 2.0) Add TB Package Files
 # -------------------------------------------------------
@@ -10,7 +11,7 @@
 # 2.1) Add TB Files
 # -------------------------------------------------------
 #    * ModelSim
-add_sim_file ./modules/nff_cdcc_fedge/sim/nff_cdcc_fedge_tb.vhd
+add_sim_file ./modules/nff_cdcc_cntr/sim/nff_cdcc_cntr_tb.vhd
 
 
 
@@ -25,9 +26,10 @@ add_sim_file ./modules/nff_cdcc_fedge/sim/nff_cdcc_fedge_tb.vhd
 # 1.1) Add SRC HDL Files
 # -------------------------------------------------------
 #    * Vivado
-add_src_file lib_src ./modules/nff_cdcc_fedge/hdl/nff_cdcc_fedge.vhd
+add_src_file lib_src ./modules/nff_cdcc_cntr/hdl/nff_cdcc_cntr.vhd
 
 #    * ModelSim
-add_sim_file ./modules/nff_cdcc_fedge/hdl/nff_cdcc_fedge.vhd
+add_sim_file ./modules/nff_cdcc_cntr/hdl/nff_cdcc_cntr.vhd
+
 
 

@@ -1,12 +1,12 @@
 ## Description
 
-This module is the core of the flow ambiguity protocol. It performs waiting for data from the faster clock domain and monitoring activity on all eight channels (4 pairs of channels), to perform a 4-qubit coordination control sequence. In addition, a coarse counter has been used to sample time when a valid click has been detected. Early implementation used Finite State Machine (FSM) description using case statements. However, more scalable description was chosen to extend the lifetime of this module and improve its scalability.
+This module is the core of the flow ambiguity protocol. It performs waiting for data from the faster clock domain and monitoring the activity on two to six channels (3 channel pairs), to perform a 2- to 6-qubit coordination control sequence. In addition, a coarse counter has been used to sample the time of a horizontal/vertical photon detection. Early implementations itilized Finite State Machine (FSM) description using case statements. However, more scalable description was chosen to extend the lifetime of this module and ensure its scalability.
 
-This type of description has one main advantage. FSMs are usually robust and well optimized by many sinthesizers today. One can also select the desired state encoding in Vivado. However, their description is static and is thus not possible to vary the number of states (Qubits) in the FSM. Therefore, parallel description mimicking the FSM operation was chosen, which allows the module to be re-scaled for highed or lesser number of qubits to be supported by the module. This has been done by
+The FSM type of description has one main disadvantage. The traditional FSM-based description is static (does not offer to vary the number of states throughout generic variables), hence an alternative approach with parallel comparators and binary encoded states, mimicking the FSM operation, was chosen. This allows the module to be re-scaled for higher or lower number of qubits to be supported by the module and increases the lifetime of this module.
 
 Its operation is summarized in steps below:
 
-1. Suppose the controller is in state 1 out of 4. The controller waits for the first qubit. Once detected, save actual time, and forward data to the next modules. Switch to state 2 out of 4. Get feedback from further modules to calculate next mathematical values. If nothing was detected, wait for longer until the first qubit is detected.
+1. Suppose the controller is in state 1 out of 4. The controller waits for the first qubit detection (horizontal (bit 1) or vertical photon (bit 0)). Once detected, save actual time, and forward data to the next modules. Switch to state 2 out of 4. Get feedback from further modules to calculate next mathematical values. If nothing was detected, wait for longer until the first qubit is detected.
 
 2. The controller is now in state 2. In this state, it waits predefined amount of time for the qubit 2. Once successfully detected, save actual time, pass data to the next module and set the state machine to the qubit 3 state. If not, go back to qubit 1 state.
 
