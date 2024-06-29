@@ -160,7 +160,7 @@
         constant CNT_ONEHOT_WIDTH                 : positive := 2;  -- 1xclk = 5 ns -> 4 x 5ns = 20 ns (does not exceed 32 ns => OK)
         constant DETECTOR_ACTIVE_PERIOD_NS        : positive := 10;
         constant DETECTOR_DEAD_PERIOD_NS          : positive := 22;
-        constant TOLERANCE_KEEP_FASTER_BIT_CYCLES : natural := 0; -- # TODO To Be Deleted
+        constant TOLERANCE_KEEP_FASTER_BIT_CYCLES : natural := 0; -- # To Be Deleted
         constant IGNORE_CYCLES_AFTER_TIMEUP       : natural := 3;
 
         -- CDCC Logic
@@ -211,6 +211,7 @@
         signal slv_cdcc_rd_valid_to_fsm : std_logic_vector(INT_QUBITS_CNT-1 downto 0) := (others => '0');
         signal slv_cdcc_rd_qubits_to_fsm : std_logic_vector(CHANNELS_CNT-1 downto 0) := (others => '0');
 
+        signal slv_unsuccessful_qubits     : std_logic_vector(INT_QUBITS_CNT-1 downto 1) := (others => '0');
         signal sl_gflow_success_flag       : std_logic := '0';
         signal sl_gflow_success_done       : std_logic := '0';
         signal slv_alpha_to_math           : std_logic_vector(1 downto 0) := (others => '0');
@@ -228,8 +229,8 @@
         signal slv_modulo_bit_pulse_delayed : std_logic_vector(0 downto 0) := (others => '0');
         signal pcd_ctrl_pulse_ready         : std_logic_vector(0 downto 0) := (others => '0');
         signal pcd_ctrl_pulse_ready_delayed : std_logic_vector(0 downto 0) := (others => '0');
-        signal pcd_ctrl_pulse_busy         : std_logic_vector(0 downto 0) := (others => '0');
-        signal pcd_ctrl_pulse_busy_delayed : std_logic_vector(0 downto 0) := (others => '0');
+        signal pcd_ctrl_pulse_busy          : std_logic_vector(0 downto 0) := (others => '0');
+        signal pcd_ctrl_pulse_busy_delayed  : std_logic_vector(0 downto 0) := (others => '0');
 
         -- Data buffers from G-Flow protocol module
         signal slv_qubit_buffer_2d      : t_qubit_buffer_2d := (others => (others => '0'));
@@ -237,6 +238,7 @@
         signal slv_alpha_buffer_2d      : t_alpha_buffer_2d := (others => (others => '0'));
         signal slv_modulo_buffer_2d     : t_modulo_buffer_2d := (others => (others => '0'));
         signal slv_random_buffer_2d     : t_random_buffer_2d := (others => (others => '0'));
+        signal slv_unsuccessful_cntr_2d : t_unsuccessful_cntr_2d := (others => (others => '0'));
 
         -- CDCC Sampl clk to Readout clk transfer
         signal slv_qubit_buffer_transferred_2d      : t_qubit_buffer_2d := (others => (others => '0'));
@@ -377,12 +379,9 @@
         -- User 32b Transaction to okHost --
         ------------------------------------
         -- USB PipeOut FIFO Control
-        -- slv_fifo_wr_valid_qubit_flags(3) <= slv_cdcc_rd_valid_to_fsm(3);
-        -- slv_fifo_wr_valid_qubit_flags(2) <= slv_cdcc_rd_valid_to_fsm(2);
-        -- slv_fifo_wr_valid_qubit_flags(1) <= slv_cdcc_rd_valid_to_fsm(1);
-        -- slv_fifo_wr_valid_qubit_flags(0) <= slv_cdcc_rd_valid_to_fsm(0);
         inst_okHost_fifo_ctrl : entity lib_src.ok_usb_32b_fifo_ctrl(rtl)
         generic map (
+            INT_QUBITS_CNT => INT_QUBITS_CNT,
             RST_VAL => RST_VAL,
             CLK_HZ => REAL_CLK_SYS_HZ,
             WRITE_VALID_SIGNALS_CNT => 4,
@@ -395,6 +394,7 @@
             -- Write endpoint signals
             wr_sys_clk => sys_clk,
 
+            wr_unsuccessful_cnt => slv_unsuccessful_cntr_2d,
             wr_valid_gflow_success_done => sl_gflow_success_done_transferred,
             wr_data_qubit_buffer => slv_qubit_buffer_transferred_2d,
             wr_data_time_stamp_buffer => slv_time_stamp_buffer_transferred_2d,
@@ -449,19 +449,6 @@
         ---------------------
         -- GFLOW DATA PATH --
         ---------------------
-        -- If inputs not emulated: Assign collapsed photons to separate channels:
-
-        -- OLD:
-        -- s_noisy_channels(7) = PHOTON 1H;
-        -- s_noisy_channels(6) = PHOTON 1V;
-        -- s_noisy_channels(5) = PHOTON 2H;
-        -- s_noisy_channels(4) = PHOTON 2V;
-        -- s_noisy_channels(3) = PHOTON 3H;
-        -- s_noisy_channels(2) = PHOTON 3V;
-        -- s_noisy_channels(1) = PHOTON 4H;
-        -- s_noisy_channels(0) = PHOTON 4V;
-
-        -- NEW:
         -- s_noisy_channels(0) = PHOTON 1V;
         -- s_noisy_channels(1) = PHOTON 1H;
         -- s_noisy_channels(2) = PHOTON 2V;
@@ -474,10 +461,6 @@
         -- s_noisy_channels(9) = PHOTON 5H;
         -- s_noisy_channels(10) = PHOTON 6V;
         -- s_noisy_channels(11) = PHOTON 6H;
-        -- s_noisy_channels(12) = PHOTON 7V;
-        -- s_noisy_channels(13) = PHOTON 7H;
-        -- s_noisy_channels(14) = PHOTON 8V;
-        -- s_noisy_channels(15) = PHOTON 8H;
 
         -- Input Buffers
         gen_emul_false : if INT_EMULATE_INPUTS = 0 generate
@@ -495,11 +478,11 @@
 
         -- If Necessary, uncomment this input emulator for evaluation
         gen_emul_true : if INT_EMULATE_INPUTS /= 0 generate 
-            inst_lfsr_inemul_q1_to_q4 : entity lib_src.lfsr_inemul(rtl)
+            inst_lfsr_inemul : entity lib_src.lfsr_inemul(rtl)
             generic map (
                 RST_VAL               => RST_VAL,
-                SYMBOL_WIDTH          => 8,
-                PRIM_POL_INT_VAL      => 501,
+                SYMBOL_WIDTH          => 12,
+                PRIM_POL_INT_VAL      => 4179,
                 GF_SEED               => 1,
                 DATA_PULLDOWN_ENABLE  => true,
                 PULLDOWN_CYCLES       => 2 -- min 2
@@ -507,27 +490,9 @@
             port map (
                 clk => sampl_clk,
                 rst => sl_rst_sysclk,
-        
-                ready => open,
-                data_out => s_noisy_channels(16-1 downto 8),
-                valid_out => open
-            );
 
-            inst_lfsr_inemul_q5_to_q8 : entity lib_src.lfsr_inemul(rtl)
-            generic map (
-                RST_VAL               => RST_VAL,
-                SYMBOL_WIDTH          => 8,
-                PRIM_POL_INT_VAL      => 501,
-                GF_SEED               => 1,
-                DATA_PULLDOWN_ENABLE  => true,
-                PULLDOWN_CYCLES       => 2 -- min 2
-            )
-            port map (
-                clk => sampl_clk,
-                rst => sl_rst_sysclk,
-        
                 ready => open,
-                data_out => s_noisy_channels(8-1 downto 0),
+                data_out => s_noisy_channels(12-1 downto 0),
                 valid_out => open
             );
         end generate;
@@ -652,6 +617,8 @@
             feedback_mod_valid        => sl_math_data_valid,
             feedback_mod              => slv_math_data_modulo,
 
+            o_unsuccessful_qubits     => slv_unsuccessful_qubits,
+
             gflow_success_flag        => sl_gflow_success_flag,
             gflow_success_done        => sl_gflow_success_done,
             qubit_buffer              => slv_qubit_buffer_2d,
@@ -729,6 +696,28 @@
             rd_valid => sl_gflow_success_done_transferred,
             rd_data  => open
         );
+
+        -- -- Count unsuccessful qubits per channel and transfer the value to the readout domain
+        -- gen_cdcc_count_unsuccessful_detections : for i in INT_QUBITS_CNT-1 downto 1 generate
+        --     inst_nff_cdcc_unsuccessful_cntr : entity lib_src.nff_cdcc_cntr(rtl)
+        --         generic map (
+        --             ASYNC_FLOPS_CNT => 2,
+        --             CNTR_WIDTH => 8,
+        --             FLOPS_BEFORE_CROSSING_CNT => 1,
+        --             WR_READY_DEASSERTED_CYCLES => 2
+        --         )
+        --         port map (
+        --             -- Write ports
+        --             clk_write => sampl_clk,
+        --             wr_en     => slv_unsuccessful_qubits(i),
+        --             wr_ready  => open,
+
+        --             -- Read ports
+        --             clk_read  => sys_clk,
+        --             rd_valid  => open,
+        --             rd_data   => slv_unsuccessful_cntr_2d(i)
+        --         );
+        -- end generate;
 
         gen_cdcc_transfer_data : for i in 0 to INT_QUBITS_CNT-1 generate
             -- CDCC Qubit Buffer

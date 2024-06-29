@@ -57,6 +57,7 @@
         signal qubits_sampled : std_logic_vector((QUBITS_CNT*2)-1 downto 0) := (others => '0');
         signal feedback_mod_valid : std_logic := '0';
         signal feedback_mod : std_logic_vector(1 downto 0) := (others => '0');
+        signal o_unsuccessful_qubits : std_logic_vector(QUBITS_CNT-1 downto 1) := (others => '0');
         signal gflow_success_flag : std_logic := '0';
         signal gflow_success_done : std_logic := '0';
         signal qubit_buffer : t_qubit_buffer_2d := (others => (others => '0'));
@@ -152,6 +153,8 @@
 
             feedback_mod_valid => feedback_mod_valid,
             feedback_mod => feedback_mod,
+
+            o_unsuccessful_qubits => o_unsuccessful_qubits,
 
             gflow_success_flag => gflow_success_flag,
             gflow_success_done => gflow_success_done,

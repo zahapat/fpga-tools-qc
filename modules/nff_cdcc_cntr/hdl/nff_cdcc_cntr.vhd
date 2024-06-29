@@ -4,19 +4,18 @@
 
     entity nff_cdcc_cntr is
         generic (
-            BYPASS : boolean := false;
             ASYNC_FLOPS_CNT : positive := 2;
             CNTR_WIDTH : positive := 2;
             FLOPS_BEFORE_CROSSING_CNT : natural := 1;
             WR_READY_DEASSERTED_CYCLES : positive := 3
         );
         port (
-            -- Write ports (faster clock, wr_en at rate A)
+            -- Write ports
             clk_write : in  std_logic;
             wr_en     : in  std_logic;
             wr_ready  : out std_logic;
 
-            -- Read ports (slower clock, rd_en_pulse at rate similar to A)
+            -- Read ports
             clk_read : in  std_logic;
             rd_valid : out std_logic;
             rd_data  : out std_logic_vector(CNTR_WIDTH-1 downto 0)
@@ -79,8 +78,6 @@
             variable v_shifted_right_by_one : std_logic_vector(CNTR_WIDTH-1 downto 0) := (others => '0');
             variable v_bin_xored_with_shifted_bin : std_logic_vector(CNTR_WIDTH-1 downto 0) := (others => '0');
         begin
-            -- reg_head_grayptr_next = reg_head_ptr ^ (reg_head_ptr >> 1);
-            -- e.g. 4'b0101 -> 4'b0010
             v_shifted_right_by_one := '0' & slv_bin_number(CNTR_WIDTH-1 downto 1);
 
             for i in 0 to CNTR_WIDTH-1 loop

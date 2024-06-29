@@ -41,6 +41,7 @@
 
         -- Gflow state indicating the actual qubit state being processed
         signal natural_state_gflow : natural range 0 to QUBITS_CNT-1 := 0;
+        signal natural_state_gflow_async : natural range 0 to QUBITS_CNT-1 := 0;
         signal natural_state_gflow_p1 : natural range 0 to QUBITS_CNT-1 := 0;
 
         -- Delay alpha_positive
@@ -143,7 +144,7 @@
 
             -- Pass valid signal
             sl_valid_factors <= QUBIT_VALID;
-            natural_state_gflow <= STATE_QUBIT;
+            natural_state_gflow_async <= STATE_QUBIT;
 
             -- Delay signal ALPHA_POSITIVE
             sl_alpha_positive_p1 <= ALPHA_POSITIVE;
@@ -186,7 +187,7 @@
             if rising_edge(CLK) then
                 -- Send data valid after signal successfully propagated the module
                 sl_data_valid <= sl_valid_factors;
-                natural_state_gflow_p1 <= natural_state_gflow;
+                natural_state_gflow_p1 <= to_integer(unsigned(std_logic_vector(to_unsigned(natural_state_gflow, QUBITS_CNT)) xor std_logic_vector(to_unsigned(natural_state_gflow_async, QUBITS_CNT)))); -- One of them is constantly zero
 
                 -- Delay signal ALPHA_POSITIVE
                 sl_alpha_positive_p2 <= sl_alpha_positive_p1;

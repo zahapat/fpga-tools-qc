@@ -11,21 +11,20 @@
 
     entity ok_usb_32b_fifo_ctrl is
         generic (
+            INT_QUBITS_CNT : positive := 4;
             RST_VAL : std_logic := '1';
             CLK_HZ : real := 100.0e6;
             WRITE_VALID_SIGNALS_CNT : positive := 4;
             WRITE_ON_VALID : boolean := true
         );
         port (
-            -- Reset
+            -- Reset, write clock
             rst : in std_logic;
-
-            -- Write endpoint signals: faster CLK, slower rate
             wr_sys_clk : in std_logic;
-            --     Valid Signals / Write Flags
-            -- wr_valid_qubit_flags        : in std_logic_vector(WRITE_VALID_SIGNALS_CNT-1 downto 0);
+
+            -- Data Signals
+            wr_unsuccessful_cnt : in t_unsuccessful_cntr_2d;
             wr_valid_gflow_success_done : in std_logic;
-            --     Data Signals
             wr_data_qubit_buffer : in t_qubit_buffer_2d;
             wr_data_time_stamp_buffer : in t_time_stamp_buffer_2d;
             wr_data_alpha_buffer : in t_alpha_buffer_2d;
@@ -46,7 +45,6 @@
 
             -- LED
             fifo_full_latched : out std_logic
-
         );
     end ok_usb_32b_fifo_ctrl;
 
@@ -72,24 +70,19 @@
         );
         end component;
 
-        -- #TODO WARNING: [Timing 38-316]:
-        --   Clock period '10.000' specified during out-of-context synthesis of instance 
-        --   'inst_gflow/inst_okHost_fifo_ctrl/inst_native_fifo_generator' at clock pin 
-        --   'rd_clk' is different from the actual clock period '9.920', this can lead to 
-        --   different synthesis results.
-
         signal wr_valid_gflow_success_done_p1 : std_logic := '0';
         signal wr_valid_gflow_success_done_p2 : std_logic := '0';
         signal wr_valid_gflow_success_done_p3 : std_logic := '0';
+        signal wr_transfer_valid_gflow_request : std_logic := '0';
 
         signal sl_rst        : std_logic := '0'; -- not bound to any clk
-        
-        signal wr_clk        : std_logic := '0';
-        signal sl_wr_en      : std_logic := '0';
-        signal slv_wr_data   : std_logic_vector(31 downto 0) := (others => '0');
 
-        signal rd_clk        : std_logic := '0';
-        signal sl_rd_valid   : std_logic := '0';
+        signal wr_clk      : std_logic := '0';
+        signal sl_wr_en    : std_logic := '0';
+        signal slv_wr_data : std_logic_vector(31 downto 0) := (others => '0');
+
+        signal rd_clk          : std_logic := '0';
+        signal sl_rd_valid     : std_logic := '0';
         signal slv_rd_data_out : std_logic_vector(31 downto 0) := (others => '0');
 
         signal sl_full       : std_logic := '0';
@@ -98,7 +91,6 @@
 
 
         -- User logic endpoint write logic
-        -- signal slv_wr_valid_qubit_flags_p1 : std_logic_vector(wr_valid_qubit_flags'range) := (others => '0'); -- # TODO REDO
         signal sl_wr_en_flag_pulsed : std_logic := '0';
         signal slv_wr_data_stream_32b : std_logic_vector(32-1 downto 0) := (others => '0');
         signal slv_wr_data_stream_32b_1 : std_logic_vector(32-1 downto 0) := (others => '0');
@@ -109,31 +101,55 @@
         signal sl_at_least_one_qubit_valid_p1 : std_logic := '0';
 
         -- OK endpoint read logic
-        signal sl_readout_endp_ready   : std_logic := '0';
-        signal slv_ok_rd_endp_data   : std_logic_vector(31 downto 0) := (others => '0');
+        signal sl_readout_endp_ready : std_logic := '0';
+        signal slv_ok_rd_endp_data : std_logic_vector(31 downto 0) := (others => '0');
 
         -- Buffer Values Captured
         signal wr_data_time_stamp_buffer_p1 : t_time_stamp_buffer_2d := (others => (others => '0'));
-        signal slv_qubit_buffer_2d      : t_qubit_buffer_2d := (others => (others => '0'));
-        signal slv_time_stamp_buffer_2d : t_time_stamp_buffer_2d := (others => (others => '0'));
-        signal slv_alpha_buffer_2d      : t_alpha_buffer_2d := (others => (others => '0'));
-        signal slv_modulo_buffer_2d      : t_modulo_buffer_2d := (others => (others => '0'));
-        signal slv_random_buffer_2d     : t_random_buffer_2d := (others => (others => '0'));
+        signal slv_qubit_buffer_2d          : t_qubit_buffer_2d := (others => (others => '0'));
+        signal slv_time_stamp_buffer_2d     : t_time_stamp_buffer_2d := (others => (others => '0'));
+        signal slv_alpha_buffer_2d          : t_alpha_buffer_2d := (others => (others => '0'));
+        signal slv_modulo_buffer_2d         : t_modulo_buffer_2d := (others => (others => '0'));
+        signal slv_random_buffer_2d         : t_random_buffer_2d := (others => (others => '0'));
 
 
-        constant COUNT_UNTIL_SECOND : real := 0.01; -- yes, but too fasts
+        constant COUNT_UNTIL_SECOND : real := 1.0e-6; -- yes, but too fasts
+        -- constant COUNT_UNTIL_SECOND : real := 0.01; -- yes, but too fasts
         -- constant COUNT_UNTIL_SECOND : real := 0.009; -- no data in buffer
         -- constant COUNT_UNTIL_SECOND : real := 0.010; -- no data in buffer
         -- constant COUNT_UNTIL_SECOND : real := 0.100; -- no data in buffer
         -- constant COUNT_UNTIL_SECOND : real := 1.000; -- no data in buffer
-        constant CLK_PERIODS_ONE_SECOND : natural := natural(real(COUNT_UNTIL_SECOND) * real(CLK_HZ)*1.0);
-        signal int_one_second_counter : integer range 0 to CLK_PERIODS_ONE_SECOND-1 := 0;
+        constant PERIODIC_REPORT_CLK_PERIODS : natural := natural(COUNT_UNTIL_SECOND * CLK_HZ);
+        signal int_periodic_report_counter : integer range 0 to PERIODIC_REPORT_CLK_PERIODS-1 := 0;
         signal uns_counts_in_one_second_counter : unsigned(st_transaction_data_max_width) := (others => '0');
         signal uns_counts_in_one_second_latched : unsigned(st_transaction_data_max_width) := (others => '0');
-        signal sl_one_second_flag : std_logic := '0';
+        signal sl_periodic_report_flag : std_logic := '0';
+        signal sl_periodic_report_request : std_logic := '0';
+        signal sl_periodic_report_sample_valid : std_logic_vector((INT_QUBITS_CNT**2)-1 downto 0) := (others => '0');
+
+        -- Photon Combination Accumulation
+        constant ACCUMULATOR_COUNTER_WIDTH : positive := 16; -- 65536 max
+        constant REDUNDANT_ZEROS_TRANSAC : std_logic_vector(28-ACCUMULATOR_COUNTER_WIDTH-1 downto 0) := (others => '0');
+        constant REDUNDANT_ZEROS_SHIFTREG : std_logic_vector(ACCUMULATOR_COUNTER_WIDTH-1 downto 0) := (others => '0');
+        type t_all_combinations_2d is array(INT_QUBITS_CNT**2-1 downto 0) of natural;
+        type t_all_combinations_counters_2d is array(INT_QUBITS_CNT**2-1 downto 0) of std_logic_vector(ACCUMULATOR_COUNTER_WIDTH-1 downto 0);
+        impure function get_all_combinations_qubits return t_all_combinations_2d is
+            variable v_all_combinations_2d : t_all_combinations_2d := (others => 0);
+        begin
+            for i in 0 to INT_QUBITS_CNT**2-1 loop
+                v_all_combinations_2d(i) := i;
+            end loop;
+            return v_all_combinations_2d;
+        end function;
+        constant COMBINATION_ADDR : t_all_combinations_2d := get_all_combinations_qubits;
+        signal slv_combinations_counters_2d : t_all_combinations_counters_2d := (others => (others => '0'));
+        signal slv_higher_bits_qubit_buffer : std_logic_vector(INT_QUBITS_CNT-1 downto 0) := (others => '0');
+        signal slv_combinations_counters_sampled : std_logic_vector(ACCUMULATOR_COUNTER_WIDTH*(INT_QUBITS_CNT**2)-1 downto 0) := (others => '1');
+        signal int_periodic_readout_tx_counter : natural range 0 to INT_QUBITS_CNT**2 := 0;
 
 
         type t_state_write_data_transac is (
+            SEND_PERIODIC_REPORT_DATA,
             WAIT_AND_SEND_DATA_QUBIT1_TO_QUBIT4,
             WAIT_AND_SEND_DATA_QUBIT5_TO_QUBIT8,
             SEND_TIME_QUBIT1,
@@ -145,7 +161,7 @@
             SEND_TIME_QUBIT7,
             SEND_TIME_QUBIT8
         );
-        signal state_write_data_transac : t_state_write_data_transac := WAIT_AND_SEND_DATA_QUBIT1_TO_QUBIT4;
+        signal state_write_data_transac : t_state_write_data_transac := SEND_PERIODIC_REPORT_DATA;
 
     begin
 
@@ -180,21 +196,45 @@
         );
 
 
+        -------------------------------------
+        -- PHOTON COMBINATION ACCUMULATION --
+        -------------------------------------
+        gen_pick_higher_bits : for i in 0 to INT_QUBITS_CNT-1 generate
+            slv_higher_bits_qubit_buffer(i) <= wr_data_qubit_buffer(i)(1);
+        end generate;
+        proc_qubit_combination_accum : process(wr_sys_clk)
+        begin
+            if rising_edge(wr_sys_clk) then
+                if wr_valid_gflow_success_done = '1' then
+                    for i in 0 to INT_QUBITS_CNT**2-1 loop
+                        if std_logic_vector(to_unsigned(COMBINATION_ADDR(i), INT_QUBITS_CNT)) = slv_higher_bits_qubit_buffer then
+                            slv_combinations_counters_2d(COMBINATION_ADDR(i)) 
+                                <= std_logic_vector(unsigned(slv_combinations_counters_2d(COMBINATION_ADDR(i))) + "1");
+                        end if;
+                    end loop;
+                end if;
+            end if;
+        end process;
+
+
+
         -------------------
         -- WRITE CONTROL --
         -------------------
-        proc_delay_32b_vec : process(wr_sys_clk)
+        proc_success_flag_delay : process(wr_sys_clk)
         begin
             if rising_edge(wr_sys_clk) then
-                
-                -- slv_wr_valid_qubit_flags_p1 <= wr_valid_qubit_flags; -- redo
-                
                 wr_valid_gflow_success_done_p1 <= wr_valid_gflow_success_done;
                 wr_valid_gflow_success_done_p2 <= wr_valid_gflow_success_done_p1;
                 wr_valid_gflow_success_done_p3 <= wr_valid_gflow_success_done_p2;
 
                 wr_data_time_stamp_buffer_p1 <= wr_data_time_stamp_buffer;
+            end if;
+        end process;
 
+        proc_create_32b_transaction_1 : process(wr_sys_clk)
+        begin
+            if rising_edge(wr_sys_clk) then                
                 if wr_valid_gflow_success_done_p1 = '1' then
                     slv_wr_data_stream_32b_1(31 downto 30) <= wr_data_qubit_buffer(0); -- Qubit 1
                     slv_wr_data_stream_32b_1(29 downto 28) <= wr_data_qubit_buffer(1);
@@ -216,7 +256,12 @@
                     slv_wr_data_stream_32b_1(7 downto 6) <= wr_data_modulo_buffer(2);
                     slv_wr_data_stream_32b_1(5 downto 4) <= wr_data_modulo_buffer(3);
                 end if;
+            end if;
+        end process;
 
+        proc_create_32b_transaction_2 : process(wr_sys_clk)
+        begin
+            if rising_edge(wr_sys_clk) then                
                 if wr_valid_gflow_success_done_p2 = '1' then
                     slv_wr_data_stream_32b_2(31 downto 30) <= wr_data_qubit_buffer(4); -- Qubit 5
                     slv_wr_data_stream_32b_2(29 downto 28) <= wr_data_qubit_buffer(5);
@@ -233,18 +278,23 @@
             end if;
         end process;
 
+        proc_sample_accumulated_values : process(wr_sys_clk)
+        begin
+            if rising_edge(wr_sys_clk) then
+                -- Shift right by default
+                slv_combinations_counters_sampled(slv_combinations_counters_sampled'high downto 0) 
+                        <= REDUNDANT_ZEROS_SHIFTREG & slv_combinations_counters_sampled(
+                            slv_combinations_counters_sampled'high downto ACCUMULATOR_COUNTER_WIDTH);
 
-        -- OR-gate with multiple inputs
-        -- asynproc_valid_flags_ored : process(slv_wr_valid_qubit_flags_p1)
-        --     variable v_valid_qubit_flags_ored : std_logic;
-        -- begin
-        --     v_valid_qubit_flags_ored := '0';
-        --     for i in slv_wr_valid_qubit_flags_p1'range loop
-        --         v_valid_qubit_flags_ored := v_valid_qubit_flags_ored or slv_wr_valid_qubit_flags_p1(i);
-        --     end loop;
-        --     sl_at_least_one_qubit_valid <= v_valid_qubit_flags_ored;
-        -- end process;
-
+                -- Set on valid
+                for i in 0 to INT_QUBITS_CNT**2-1 loop
+                    if sl_periodic_report_sample_valid(i) = '1' then
+                            slv_combinations_counters_sampled((i+1)*ACCUMULATOR_COUNTER_WIDTH-1 downto i*ACCUMULATOR_COUNTER_WIDTH) 
+                                <= slv_combinations_counters_2d(i);
+                    end if;
+                end loop;
+            end if;
+        end process;
 
         -- Sample the data buffers and make them stable, since they change over time
         -- Then, prepare transactions and send them one by one to the fifo
@@ -253,8 +303,16 @@
             if rising_edge(wr_sys_clk) then
                 -- Tie to 0
                 sl_wr_en_flag_pulsed <= '0';
-
                 sl_at_least_one_qubit_valid_p1 <= sl_at_least_one_qubit_valid;
+
+                -- Queued Requests
+                if wr_valid_gflow_success_done_p2 = '1' then
+                    wr_transfer_valid_gflow_request <= wr_valid_gflow_success_done_p2;
+                end if;
+
+                if sl_periodic_report_flag = '1' then
+                    sl_periodic_report_request <= sl_periodic_report_flag;
+                end if;
 
 
                 -- Sample the time stamp buffer values to read from later
@@ -264,74 +322,68 @@
 
 
                 -- Counter to send a value per desired number of seconds
-                if int_one_second_counter = CLK_PERIODS_ONE_SECOND-1 then
-
-                    -- Reset the counter
-                    int_one_second_counter <= 0;
-                    uns_counts_in_one_second_latched <= uns_counts_in_one_second_counter;
-
-                    -- Is switched back to zero in the FSM below
-                    sl_one_second_flag <= '1';
-
-                    -- if wr_valid_gflow_success_done = '1' then
-                    if sl_at_least_one_qubit_valid_p1 = '1' then
-                    -- if sl_at_least_one_qubit_valid = '1' and to_integer(uns_counts_in_one_second_counter) < integer(uns_counts_in_one_second_counter'high**2-1) then
-                    -- if sl_at_least_one_qubit_valid = '1' and uns_counts_in_one_second_counter < to_unsigned(uns_counts_in_one_second_counter'high**2-1, uns_counts_in_one_second_counter'length) then
-                        uns_counts_in_one_second_counter 
-                            <= to_unsigned(1, uns_counts_in_one_second_counter'length);
-                    else
-                        uns_counts_in_one_second_counter <= (others => '0');
-                    end if;
-
+                if int_periodic_report_counter = PERIODIC_REPORT_CLK_PERIODS-1 then
+                    int_periodic_report_counter <= 0;
+                    sl_periodic_report_flag <= '1';
+                    sl_periodic_report_sample_valid <= (others => '1');
                 else
-                    -- Increment both counters
-                    int_one_second_counter <= int_one_second_counter + 1;
-
-                    -- if wr_valid_gflow_success_done = '1' then
-                    if sl_at_least_one_qubit_valid = '1' then
-                    -- if sl_at_least_one_qubit_valid = '1' and to_integer(uns_counts_in_one_second_counter) < integer(uns_counts_in_one_second_counter'high**2-1) then
-                    -- if sl_at_least_one_qubit_valid = '1' and uns_counts_in_one_second_counter < to_unsigned(uns_counts_in_one_second_counter'high**2-1, uns_counts_in_one_second_counter'length) then
-                        uns_counts_in_one_second_counter 
-                            <= uns_counts_in_one_second_counter + 1;
-                    end if;
+                    int_periodic_report_counter <= int_periodic_report_counter + 1;
+                    sl_periodic_report_flag <= '0';
+                    sl_periodic_report_sample_valid <= (others => '0');
                 end if;
 
 
 
                 -- Controller for sending data over USB3
                 case state_write_data_transac is
+                    when SEND_PERIODIC_REPORT_DATA => 
+
+                        -- Do not transmit by default
+                        sl_wr_en_flag_pulsed <= '0';
+
+                        -- Wait until periodic report has been transmitted
+                        if wr_transfer_valid_gflow_request = '1' then
+                            state_write_data_transac <= WAIT_AND_SEND_DATA_QUBIT1_TO_QUBIT4;
+                        end if;
+
+                        -- Send periodic report in a way it has a higher priority over the 'wr_transfer_valid_gflow_request' but does not interfere with it
+                        if sl_periodic_report_request = '1' then
+                            state_write_data_transac <= SEND_PERIODIC_REPORT_DATA;
+                            if int_periodic_readout_tx_counter = INT_QUBITS_CNT**2 then
+                                -- Reset and stop transmitting
+                                sl_periodic_report_request <= '0';
+                                int_periodic_readout_tx_counter <= 0;
+                                sl_wr_en_flag_pulsed <= '0';
+                            else
+                                -- Allow Transmitting
+                                sl_wr_en_flag_pulsed <= '1';
+                                int_periodic_readout_tx_counter <= int_periodic_readout_tx_counter + 1;
+
+                                -- Define All bits!
+                                slv_wr_data_stream_32b(31 downto 4) 
+                                    <= REDUNDANT_ZEROS_TRANSAC & slv_combinations_counters_sampled(
+                                        ACCUMULATOR_COUNTER_WIDTH-1 downto 0);
+
+                                -- Encoded command for the C++ backend: Print Time to Console Send directly to Redis Server
+                                -- Command x"0" is forbidden
+                                slv_wr_data_stream_32b(3 downto 0) <= x"4";
+
+                            end if;
+                        end if;
+
+
                     when WAIT_AND_SEND_DATA_QUBIT1_TO_QUBIT4 =>
 
                         -- Sample the data buffer values on valid, set write en, proceed
-                        if wr_valid_gflow_success_done_p3 = '1' then
-                            -- Define All bits!
-                            slv_wr_data_stream_32b(31 downto 4) <= slv_wr_data_stream_32b_1(31 downto 4);
+                        -- Define All bits!
+                        slv_wr_data_stream_32b(31 downto 4) <= slv_wr_data_stream_32b_1(31 downto 4);
 
-                            -- Encoded command for the C++ backend: Get & Parse Data + Append to a file
-                            -- Command x"0" is forbidden
-                            slv_wr_data_stream_32b(3 downto 0) <= x"1";
+                        -- Encoded command for the C++ backend: Get & Parse Data + Append to a file
+                        -- Command x"0" is forbidden
+                        slv_wr_data_stream_32b(3 downto 0) <= x"1";
 
-                            sl_wr_en_flag_pulsed <= '1';
-                            state_write_data_transac <= WAIT_AND_SEND_DATA_QUBIT5_TO_QUBIT8;
-
-                        elsif sl_one_second_flag = '1' then
-                            -- Define All bits!
-                            slv_wr_data_stream_32b(31 downto 4) <= std_logic_vector(uns_counts_in_one_second_latched);
-
-                            -- Encoded command for the C++ backend: Print Time to Console Send directly to Redis Server
-                            -- Command x"0" is forbidden
-                            slv_wr_data_stream_32b(3 downto 0) <= x"4";
-
-                            -- Set the flag back to the default state after successful read
-                            sl_one_second_flag <= '0';
-
-                            -- Remain in this state
-                            sl_wr_en_flag_pulsed <= '1';
-                            state_write_data_transac <= WAIT_AND_SEND_DATA_QUBIT1_TO_QUBIT4;
-                        else
-                            sl_wr_en_flag_pulsed <= '0';
-                            state_write_data_transac <= WAIT_AND_SEND_DATA_QUBIT1_TO_QUBIT4;
-                        end if;
+                        sl_wr_en_flag_pulsed <= '1';
+                        state_write_data_transac <= WAIT_AND_SEND_DATA_QUBIT5_TO_QUBIT8;
 
 
                     when WAIT_AND_SEND_DATA_QUBIT5_TO_QUBIT8 =>
@@ -422,12 +474,17 @@
                         slv_wr_data_stream_32b(3 downto 0) <= x"2";
 
                         sl_wr_en_flag_pulsed <= '1';
-                        state_write_data_transac <= WAIT_AND_SEND_DATA_QUBIT1_TO_QUBIT4;
-
+                        state_write_data_transac <= SEND_PERIODIC_REPORT_DATA;
+                        
+                        -- Set next transaction request to zero, wait to be asserted once next cluster has been measured
+                        wr_transfer_valid_gflow_request <= '0';
 
                     when others =>
                         sl_wr_en_flag_pulsed <= '0';
-                        state_write_data_transac <= WAIT_AND_SEND_DATA_QUBIT1_TO_QUBIT4;
+                        state_write_data_transac <= SEND_PERIODIC_REPORT_DATA;
+                        
+                        -- Set next transaction request to zero, wait to be asserted once next cluster has been measured
+                        wr_transfer_valid_gflow_request <= '0';
 
                 end case;
             end if;

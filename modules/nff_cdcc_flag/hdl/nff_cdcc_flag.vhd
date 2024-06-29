@@ -10,12 +10,12 @@
             WR_READY_DEASSERTED_CYCLES : positive := 3
         );
         port (
-            -- Write ports (faster clock, wr_en at rate A)
+            -- Write ports
             clk_write : in  std_logic;
             wr_en     : in  std_logic;
             wr_ready  : out std_logic;
 
-            -- Read ports (slower clock, rd_en_pulse at rate similar to A)
+            -- Read ports
             clk_read : in  std_logic;
             rd_valid : out std_logic
         );

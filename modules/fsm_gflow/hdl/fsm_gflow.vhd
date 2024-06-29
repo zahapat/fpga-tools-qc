@@ -51,6 +51,8 @@
             feedback_mod_valid : in  std_logic;
             feedback_mod : in  std_logic_vector(1 downto 0);
 
+            o_unsuccessful_qubits : out std_logic_vector(QUBITS_CNT-1 downto 1);
+
             gflow_success_flag : out std_logic;
             gflow_success_done : out std_logic;
             qubit_buffer : out t_qubit_buffer_2d;
@@ -96,6 +98,10 @@
         signal sl_gflow_success_flag : std_logic := '0';
         signal sl_gflow_success_done : std_logic := '0';
 
+        -- Unsuccessful flags
+        signal slv_unsuccessful_qubits : std_logic_vector(QUBITS_CNT-1 downto 1) := (others => '0');
+        signal slv_unsuccessful_qubits_two_qubits : std_logic_vector(QUBITS_CNT-1 downto 1) := (others => '0');
+
         -- Qubits sampled - initialize values, prevent X in simulation
         signal slv_qubits_sampled : std_logic_vector(qubits_sampled'range) := (others => '0');
         signal slv_actual_qubit : std_logic_vector(actual_qubit'range) := (others => '0');
@@ -122,7 +128,7 @@
         end function;
 
         type t_periods_q_2d is array (6-1 downto 0) of natural; 
-        constant MAX_PERIODS_Q : t_periods_q_2d := (
+        constant MAX_PERIODS : t_periods_q_2d := (
             get_largest_photon_delay_periods(PHOTON_6H_DELAY_NS, PHOTON_6V_DELAY_NS), -- index 5
             get_largest_photon_delay_periods(PHOTON_5H_DELAY_NS, PHOTON_5V_DELAY_NS), -- index 4
             get_largest_photon_delay_periods(PHOTON_4H_DELAY_NS, PHOTON_4V_DELAY_NS), -- index 3
@@ -131,11 +137,11 @@
             get_largest_photon_delay_periods(PHOTON_1H_DELAY_NS, PHOTON_1V_DELAY_NS)  -- index 0 (never used)
         );
 
-        -- Sort MAX_PERIODS_Q and get sorted indices (default) or periods
+        -- Sort MAX_PERIODS and get sorted indices (default) or periods
         impure function get_sorted_qubits_indices_or_periods (
             constant INDICES_OR_PERIODS : string -- Input "INDICES" or "PERIODS"
         ) return t_periods_q_2d is 
-            variable v_max_periods_q_sorted : t_periods_q_2d := MAX_PERIODS_Q;
+            variable v_max_periods_q_sorted : t_periods_q_2d := MAX_PERIODS;
             variable v_max_periods_q_indices : t_periods_q_2d;
             variable aux : natural := 0;
         begin
@@ -176,6 +182,7 @@
         constant MAX_INDICES_Q_SORTED : t_periods_q_2d := get_sorted_qubits_indices_or_periods("INDICES");
 
         signal int_main_counter : natural := 0;
+        signal int_main_counter_two_qubits : natural := 0;
 
         signal slv_to_math_sx_sz : std_logic_vector(1 downto 0) := (others => '0');
 
@@ -300,12 +307,12 @@
 
         -- MAX 6 QUBITS
         constant MAX_PERIODS_CORR : t_periods_q_2d := (
-            correct_periods(MAX_PERIODS_Q(5), CLK_PERIOD_NS, get_largest_delay(PHOTON_6H_DELAY_NS, PHOTON_6V_DELAY_NS)),
-            correct_periods(MAX_PERIODS_Q(4), CLK_PERIOD_NS, get_largest_delay(PHOTON_5H_DELAY_NS, PHOTON_5V_DELAY_NS)),
-            correct_periods(MAX_PERIODS_Q(3), CLK_PERIOD_NS, get_largest_delay(PHOTON_4H_DELAY_NS, PHOTON_4V_DELAY_NS)),
-            correct_periods(MAX_PERIODS_Q(2), CLK_PERIOD_NS, get_largest_delay(PHOTON_3H_DELAY_NS, PHOTON_3V_DELAY_NS)),
-            correct_periods(MAX_PERIODS_Q(1), CLK_PERIOD_NS, get_largest_delay(PHOTON_2H_DELAY_NS, PHOTON_2V_DELAY_NS)),
-            correct_periods(MAX_PERIODS_Q(0), CLK_PERIOD_NS, get_largest_delay(PHOTON_1H_DELAY_NS, PHOTON_1V_DELAY_NS))
+            correct_periods(MAX_PERIODS(5), CLK_PERIOD_NS, get_largest_delay(PHOTON_6H_DELAY_NS, PHOTON_6V_DELAY_NS)),
+            correct_periods(MAX_PERIODS(4), CLK_PERIOD_NS, get_largest_delay(PHOTON_5H_DELAY_NS, PHOTON_5V_DELAY_NS)),
+            correct_periods(MAX_PERIODS(3), CLK_PERIOD_NS, get_largest_delay(PHOTON_4H_DELAY_NS, PHOTON_4V_DELAY_NS)),
+            correct_periods(MAX_PERIODS(2), CLK_PERIOD_NS, get_largest_delay(PHOTON_3H_DELAY_NS, PHOTON_3V_DELAY_NS)),
+            correct_periods(MAX_PERIODS(1), CLK_PERIOD_NS, get_largest_delay(PHOTON_2H_DELAY_NS, PHOTON_2V_DELAY_NS)),
+            correct_periods(MAX_PERIODS(0), CLK_PERIOD_NS, get_largest_delay(PHOTON_1H_DELAY_NS, PHOTON_1V_DELAY_NS))
         );
 
 
@@ -318,6 +325,7 @@
         ---------------------
         actual_qubit <= slv_actual_qubit;
         slv_qubits_sampled <= qubits_sampled;
+        o_unsuccessful_qubits <= slv_unsuccessful_qubits xor slv_unsuccessful_qubits_two_qubits; -- Xor will not be implemented but this is to prevent warnings in compilation
         gflow_success_flag <= sl_gflow_success_flag;
         gflow_success_done <= sl_gflow_success_done;
         to_math_sx_xz <= slv_to_math_sx_sz;
@@ -337,6 +345,7 @@
                     actual_state_gflow <= int_state_gflow;
                     time_stamp_counter_overflow <= '0';
                     sl_gflow_success_done <= '0';
+                    slv_unsuccessful_qubits <= (others => '0');
                     int_main_counter <= int_main_counter + 1;
                     pcd_ctrl_pulse_ready_p1 <= pcd_ctrl_pulse_ready;
 
@@ -426,7 +435,7 @@
 
                                 -- If the counter has reached the max delay, don't ask and reset it and assess the next state
                                 -- if int_main_counter = MAX_PERIODS_CORR(QUBIT_ID(i)) -1 then
-                                if int_main_counter = MAX_PERIODS_Q(QUBIT_ID(i)) -1 then
+                                if int_main_counter = MAX_PERIODS(QUBIT_ID(i)) -1 then
 
                                     -- Detect Qubit 3 and proceed to Qubit 4, sample time stamp
                                     -- if qubits_sampled_valid(QUBITS_CNT-1-QUBIT_ID(i)) = '1' then
@@ -436,13 +445,14 @@
                                         int_state_gflow <= int_state_gflow + 1;
                                     else
                                         int_state_gflow <= 0;
+                                        slv_unsuccessful_qubits(QUBIT_ID(i)) <= '1';
                                     end if;
                                 end if;
 
                                 -- Look for detection before the last counter iteration (counter the data skew)
                                 for u in 0 to 0 loop
                                     -- if int_main_counter = MAX_PERIODS_CORR(QUBIT_ID(i)) -2 -u then
-                                    if int_main_counter = MAX_PERIODS_Q(QUBIT_ID(i)) -2 -u then
+                                    if int_main_counter = MAX_PERIODS(QUBIT_ID(i)) -2 -u then
 
                                         -- Detect Qubit 3 earlier and proceed to Qubit 4
                                         -- if qubits_sampled_valid(QUBITS_CNT-1-QUBIT_ID(i)) = '1' then
@@ -475,7 +485,7 @@
                         end if;
 
                         -- if int_main_counter = MAX_PERIODS_CORR(QUBITS_CNT-1) -1 then
-                        if int_main_counter = MAX_PERIODS_Q(QUBITS_CNT-1) -1 then
+                        if int_main_counter = MAX_PERIODS(QUBITS_CNT-1) -1 then
 
                             -- Detect Qubit 4 and proceed to Qubit 1, save times tamp
                             -- if qubits_sampled_valid(0) = '1' then
@@ -486,13 +496,14 @@
                                 sl_gflow_success_flag <= '1';
                             else
                                 int_state_gflow <= 0;
+                                slv_unsuccessful_qubits(QUBITS_CNT-1) <= '1';
                             end if;
                         end if;
 
                         -- Look for detection before the last counter iteration (counter the data skew)
                         for u in 0 to 0 loop
                             -- if int_main_counter = MAX_PERIODS_CORR(QUBITS_CNT-1) -2 -u then
-                            if int_main_counter = MAX_PERIODS_Q(QUBITS_CNT-1) -2 -u then
+                            if int_main_counter = MAX_PERIODS(QUBITS_CNT-1) -2 -u then
 
                                 -- Detect Qubit 4 earlier and proceed to Qubit 1
                                 -- if qubits_sampled_valid(0) = '1' then
@@ -530,10 +541,11 @@
                 if rising_edge(clk) then
                     -- Default values
                     actual_qubit_valid <= '0';
-                    actual_state_gflow <= int_state_gflow_two_qubits;
+                    actual_state_gflow_two_qubits <= int_state_gflow_two_qubits;
                     time_stamp_counter_overflow <= '0';
                     sl_gflow_success_done <= '0';
-                    int_main_counter <= int_main_counter + 1;
+                    int_main_counter_two_qubits <= int_main_counter_two_qubits + 1;
+                    slv_unsuccessful_qubits_two_qubits <= (others => '0');
                     pcd_ctrl_pulse_ready_p1 <= pcd_ctrl_pulse_ready;
 
                     -- Time Stamp counter always inscrements each clock cycle and overflows
@@ -576,7 +588,7 @@
                     -- FIRST qubit detected --
                     --------------------------
                     if int_state_gflow_two_qubits = 0 then
-                        int_main_counter <= 0;
+                        int_main_counter_two_qubits <= 0;
 
                         if sl_gflow_success_flag = '0' then
 
@@ -618,7 +630,7 @@
                         end if;
 
                         -- if int_main_counter = MAX_PERIODS_CORR(QUBITS_CNT-1) -1 then
-                        if int_main_counter = MAX_PERIODS_Q(QUBITS_CNT-1) -1 then
+                        if int_main_counter_two_qubits = MAX_PERIODS(QUBITS_CNT-1) -1 then
                             -- Detect Qubit 4 and proceed to Qubit 1, sample time stamp
                             -- if qubits_sampled_valid(0) = '1' then
                             if qubits_sampled_valid(QUBITS_CNT-1) = '1' then
@@ -628,12 +640,13 @@
                                 sl_gflow_success_flag <= '1';
                             else
                                 int_state_gflow_two_qubits <= 0;
+                                slv_unsuccessful_qubits_two_qubits((QUBITS_CNT-1)) <= '1';
                             end if;
                         end if;
 
                         -- Look for detection before the last counter iteration (counter the data skew)
                         -- if int_main_counter = MAX_PERIODS_CORR(QUBITS_CNT-1) -2 then
-                        if int_main_counter = MAX_PERIODS_Q(QUBITS_CNT-1) -2 then
+                        if int_main_counter_two_qubits = MAX_PERIODS(QUBITS_CNT-1) -2 then
                             -- Detect Qubit 4 earlier and proceed to Qubit 1
                             -- if qubits_sampled_valid(0) = '1' then
                             if qubits_sampled_valid(QUBITS_CNT-1) = '1' then

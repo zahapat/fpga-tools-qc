@@ -31,6 +31,7 @@
 
         -- File I/O
         file sim_result : text;
+        file sim_result_coincidences : text;
 
         -- Simulation control signals
         type t_input_emulation_mode is (
@@ -57,8 +58,6 @@
 
         -- Gflow generics
         constant RST_VAL                      : std_logic := '1';
-        constant CLK_SYS_HZ                   : real := 104.16667e6;
-        constant CLK_SAMPL_HZ                 : real := 250.0e6;
         constant INT_QUBITS_CNT               : positive := INT_QUBITS_CNT;
         constant INT_EMULATE_INPUTS           : integer := INT_EMULATE_INPUTS;
         constant INT_WHOLE_PHOTON_1H_DELAY_NS : integer := INT_WHOLE_PHOTON_1H_DELAY_NS;
@@ -644,7 +643,7 @@
         end process;
 
 
-        -- Use readout for monitoring the sampled qubits
+        -- Accumulate the sampled qubits using readout
         monitor_photons_flow_accumulation : process
             variable v_binary_to_integer : unsigned(6**2-1 downto 0) := (others => '0');
         begin
@@ -749,7 +748,7 @@
             -- Triggers this block
             wait until rising_edge(ctrl_sim_start);
 
-            -- Test if this photon is faster as logic will differ for both cases
+            -- Test if this photon arrives earlier since logic will differ for both cases
             if PHOTON_1V_DELAY_ABS_NS > PHOTON_1H_DELAY_ABS_NS then
                 wait_deltas(1);
                 -- Create a unique seed (if the same seed is used in all qubits, detected qubits will be the same)
@@ -789,7 +788,7 @@
 
                 end loop;
             else
-                -- If photon H is slower (has smaller delay) ensure 01/10 configuration
+                -- If photon H arrives later ensure "01" or "10" data transmission (invert the faster detection)
                 loop
                     wait until s_photon_trans_event(0)'event;
                     wait for PHOTON_1HV_DIFFERENCE_ABS_NS * 1.0 ns;
@@ -870,7 +869,7 @@
                         end if;
                     end loop;
                 else
-                    -- If photon V is slower (has smaller delay) ensure 01/10 configuration
+                    -- If photon V arrives later ensure "01" or "10" data transmission (invert the faster detection)
                     loop
                         wait until s_photon_trans_event((p+1)*2-1)'event;
                         wait for PHOTON_HV_DIFFERENCE_ABS_NS(p) * 1.0 ns;
@@ -905,7 +904,7 @@
                     wait until s_photon_trans_event(1)'event;
                 end if;
 
-                -- Test if this photon is faster as logic will differ for both cases
+                -- Test if this photon arrives earlier since logic will differ for both cases
                 if PHOTON_V_DELAY_ABS_NS(p) > PHOTON_H_DELAY_ABS_NS(p) then
                     wait_deltas(1);
                     -- Create a unique seed (if the same seed is used in all qubits, detected qubits will be the same)
@@ -948,7 +947,7 @@
 
                     end loop;
                 else
-                    -- If photon H is slower (has smaller delay) ensure 01/10 configuration
+                    -- If photon H arrives later ensure "01" or "10" data transmission (invert the faster detection)
                     loop
                         wait until s_photon_trans_event(p*2)'event;
                         wait for PHOTON_HV_DIFFERENCE_ABS_NS(p) * 1.0 ns;
@@ -977,31 +976,39 @@
         proc_sequencer : process
             -- File I/O
             variable v_file_line_buffer : line;
+            variable v_file_line_buffer_coincidences : line;
         begin
-            -- Open and Initialize report file
+            -- Open and Initialize Headers in output report files (all clusters)
             file_open(sim_result, PROJ_DIR & "modules/top_gflow/sim/sim_reports/sim_result.csv", write_mode);
             write(v_file_line_buffer, string'("q1,q2,q3,q4,,"));
             write(v_file_line_buffer, string'("alpha_q1,alpha_q2,alpha_q3,alpha_q4,,"));
             write(v_file_line_buffer, string'("rand_q1,rand_q2,rand_q3,rand_q4,,"));
             write(v_file_line_buffer, string'("mod_q1,mod_q2,mod_q3,mod_q4,,"));
-            write(v_file_line_buffer, string'("q5,q6,q7,q8,,"));
-            write(v_file_line_buffer, string'("alpha_q5,alpha_q6,alpha_q7,alpha_q8,,"));
-            write(v_file_line_buffer, string'("rand_q5,rand_q6,rand_q7,rand_q8,,"));
-            write(v_file_line_buffer, string'("mod_q5,mod_q6,mod_q7,mod_q8,,"));
-            write(v_file_line_buffer, string'("q1_time,q2_time,q3_time,q4_time,q5_time,q6_time,q7_time,q8_time,,"));
+            write(v_file_line_buffer, string'("q5,q6,,"));
+            write(v_file_line_buffer, string'("alpha_q5,alpha_q6,,"));
+            write(v_file_line_buffer, string'("rand_q5,rand_q6,,"));
+            write(v_file_line_buffer, string'("mod_q5,mod_q6,,"));
+            write(v_file_line_buffer, string'("q1_time,q2_time,q3_time,q4_time,q5_time,q6_time,"));
             writeline(sim_result, v_file_line_buffer);
 
-            
+            -- Open and Initialize Headers in output report files (accumulated coincidences)
+            file_open(sim_result_coincidences, PROJ_DIR & "modules/top_gflow/sim/sim_reports/sim_result_coincidences.csv", write_mode);
+            for i in 0 to INT_QUBITS_CNT**2-1 loop
+                write(v_file_line_buffer_coincidences, string'(to_string(to_unsigned(i, INT_QUBITS_CNT)) & ","));
+            end loop;
+            writeline(sim_result_coincidences, v_file_line_buffer_coincidences);
+
+
             -- Wait until MMCM is locked, then trigger input emulation
             wait until rising_edge(<< signal.top_gflow_tb.dut_top_gflow.locked : std_logic >>);
-            
+
             ctrl_input_emulation_mode <= SEND_CLUSTER_THEN_WAIT;
             ctrl_sim_start <= '1';
 
-            
+
             -- Run timulation for ...
-            -- wait for 50 us; -- make timer: Duration: 00:00:37
-            wait for 500 us; -- make timer: Duration: 00:05:00
+            wait for 50 us; -- make timer: Duration: 00:00:37
+            -- wait for 500 us; -- make timer: Duration: 00:05:00
             -- wait for 5000 us; -- make timer: Elapsed time: 1:04:16
             -- wait for 50000 us; -- make timer: Duration: 07:45:01
 
@@ -1021,6 +1028,7 @@
             print_test_done;
             print_analysis;
             file_close(sim_result);
+            file_close(sim_result_coincidences);
             finish;
             wait;
         end process;
@@ -1029,22 +1037,71 @@
         -------------
         -- READOUT --
         -------------
+        proc_readout_accumulated_events : process
+            variable v_continuous_counter : natural := 0;
+            variable v_continuous_counter_modulo : natural := 0;
+
+            -- Cout
+            variable str : line;
+            
+            -- File I/O
+            variable v_file_line_buffer_coincidences : line;
+            variable v_space : character;
+            variable v_comma : character := ',';
+        begin
+
+            -- #TODO
+            if readout_data_32b(3 downto 0) = x"4" and readout_data_valid = '1' then
+                -- Write to Cout
+                write(str, string'("readout_data_32b (Coincidence Accumulator)(" 
+                    & to_string(to_unsigned(v_continuous_counter_modulo, INT_QUBITS_CNT)) & ") = "
+                    & to_string(to_integer(unsigned(readout_data_32b(readout_data_32b'high downto 4))))
+                ));
+                writeline(output, str);
+
+                -- Write to File
+                write(v_file_line_buffer_coincidences, string'(
+                    to_string(to_integer(unsigned(readout_data_32b(readout_data_32b'high downto 4)))) & ","
+                ));
+
+                -- Increment counter, wrap up around max number of occurences
+                v_continuous_counter := v_continuous_counter + 1;
+                v_continuous_counter_modulo := v_continuous_counter mod (INT_QUBITS_CNT**2);
+
+                -- Print out the line to the file on wrap up
+                if v_continuous_counter_modulo = 0 then
+                    writeline(sim_result_coincidences, v_file_line_buffer_coincidences);
+                end if;
+            else
+                -- Do not wait each clk cycle, but on an event
+                wait until rising_edge(readout_data_valid);
+            end if;
+
+            -- Synchronize readout with readout clock
+            wait until rising_edge(readout_clk);
+
+        end process;
+
         proc_readout : process
             -- Output Vectors
             variable q1, q2, q3, q4 : integer := 0;
-            variable q5, q6, q7, q8 : integer := 0;
+            variable q5, q6 : integer := 0;
             variable alpha_q1, alpha_q2, alpha_q3, alpha_q4 : integer := 0;
-            variable alpha_q5, alpha_q6, alpha_q7, alpha_q8 : integer := 0;
+            variable alpha_q5, alpha_q6 : integer := 0;
             variable rand_q1, rand_q2, rand_q3, rand_q4 : integer := 0;
-            variable rand_q5, rand_q6, rand_q7, rand_q8 : integer := 0;
+            variable rand_q5, rand_q6 : integer := 0;
             variable mod_q1, mod_q2, mod_q3, mod_q4 : integer := 0;
-            variable mod_q5, mod_q6, mod_q7, mod_q8 : integer := 0;
+            variable mod_q5, mod_q6 : integer := 0;
             variable qubit_time : integer := 0;
 
             -- File I/O
             variable v_file_line_buffer : line;
-            variable v_space      : character;
-            variable v_comma      : character := ',';
+            variable v_space : character;
+            variable v_comma : character := ',';
+
+            -- Counter
+            variable v_counter_for_cout : integer := 0;
+            variable v_counter_for_cout_modulo : integer := 0;
         begin
                 readout_enable <= '1';
 
@@ -1118,63 +1175,46 @@
                     if readout_data_32b(3 downto 0) = x"5" then
                         q5 := to_integer(unsigned(readout_data_32b(31 downto 30)));
                         q6 := to_integer(unsigned(readout_data_32b(29 downto 28)));
-                        q7 := to_integer(unsigned(readout_data_32b(27 downto 26)));
-                        q8 := to_integer(unsigned(readout_data_32b(25 downto 24)));
                         write(v_file_line_buffer, integer'image(q5) & v_comma);
                         write(v_file_line_buffer, integer'image(q6) & v_comma);
-                        write(v_file_line_buffer, integer'image(q7) & v_comma);
-                        write(v_file_line_buffer, integer'image(q8) & v_comma);
                         write(v_file_line_buffer, v_comma);
                         alpha_q5 := to_integer(unsigned(readout_data_32b(23 downto 22)));
                         alpha_q6 := to_integer(unsigned(readout_data_32b(21 downto 20)));
-                        alpha_q7 := to_integer(unsigned(readout_data_32b(19 downto 18)));
-                        alpha_q8 := to_integer(unsigned(readout_data_32b(17 downto 16)));
                         write(v_file_line_buffer, integer'image(alpha_q5) & v_comma);
                         write(v_file_line_buffer, integer'image(alpha_q6) & v_comma);
-                        write(v_file_line_buffer, integer'image(alpha_q7) & v_comma);
-                        write(v_file_line_buffer, integer'image(alpha_q8) & v_comma);
                         write(v_file_line_buffer, v_comma);
                         rand_q5 := to_integer(unsigned(readout_data_32b(15 downto 15)));
                         rand_q6 := to_integer(unsigned(readout_data_32b(14 downto 14)));
-                        rand_q7 := to_integer(unsigned(readout_data_32b(13 downto 13)));
-                        rand_q8 := to_integer(unsigned(readout_data_32b(12 downto 12)));
                         write(v_file_line_buffer, integer'image(rand_q5) & v_comma);
                         write(v_file_line_buffer, integer'image(rand_q6) & v_comma);
-                        write(v_file_line_buffer, integer'image(rand_q7) & v_comma);
-                        write(v_file_line_buffer, integer'image(rand_q8) & v_comma);
                         write(v_file_line_buffer, v_comma);
                         mod_q5 := to_integer(unsigned(readout_data_32b(11 downto 10)));
                         mod_q6 := to_integer(unsigned(readout_data_32b(9 downto 8)));
-                        mod_q7 := to_integer(unsigned(readout_data_32b(7 downto 6)));
-                        mod_q8 := to_integer(unsigned(readout_data_32b(5 downto 4)));
                         write(v_file_line_buffer, integer'image(mod_q5) & v_comma);
                         write(v_file_line_buffer, integer'image(mod_q6) & v_comma);
-                        write(v_file_line_buffer, integer'image(mod_q7) & v_comma);
-                        write(v_file_line_buffer, integer'image(mod_q8) & v_comma);
                         write(v_file_line_buffer, v_comma);
 
                         report  "q5=" & to_string(q5) & " " &
-                                "q6=" & to_string(q6) & " " &
-                                "q7=" & to_string(q7) & " " &
-                                "q8=" & to_string(q8) & " ";
+                                "q6=" & to_string(q6) & " ";
                         report  "alpha_q5=" & to_string(alpha_q5) & " " &
-                                "alpha_q6=" & to_string(alpha_q6) & " " &
-                                "alpha_q7=" & to_string(alpha_q7) & " " &
-                                "alpha_q8=" & to_string(alpha_q8) & " ";
+                                "alpha_q6=" & to_string(alpha_q6) & " ";
                         report  "rand_q5=" & to_string(rand_q5) & " " &
-                                "rand_q6=" & to_string(rand_q6) & " " &
-                                "rand_q7=" & to_string(rand_q7) & " " &
-                                "rand_q8=" & to_string(rand_q8) & " ";
+                                "rand_q6=" & to_string(rand_q6) & " ";
                         report  "mod_q5=" & to_string(mod_q5) & " " &
-                                "mod_q6=" & to_string(mod_q6) & " " &
-                                "mod_q7=" & to_string(mod_q7) & " " &
-                                "mod_q8=" & to_string(mod_q8) ;
+                                "mod_q6=" & to_string(mod_q6) & " ";
                     end if;
 
                     if readout_data_32b(3 downto 0) = x"2" then
                         qubit_time := to_integer(unsigned(readout_data_32b(31 downto 4)));
                         write(v_file_line_buffer, integer'image(qubit_time) & v_comma);
                         report  "qubit X detection time = " & to_string(qubit_time);
+
+                        v_counter_for_cout := v_counter_for_cout + 1;
+                        v_counter_for_cout_modulo := v_counter_for_cout mod 6;
+                        if v_counter_for_cout_modulo = 0 then
+                            -- Read data parsing and line creation done done, print out the line to the file
+                            writeline(sim_result, v_file_line_buffer);
+                        end if;
                     end if;
 
                     if readout_data_32b(3 downto 0) = x"3" then
@@ -1182,6 +1222,13 @@
                         write(v_file_line_buffer, integer'image(qubit_time) & v_comma);
                         write(v_file_line_buffer, v_comma);
                         report  "qubit X detection time = " & to_string(qubit_time);
+
+                        v_counter_for_cout := v_counter_for_cout + 1;
+                        v_counter_for_cout_modulo := v_counter_for_cout mod 6;
+                        if v_counter_for_cout_modulo = 0 then
+                            -- Read data parsing and line creation done done, print out the line to the file
+                            writeline(sim_result, v_file_line_buffer);
+                        end if;
                     end if;
 
                     if readout_data_32b(3 downto 0) > x"5" then
@@ -1195,9 +1242,6 @@
                     -- Parse the next transaction
                     wait until rising_edge(readout_clk);
                 end loop;
-
-                -- Parsing done, print out the line to the file
-                writeline(sim_result, v_file_line_buffer);
         end process;
 
 

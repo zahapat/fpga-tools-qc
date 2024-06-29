@@ -1,12 +1,12 @@
 
-SIMULATION REPORT          Generated on Fri Jun 21 01:46:02 2024
+SIMULATION REPORT          Generated on Sun Jun 23 22:40:06 2024
 
 
 Design simulated: C:/Git/zahapat/fpga-tools-qc/simulator/vivado_precompiled_ver/unisim.glbl_vhd(glbl_vhd_v) C:/Git/zahapat/fpga-tools-qc/simulator/xil_iplib_verilog.glbl C:/Git/zahapat/fpga-tools-qc/simulator/lib_sim.top_gflow_tb(sim)
-Number of signals/nets in design: 6368353
-Number of processes in design: 4871
-Number of instances from user libraries in design: 358
-Number of executable statements in design: 120421
+Number of signals/nets in design: 6368793
+Number of processes in design: 4865
+Number of instances from user libraries in design: 357
+Number of executable statements in design: 119996
 
 Simulator Parameters:
 
@@ -385,13 +385,13 @@ List of Design units used:
     Architecture: rtl
     Library: C:/Git/zahapat/fpga-tools-qc/simulator/lib_src
     Source File: C:/Git/zahapat/fpga-tools-qc/modules/qubit_deskew/hdl/qubit_deskew.vhd
-    Occurrences: 6
+    Occurrences: 4
 
-    Entity: nff_cdcc , acc : <novopt>
+    Entity: nff_cdcc_flag , acc : <novopt>
     Architecture: rtl
     Library: C:/Git/zahapat/fpga-tools-qc/simulator/lib_src
-    Source File: C:/Git/zahapat/fpga-tools-qc/modules/nff_cdcc/hdl/nff_cdcc.vhd
-    Occurrences: 29
+    Source File: C:/Git/zahapat/fpga-tools-qc/modules/nff_cdcc_flag/hdl/nff_cdcc_flag.vhd
+    Occurrences: 8
 
     Entity: fsm_gflow , acc : <novopt>
     Architecture: rtl
@@ -410,6 +410,12 @@ List of Design units used:
     Library: C:/Git/zahapat/fpga-tools-qc/simulator/lib_src
     Source File: C:/Git/zahapat/fpga-tools-qc/modules/alu_gflow/hdl/alu_gflow.vhd
     Occurrences: 1
+
+    Entity: nff_cdcc , acc : <novopt>
+    Architecture: rtl
+    Library: C:/Git/zahapat/fpga-tools-qc/simulator/lib_src
+    Source File: C:/Git/zahapat/fpga-tools-qc/modules/nff_cdcc/hdl/nff_cdcc.vhd
+    Occurrences: 21
 
     Entity: pulse_gen , acc : <novopt>
     Architecture: rtl

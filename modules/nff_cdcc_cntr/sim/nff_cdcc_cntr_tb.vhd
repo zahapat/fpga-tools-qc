@@ -29,7 +29,6 @@
         constant TIME_FREQ_WRITE_PERIOD_NS : time := 1 sec / REAL_FREQ_WRITE;
 
         -- Generics
-        constant BYPASS : boolean := false;
         constant ASYNC_FLOPS_CNT : positive := 2;
         constant CNTR_WIDTH : positive := 5;
         constant FLOPS_BEFORE_CROSSING_CNT : positive := 1;
@@ -59,7 +58,6 @@
 
         dut_nff_cdcc_cntr : entity lib_src.nff_cdcc_cntr(rtl)
         generic map (
-            BYPASS => BYPASS,
             ASYNC_FLOPS_CNT => ASYNC_FLOPS_CNT,
             CNTR_WIDTH => CNTR_WIDTH,
             FLOPS_BEFORE_CROSSING_CNT => FLOPS_BEFORE_CROSSING_CNT,
