@@ -11,9 +11,7 @@
 # 2.1) Add TB Files
 # -------------------------------------------------------
 #    * ModelSim 
-# TODO
-# puts -nonewline $simulator_comporder "\
-    # ./modules/ok_usb_32b_fifo_ctrl/sim/ok_usb_32b_fifo_ctrl_tb.vhd\n"
+add_sim_file ./modules/csv_readout/sim/csv_readout_tb.vhd
 
 
 
@@ -28,9 +26,7 @@
 # 1.1) Add SRC HDL Files
 # -------------------------------------------------------
 #    * Vivado
-add_src_file lib_src ./modules/ok_usb_32b_fifo_ctrl/hdl/ok_usb_32b_fifo_ctrl.vhd
+add_src_file lib_src ./modules/csv_readout/hdl/csv_readout.vhd
 
 #    * ModelSim
-add_sim_file ./modules/ok_usb_32b_fifo_ctrl/hdl/ok_usb_32b_fifo_ctrl.vhd
-
-
+add_sim_file ./modules/csv_readout/hdl/csv_readout.vhd

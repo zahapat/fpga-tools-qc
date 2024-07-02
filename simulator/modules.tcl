@@ -2,7 +2,8 @@
 ./modules/top_gflow/hdl/top_gflow.vhd
 ./modules/clock_synthesizer/sim/clock_synthesizer_tb.sv
 ./modules/clock_synthesizer/hdl/clock_synthesizer.sv
-./modules/ok_usb_32b_fifo_ctrl/hdl/ok_usb_32b_fifo_ctrl.vhd
+./modules/csv_readout/sim/csv_readout_tb.vhd
+./modules/csv_readout/hdl/csv_readout.vhd
 ./modules/reset/sim/reset_tb.vhd
 ./modules/reset/hdl/reset.vhd
 ./modules/fsm_gflow/sim/fsm_gflow_tb.vhd

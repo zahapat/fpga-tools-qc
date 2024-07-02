@@ -375,17 +375,13 @@
         led(0) <= not sl_led_fifo_full_latched;
 
 
-        ------------------------------------
-        -- User 32b Transaction to okHost --
-        ------------------------------------
-        -- USB PipeOut FIFO Control
-        inst_okHost_fifo_ctrl : entity lib_src.ok_usb_32b_fifo_ctrl(rtl)
+        -- Readout with FIFO and CSV read instructions
+        inst_csv_readout : entity lib_src.csv_readout(rtl)
         generic map (
+            INT_CHANNEL_WIDTH => 32,
             INT_QUBITS_CNT => INT_QUBITS_CNT,
-            RST_VAL => RST_VAL,
             CLK_HZ => REAL_CLK_SYS_HZ,
-            WRITE_VALID_SIGNALS_CNT => 4,
-            WRITE_ON_VALID => WRITE_ON_VALID
+            REGULAR_SAMPLER_SECONDS => 5.0e-6 -- Change this value to alter the frequency of regular reporting
         )
         port map (
             -- Reset
@@ -416,34 +412,7 @@
 
             -- LED
             fifo_full_latched => sl_led_fifo_full_latched
-
         );
-
-        -- 32b transaction to be transferred to PC over USB3 (read-only)
-        slv_usb3_transaction_32b(31) <= slv_cdcc_rd_valid_to_fsm(3);
-        slv_usb3_transaction_32b(30 downto 29) <= slv_cdcc_rd_qubits_to_fsm(7 downto 6);
-        slv_usb3_transaction_32b(28) <= slv_cdcc_rd_valid_to_fsm(2);
-        slv_usb3_transaction_32b(27 downto 26) <= slv_cdcc_rd_qubits_to_fsm(5 downto 4);
-        slv_usb3_transaction_32b(25) <= slv_cdcc_rd_valid_to_fsm(1);
-        slv_usb3_transaction_32b(24 downto 23) <= slv_cdcc_rd_qubits_to_fsm(3 downto 2);
-        slv_usb3_transaction_32b(22) <= slv_cdcc_rd_valid_to_fsm(0);
-        slv_usb3_transaction_32b(21 downto 20) <= slv_cdcc_rd_qubits_to_fsm(1 downto 0);
-
-        slv_usb3_transaction_32b(19) <= sl_gflow_success_flag;
-        slv_usb3_transaction_32b(18) <= sl_gflow_success_done;
-        slv_usb3_transaction_32b(17) <= '0'; -- free
-        slv_usb3_transaction_32b(16) <= slv_actual_qubit(1);
-        slv_usb3_transaction_32b(15) <= slv_actual_qubit(0);
-
-        slv_usb3_transaction_32b(14) <= sl_actual_qubit_valid;           -- Flag to indicate qubit detection: valid data for 'slv_alpha_to_math' and 'slv_sx_sz_to_math' and 'sl_pseudorandom_to_math'
-        slv_usb3_transaction_32b(13 downto 12) <= slv_alpha_to_math;     -- Valid alpha if 'sl_actual_qubit_valid' is valid
-        slv_usb3_transaction_32b(11 downto 10) <= slv_sx_sz_to_math;     -- Valid qubit if 'sl_actual_qubit_valid' is valid
-        slv_usb3_transaction_32b(9) <= sl_pseudorandom_to_math;          -- Valid random bit if 'sl_actual_qubit_valid' is valid
-        slv_usb3_transaction_32b(8 downto 7) <= (others => '0');         -- free
-        slv_usb3_transaction_32b(6 downto 5) <= slv_math_data_modulo;    -- In between, check the input going to modulo
-        slv_usb3_transaction_32b(4) <= sl_math_data_valid;               -- Flag to indicate valid modulo
-        slv_usb3_transaction_32b(3 downto 0) <= (others => '0');         -- Free
-
 
 
         ---------------------

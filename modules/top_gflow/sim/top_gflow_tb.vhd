@@ -29,9 +29,11 @@
 
         constant PROJ_DIR : string := PROJ_DIR;
 
-        -- File I/O
-        file sim_result : text;
-        file sim_result_coincidences : text;
+        -- File I/O: Write to ONE file at a time
+        constant CSV1_PATH : string := PROJ_DIR & "modules/top_gflow/sim/sim_reports/all_flows_details.csv";
+        constant CSV2_PATH : string := PROJ_DIR & "modules/top_gflow/sim/sim_reports/all_coincidences.csv";
+        file actual_csv : text;
+        signal files_recreated : bit := '0';
 
         -- Simulation control signals
         type t_input_emulation_mode is (
@@ -407,9 +409,29 @@
                     & ": " & integer'image(s_photons_allcombinations_acc(i))));
                 writeline(output, str);
             end loop;
-
-
         end procedure;
+
+        -- Readout output signals
+        type t_INT_QUBITS_CNT_x_1b_2d is array(INT_QUBITS_CNT-1 downto 0) of std_logic_vector(0 downto 0);   -- random
+        type t_INT_QUBITS_CNT_x_2b_2d is array(INT_QUBITS_CNT-1 downto 0) of std_logic_vector(2-1 downto 0); -- photons, alpha, modulo
+        type t_INT_QUBITS_CNT_x_8b_2d is array(INT_QUBITS_CNT-1 downto 1) of std_logic_vector(8-1 downto 0); -- unsuccessful counter
+        type t_INT_QUBITS_CNT_x_28b_2d is array(INT_QUBITS_CNT-1 downto 0) of std_logic_vector(32-4-1 downto 0); -- time stamps
+        type t_INT_QUBITS_CNTpw2_x_16_2d is array(INT_QUBITS_CNT**2-1 downto 0) of std_logic_vector(16-1 downto 0); -- coincidence patterns
+
+        -- CSV file 1
+        signal readout_photons : t_INT_QUBITS_CNT_x_2b_2d := (others => (others => '0'));
+        signal readout_alpha : t_INT_QUBITS_CNT_x_2b_2d := (others => (others => '0'));
+        signal readout_random : t_INT_QUBITS_CNT_x_1b_2d := (others => (others => '0'));
+        signal readout_modulo : t_INT_QUBITS_CNT_x_2b_2d := (others => (others => '0'));
+        signal readout_timestamps : t_INT_QUBITS_CNT_x_28b_2d := (others => (others => '0'));
+        signal readout_csv1_line_done_event : bit := '0';
+
+        -- CSV file 2
+        signal readout_coincidences : t_INT_QUBITS_CNTpw2_x_16_2d := (others => (others => '0'));
+        signal readout_csv2_line_done_event : bit := '0';
+
+        -- Checkers
+        type t_INT_QUBITS_CNT_x_int_2d is array(INT_QUBITS_CNT-1 downto 0) of integer;
 
     begin
 
@@ -645,30 +667,20 @@
 
         -- Accumulate the sampled qubits using readout
         monitor_photons_flow_accumulation : process
-            variable v_binary_to_integer : unsigned(6**2-1 downto 0) := (others => '0');
+            variable v_binary_to_integer : unsigned(INT_QUBITS_CNT-1 downto 0) := (others => '0');
         begin
-                wait until rising_edge(readout_data_valid);
-                wait until rising_edge(readout_clk);
+            -- Wait until the readout line is complete for a completed flow
+            wait until readout_csv1_line_done_event'event;
 
-                while readout_data_valid = '1' loop
-                    if readout_data_32b(3 downto 0) = x"1" then
-                        v_binary_to_integer(0) := readout_data_32b(31); -- H photon bit; if H=0, the V=1
-                        v_binary_to_integer(1) := readout_data_32b(29); -- H photon bit; if H=0, the V=1
-                        v_binary_to_integer(2) := readout_data_32b(27); -- H photon bit; if H=0, the V=1
-                        v_binary_to_integer(3) := readout_data_32b(25); -- H photon bit; if H=0, the V=1
-                    end if;
+            wait_deltas(10);
 
-                    -- Parse the data vector
-                    if readout_data_32b(3 downto 0) = x"5" then
-                        v_binary_to_integer(5) := readout_data_32b(31); -- H photon bit; if H=0, the V=1
-                        v_binary_to_integer(6) := readout_data_32b(29); -- H photon bit; if H=0, the V=1
-                        s_photons_allcombinations_acc(to_integer(v_binary_to_integer(INT_QUBITS_CNT-1 downto 0))) 
-                            <= s_photons_allcombinations_acc(to_integer(v_binary_to_integer(INT_QUBITS_CNT-1 downto 0))) + 1;
-                    end if;
+            for i in 0 to INT_QUBITS_CNT-1 loop
+                v_binary_to_integer(i) := readout_photons(i)(1); -- H photon bit; if H=0, the V=1
+            end loop;
 
-                    -- Parse the next transaction
-                    wait until rising_edge(readout_clk);
-                end loop;
+            s_photons_allcombinations_acc(to_integer(v_binary_to_integer(INT_QUBITS_CNT-1 downto 0))) 
+                <= s_photons_allcombinations_acc(to_integer(v_binary_to_integer(INT_QUBITS_CNT-1 downto 0))) + 1;
+
         end process;
 
         ------------------------------------
@@ -974,30 +986,7 @@
         -- SEQUENCER --
         ---------------
         proc_sequencer : process
-            -- File I/O
-            variable v_file_line_buffer : line;
-            variable v_file_line_buffer_coincidences : line;
         begin
-            -- Open and Initialize Headers in output report files (all clusters)
-            file_open(sim_result, PROJ_DIR & "modules/top_gflow/sim/sim_reports/sim_result.csv", write_mode);
-            write(v_file_line_buffer, string'("q1,q2,q3,q4,,"));
-            write(v_file_line_buffer, string'("alpha_q1,alpha_q2,alpha_q3,alpha_q4,,"));
-            write(v_file_line_buffer, string'("rand_q1,rand_q2,rand_q3,rand_q4,,"));
-            write(v_file_line_buffer, string'("mod_q1,mod_q2,mod_q3,mod_q4,,"));
-            write(v_file_line_buffer, string'("q5,q6,,"));
-            write(v_file_line_buffer, string'("alpha_q5,alpha_q6,,"));
-            write(v_file_line_buffer, string'("rand_q5,rand_q6,,"));
-            write(v_file_line_buffer, string'("mod_q5,mod_q6,,"));
-            write(v_file_line_buffer, string'("q1_time,q2_time,q3_time,q4_time,q5_time,q6_time,"));
-            writeline(sim_result, v_file_line_buffer);
-
-            -- Open and Initialize Headers in output report files (accumulated coincidences)
-            file_open(sim_result_coincidences, PROJ_DIR & "modules/top_gflow/sim/sim_reports/sim_result_coincidences.csv", write_mode);
-            for i in 0 to INT_QUBITS_CNT**2-1 loop
-                write(v_file_line_buffer_coincidences, string'(to_string(to_unsigned(i, INT_QUBITS_CNT)) & ","));
-            end loop;
-            writeline(sim_result_coincidences, v_file_line_buffer_coincidences);
-
 
             -- Wait until MMCM is locked, then trigger input emulation
             wait until rising_edge(<< signal.top_gflow_tb.dut_top_gflow.locked : std_logic >>);
@@ -1027,8 +1016,6 @@
 
             print_test_done;
             print_analysis;
-            file_close(sim_result);
-            file_close(sim_result_coincidences);
             finish;
             wait;
         end process;
@@ -1037,218 +1024,202 @@
         -------------
         -- READOUT --
         -------------
-        proc_readout_accumulated_events : process
-            variable v_continuous_counter : natural := 0;
-            variable v_continuous_counter_modulo : natural := 0;
-
-            -- Cout
-            variable str : line;
-            
-            -- File I/O
-            variable v_file_line_buffer_coincidences : line;
-            variable v_space : character;
-            variable v_comma : character := ',';
+        -- Readout
+        proc_fifo_readout : process
         begin
-
-            -- #TODO
-            if readout_data_32b(3 downto 0) = x"4" and readout_data_valid = '1' then
-                -- Write to Cout
-                write(str, string'("readout_data_32b (Coincidence Accumulator)(" 
-                    & to_string(to_unsigned(v_continuous_counter_modulo, INT_QUBITS_CNT)) & ") = "
-                    & to_string(to_integer(unsigned(readout_data_32b(readout_data_32b'high downto 4))))
-                ));
-                writeline(output, str);
-
-                -- Write to File
-                write(v_file_line_buffer_coincidences, string'(
-                    to_string(to_integer(unsigned(readout_data_32b(readout_data_32b'high downto 4)))) & ","
-                ));
-
-                -- Increment counter, wrap up around max number of occurences
-                v_continuous_counter := v_continuous_counter + 1;
-                v_continuous_counter_modulo := v_continuous_counter mod (INT_QUBITS_CNT**2);
-
-                -- Print out the line to the file on wrap up
-                if v_continuous_counter_modulo = 0 then
-                    writeline(sim_result_coincidences, v_file_line_buffer_coincidences);
-                end if;
-            else
-                -- Do not wait each clk cycle, but on an event
-                wait until rising_edge(readout_data_valid);
-            end if;
-
-            -- Synchronize readout with readout clock
             wait until rising_edge(readout_clk);
-
-        end process;
-
-        proc_readout : process
-            -- Output Vectors
-            variable q1, q2, q3, q4 : integer := 0;
-            variable q5, q6 : integer := 0;
-            variable alpha_q1, alpha_q2, alpha_q3, alpha_q4 : integer := 0;
-            variable alpha_q5, alpha_q6 : integer := 0;
-            variable rand_q1, rand_q2, rand_q3, rand_q4 : integer := 0;
-            variable rand_q5, rand_q6 : integer := 0;
-            variable mod_q1, mod_q2, mod_q3, mod_q4 : integer := 0;
-            variable mod_q5, mod_q6 : integer := 0;
-            variable qubit_time : integer := 0;
-
-            -- File I/O
-            variable v_file_line_buffer : line;
-            variable v_space : character;
-            variable v_comma : character := ',';
-
-            -- Counter
-            variable v_counter_for_cout : integer := 0;
-            variable v_counter_for_cout_modulo : integer := 0;
-        begin
+            if readout_data_ready = '1' then
                 readout_enable <= '1';
+            else
+                readout_enable <= '0';
+            end if;
+        end process;
 
-                -- Do not wait each clk cycle, but on an event
-                wait until rising_edge(readout_data_valid);
+        -- This readout process should be translated into the target language
+        -- performing the RX readout:
+        -- Rules:
+        --      1. Each transaction is followed by a comma
+        --         unless specified by: x"E" in last 4 bits = double comma
+        --      2. If last 4 bits are x"F" => perform writeline in the target file
+        --      3. To specify the target file: if x"1" in last 4 bits => output file is csv1
+        --                                     if x"6" in last 4 bits => output file is csv2
+        proc_readout_and_csv_printer : process
+            variable v_line_buffer : line;    -- Line buffer
+            variable v_file_number : integer; -- Target file pointer
+            variable v_line_being_created : bit := '0';
 
-                -- Synchronize readout with readout clock
+            variable v_cntr_csv1_column : natural := 0;
+            variable v_cntr_csv2_column : natural := 0;
+        begin
+
+            -- Recreate output csv files
+            -- Open and Initialize Headers in output report files (all flows details)
+            file_open(actual_csv, CSV1_PATH, write_mode);
+            for i in 1 to INT_QUBITS_CNT loop
+                write(v_line_buffer, string'("photon_q" & integer'image(i) & ","));
+            end loop;
+            write(v_line_buffer, string'(","));
+
+            for i in 1 to INT_QUBITS_CNT loop
+                write(v_line_buffer, string'("alpha_q" & integer'image(i) & ","));
+            end loop;
+            write(v_line_buffer, string'(","));
+
+            for i in 1 to INT_QUBITS_CNT loop
+                write(v_line_buffer, string'("rand_q" & integer'image(i) & ","));
+            end loop;
+            write(v_line_buffer, string'(","));
+            
+            for i in 1 to INT_QUBITS_CNT loop
+                write(v_line_buffer, string'("mod_q" & integer'image(i) & ","));
+            end loop;
+            write(v_line_buffer, string'(","));
+
+            for i in 1 to INT_QUBITS_CNT loop
+                write(v_line_buffer, string'("timestamp_q" & integer'image(i) & ","));
+            end loop;
+            writeline(actual_csv, v_line_buffer);
+            file_close(actual_csv);
+
+            -- Open and Initialize Headers in output report files (accumulated coincidences)
+            file_open(actual_csv, CSV2_PATH, write_mode);
+            for i in 0 to INT_QUBITS_CNT**2-1 loop
+                write(v_line_buffer, string'(to_string(to_unsigned(i, INT_QUBITS_CNT)) & ","));
+            end loop;
+            writeline(actual_csv, v_line_buffer);
+            file_close(actual_csv);
+
+            report "CSV files have been re-created successfully.";
+            files_recreated <= '1';
+
+
+            -- Acquire data and print to console
+            loop
                 wait until rising_edge(readout_clk);
+                if readout_data_valid = '1' then
 
-                while readout_data_valid = '1' loop
-                    -- Update deltas to make sure data vectors contain the most recent value
-
-                    -- Parse the data vector
-                    if readout_data_32b(3 downto 0) = x"1" then
-                        q1 := to_integer(unsigned(readout_data_32b(31 downto 30)));
-                        q2 := to_integer(unsigned(readout_data_32b(29 downto 28)));
-                        q3 := to_integer(unsigned(readout_data_32b(27 downto 26)));
-                        q4 := to_integer(unsigned(readout_data_32b(25 downto 24)));
-                        write(v_file_line_buffer, integer'image(q1) & v_comma);
-                        write(v_file_line_buffer, integer'image(q2) & v_comma);
-                        write(v_file_line_buffer, integer'image(q3) & v_comma);
-                        write(v_file_line_buffer, integer'image(q4) & v_comma);
-                        write(v_file_line_buffer, v_comma);
-                        alpha_q1 := to_integer(unsigned(readout_data_32b(23 downto 22)));
-                        alpha_q2 := to_integer(unsigned(readout_data_32b(21 downto 20)));
-                        alpha_q3 := to_integer(unsigned(readout_data_32b(19 downto 18)));
-                        alpha_q4 := to_integer(unsigned(readout_data_32b(17 downto 16)));
-                        write(v_file_line_buffer, integer'image(alpha_q1) & v_comma);
-                        write(v_file_line_buffer, integer'image(alpha_q2) & v_comma);
-                        write(v_file_line_buffer, integer'image(alpha_q3) & v_comma);
-                        write(v_file_line_buffer, integer'image(alpha_q4) & v_comma);
-                        write(v_file_line_buffer, v_comma);
-                        rand_q1 := to_integer(unsigned(readout_data_32b(15 downto 15)));
-                        rand_q2 := to_integer(unsigned(readout_data_32b(14 downto 14)));
-                        rand_q3 := to_integer(unsigned(readout_data_32b(13 downto 13)));
-                        rand_q4 := to_integer(unsigned(readout_data_32b(12 downto 12)));
-                        write(v_file_line_buffer, integer'image(rand_q1) & v_comma);
-                        write(v_file_line_buffer, integer'image(rand_q2) & v_comma);
-                        write(v_file_line_buffer, integer'image(rand_q3) & v_comma);
-                        write(v_file_line_buffer, integer'image(rand_q4) & v_comma);
-                        write(v_file_line_buffer, v_comma);
-                        mod_q1 := to_integer(unsigned(readout_data_32b(11 downto 10)));
-                        mod_q2 := to_integer(unsigned(readout_data_32b(9 downto 8)));
-                        mod_q3 := to_integer(unsigned(readout_data_32b(7 downto 6)));
-                        mod_q4 := to_integer(unsigned(readout_data_32b(5 downto 4)));
-                        write(v_file_line_buffer, integer'image(mod_q1) & v_comma);
-                        write(v_file_line_buffer, integer'image(mod_q2) & v_comma);
-                        write(v_file_line_buffer, integer'image(mod_q3) & v_comma);
-                        write(v_file_line_buffer, integer'image(mod_q4) & v_comma);
-                        write(v_file_line_buffer, v_comma);
-
-                        report  "q1=" & to_string(q1) & " " &
-                                "q2=" & to_string(q2) & " " &
-                                "q3=" & to_string(q3) & " " &
-                                "q4=" & to_string(q4) & " ";
-                        report  "alpha_q1=" & to_string(alpha_q1) & " " &
-                                "alpha_q2=" & to_string(alpha_q2) & " " &
-                                "alpha_q3=" & to_string(alpha_q3) & " " &
-                                "alpha_q4=" & to_string(alpha_q4) & " ";
-                        report  "rand_q1=" & to_string(rand_q1) & " " &
-                                "rand_q2=" & to_string(rand_q2) & " " &
-                                "rand_q3=" & to_string(rand_q3) & " " &
-                                "rand_q4=" & to_string(rand_q4) & " ";
-                        report  "mod_q1=" & to_string(mod_q1) & " " &
-                                "mod_q2=" & to_string(mod_q2) & " " &
-                                "mod_q3=" & to_string(mod_q3) & " " &
-                                "mod_q4=" & to_string(mod_q4) ;
-                    end if;
-
-                    -- Parse the data vector
-                    if readout_data_32b(3 downto 0) = x"5" then
-                        q5 := to_integer(unsigned(readout_data_32b(31 downto 30)));
-                        q6 := to_integer(unsigned(readout_data_32b(29 downto 28)));
-                        write(v_file_line_buffer, integer'image(q5) & v_comma);
-                        write(v_file_line_buffer, integer'image(q6) & v_comma);
-                        write(v_file_line_buffer, v_comma);
-                        alpha_q5 := to_integer(unsigned(readout_data_32b(23 downto 22)));
-                        alpha_q6 := to_integer(unsigned(readout_data_32b(21 downto 20)));
-                        write(v_file_line_buffer, integer'image(alpha_q5) & v_comma);
-                        write(v_file_line_buffer, integer'image(alpha_q6) & v_comma);
-                        write(v_file_line_buffer, v_comma);
-                        rand_q5 := to_integer(unsigned(readout_data_32b(15 downto 15)));
-                        rand_q6 := to_integer(unsigned(readout_data_32b(14 downto 14)));
-                        write(v_file_line_buffer, integer'image(rand_q5) & v_comma);
-                        write(v_file_line_buffer, integer'image(rand_q6) & v_comma);
-                        write(v_file_line_buffer, v_comma);
-                        mod_q5 := to_integer(unsigned(readout_data_32b(11 downto 10)));
-                        mod_q6 := to_integer(unsigned(readout_data_32b(9 downto 8)));
-                        write(v_file_line_buffer, integer'image(mod_q5) & v_comma);
-                        write(v_file_line_buffer, integer'image(mod_q6) & v_comma);
-                        write(v_file_line_buffer, v_comma);
-
-                        report  "q5=" & to_string(q5) & " " &
-                                "q6=" & to_string(q6) & " ";
-                        report  "alpha_q5=" & to_string(alpha_q5) & " " &
-                                "alpha_q6=" & to_string(alpha_q6) & " ";
-                        report  "rand_q5=" & to_string(rand_q5) & " " &
-                                "rand_q6=" & to_string(rand_q6) & " ";
-                        report  "mod_q5=" & to_string(mod_q5) & " " &
-                                "mod_q6=" & to_string(mod_q6) & " ";
-                    end if;
-
-                    if readout_data_32b(3 downto 0) = x"2" then
-                        qubit_time := to_integer(unsigned(readout_data_32b(31 downto 4)));
-                        write(v_file_line_buffer, integer'image(qubit_time) & v_comma);
-                        report  "qubit X detection time = " & to_string(qubit_time);
-
-                        v_counter_for_cout := v_counter_for_cout + 1;
-                        v_counter_for_cout_modulo := v_counter_for_cout mod 6;
-                        if v_counter_for_cout_modulo = 0 then
-                            -- Read data parsing and line creation done done, print out the line to the file
-                            writeline(sim_result, v_file_line_buffer);
+                    -- Translate the following code to the target language performing the RX readout
+                    -- 1) Open target output CSV file where new data will be appended
+                    if v_line_being_created = '0' then
+                        if readout_data_32b(4-1 downto 0) = x"1" then
+                            file_open(actual_csv, CSV1_PATH, append_mode);
+                            v_line_being_created := '1'; -- Job Started
+                        elsif readout_data_32b(4-1 downto 0) = x"6" then
+                            file_open(actual_csv, CSV2_PATH, append_mode);
+                            v_line_being_created := '1'; -- Job Started
                         end if;
                     end if;
 
-                    if readout_data_32b(3 downto 0) = x"3" then
-                        qubit_time := to_integer(unsigned(readout_data_32b(31 downto 4)));
-                        write(v_file_line_buffer, integer'image(qubit_time) & v_comma);
-                        write(v_file_line_buffer, v_comma);
-                        report  "qubit X detection time = " & to_string(qubit_time);
+                    -- 2) CSV file line creation
+                    if readout_data_32b(4-1 downto 0) = x"F" then -- Print out the line buffer
+                        -- writeline(output, v_line_buffer);     -- To the console (but this deletes the v_line_buffer content)
+                        writeline(actual_csv, v_line_buffer); -- To the CSV file
+                        file_close(actual_csv);
+                        v_line_being_created := '0';          -- Job Done
 
-                        v_counter_for_cout := v_counter_for_cout + 1;
-                        v_counter_for_cout_modulo := v_counter_for_cout mod 6;
-                        if v_counter_for_cout_modulo = 0 then
-                            -- Read data parsing and line creation done done, print out the line to the file
-                            writeline(sim_result, v_file_line_buffer);
+                        if v_cntr_csv1_column /= 0 then
+                            readout_csv1_line_done_event <= not readout_csv1_line_done_event;
+                        elsif v_cntr_csv2_column /= 0 then
+                            readout_csv2_line_done_event <= not readout_csv2_line_done_event;
                         end if;
+                        v_cntr_csv1_column := 0;
+                        v_cntr_csv2_column := 0;
+
+
+                    elsif readout_data_32b(4-1 downto 0) = x"E" then -- Extra Comma Delimiter
+                        write(v_line_buffer, string'(",") );
+                        v_cntr_csv1_column := 0;
+                        v_cntr_csv2_column := 0;
+
+                    elsif readout_data_32b(4-1 downto 0) = x"1" then -- Event-based data group 1
+                        write(v_line_buffer, string'(
+                            to_string(to_integer(unsigned(readout_data_32b(32-1 downto 4))) ) ));
+                        write(v_line_buffer, string'(",") );
+
+                        -- Get Data (4 is offset, bits occupied by the csv commands)
+                        readout_photons(v_cntr_csv1_column) <= readout_data_32b(2-1+4 downto 4); -- Record Data (4 is offset, bits occupied by the csv commands)
+                        v_cntr_csv1_column := v_cntr_csv1_column + 1;
+
+                    elsif readout_data_32b(4-1 downto 0) = x"2" then -- Event-based data group 2
+                        write(v_line_buffer, string'(
+                            to_string(to_integer(unsigned(readout_data_32b(32-1 downto 4))) ) ));
+                        write(v_line_buffer, string'(",") );
+
+                        -- Get Data (4 is offset, bits occupied by the csv commands)
+                        readout_alpha(v_cntr_csv1_column) <= readout_data_32b(2-1+4 downto 4); -- Record Data (4 is offset, bits occupied by the csv commands)
+                        v_cntr_csv1_column := v_cntr_csv1_column + 1;
+
+                    elsif readout_data_32b(4-1 downto 0) = x"3" then -- Event-based data group 3
+                        write(v_line_buffer, string'(
+                            to_string(to_integer(unsigned(readout_data_32b(32-1 downto 4))) ) ));
+                        write(v_line_buffer, string'(",") );
+
+                        -- Get Data (4 is offset, bits occupied by the csv commands)
+                        readout_modulo(v_cntr_csv1_column) <= readout_data_32b(2-1+4 downto 4); -- Record Data (4 is offset, bits occupied by the csv commands)
+                        v_cntr_csv1_column := v_cntr_csv1_column + 1;
+
+                    elsif readout_data_32b(4-1 downto 0) = x"4" then -- Event-based data group 4
+                        write(v_line_buffer, string'(
+                            to_string(to_integer(unsigned(readout_data_32b(32-1 downto 4))) ) ));
+                        write(v_line_buffer, string'(",") );
+
+                        -- Get Data (4 is offset, bits occupied by the csv commands)
+                        readout_random(v_cntr_csv1_column) <= readout_data_32b(1-1+4 downto 4);
+                        v_cntr_csv1_column := v_cntr_csv1_column + 1;
+
+                    elsif readout_data_32b(4-1 downto 0) = x"5" then -- Event-based data group 5
+                        write(v_line_buffer, string'(
+                            to_string(to_integer(unsigned(readout_data_32b(32-1 downto 4))) ) ));
+                        write(v_line_buffer, string'(",") );
+
+                        -- Get Data (4 is offset, bits occupied by the csv commands)
+                        readout_timestamps(v_cntr_csv1_column) <= readout_data_32b(28-1+4 downto 4); -- Record Data (4 is offset, bits occupied by the csv commands)
+                        v_cntr_csv1_column := v_cntr_csv1_column + 1;
+
+                    elsif readout_data_32b(4-1 downto 0) = x"6" then -- Regular reporting group 1
+                        write(v_line_buffer, string'(
+                            to_string(to_integer(unsigned(readout_data_32b(32-1 downto 4))) ) ));
+                        write(v_line_buffer, string'(",") );
+
+                        -- Get Data (4 is offset, bits occupied by the csv commands)
+                        readout_coincidences(v_cntr_csv2_column) <= readout_data_32b(16-1+4 downto 4); -- Record Data (4 is offset, bits occupied by the csv commands)
+                        v_cntr_csv2_column := v_cntr_csv2_column + 1;
+
+                    elsif readout_data_32b(4-1 downto 0) = x"7" then -- Regular reporting 2
+                        null;
+                    elsif readout_data_32b(4-1 downto 0) = x"8" then -- Regular reporting 3
+                        null;
+                    elsif readout_data_32b(4-1 downto 0) = x"9" then -- Regular reporting 4
+                        null;
+                    elsif readout_data_32b(4-1 downto 0) = x"A" then -- Regular reporting 5
+                        null;
+                    elsif readout_data_32b(4-1 downto 0) = x"B" then -- Regular reporting 6
+                        null;
+                    elsif readout_data_32b(4-1 downto 0) = x"C" then -- Regular reporting 7
+                        null;
+                    elsif readout_data_32b(4-1 downto 0) = x"D" then -- Regular reporting 8
+                        null;
+
+                    else
+                        -- "0000" Is forbidden!!!
+                        report "Last four bits being '0000' is forbidden! It can mean data loss or unwanted behaviour.";
+                        assert false severity failure;
                     end if;
 
-                    if readout_data_32b(3 downto 0) > x"5" then
-                        report  "readout_data_32b = " & to_string(readout_data_32b);
-                    end if;
-
-                    if readout_data_32b(3 downto 0) = x"0" then
-                        report  "Info: Waiting until valid data. Current data: " & to_string(readout_data_32b);
-                    end if;
-
-                    -- Parse the next transaction
-                    wait until rising_edge(readout_clk);
-                end loop;
+                end if;
+            end loop;
         end process;
 
 
-        -------------
-        -- CHECKER --
-        -------------
+        --------------
+        -- CHECKERS --
+        --------------
         proc_checker_fsm_gflow : process
+            variable rand_q : t_INT_QUBITS_CNT_x_int_2d;
+            variable mod_q : t_INT_QUBITS_CNT_x_int_2d;
+            variable sx_sz_q : t_INT_QUBITS_CNT_x_2b_2d;
+            variable expected_mod_q : t_INT_QUBITS_CNT_x_int_2d;
+
             variable rand_q1, rand_q2, rand_q3, rand_q4 : integer;
             variable rand_q5, rand_q6, rand_q7, rand_q8 : integer;
             variable mod_q1, mod_q2, mod_q3, mod_q4 : integer;
@@ -1274,100 +1245,131 @@
 
             constant PI : natural := 2;
         begin
-            -- Wait until readout transaction
-            wait until rising_edge(readout_data_valid);
-            wait until rising_edge(readout_clk);
+            -- Wait until readout transaction is completely reconstructed
+            wait until readout_csv1_line_done_event'event;
 
-            while readout_data_valid = '1' loop
-                -- Update deltas to make sure data vectors contain the most recent value
+            -- Update deltas to make sure data vectors contain the most recent value
+            wait_deltas(10);
 
-                -- Parse the data vector
-                if readout_data_32b(3 downto 0) = x"1" then
-                    rand_q1 := to_integer(unsigned(readout_data_32b(15 downto 15)));
-                    rand_q2 := to_integer(unsigned(readout_data_32b(14 downto 14)));
-                    rand_q3 := to_integer(unsigned(readout_data_32b(13 downto 13)));
-                    rand_q4 := to_integer(unsigned(readout_data_32b(12 downto 12)));
+            -- Check only qubit 1
+            rand_q(0) := to_integer(unsigned(readout_random(0)));
+            mod_q(0) := to_integer(unsigned(readout_modulo(0)));
 
-                    mod_q1 := to_integer(unsigned(readout_data_32b(11 downto 10)));
-                    mod_q2 := to_integer(unsigned(readout_data_32b(9 downto 8)));
-                    mod_q3 := to_integer(unsigned(readout_data_32b(7 downto 6)));
-                    mod_q4 := to_integer(unsigned(readout_data_32b(5 downto 4)));
+            sx_sz_q(0) := (others => '0'); -- Initial Feedback = 0
+            expected_mod_q(0) := (((-1)**to_integer(unsigned(sx_sz_q(0)(0 downto 0))) * 0)
+                        + (to_integer(unsigned(sx_sz_q(0)(1 downto 1))) + rand_q(0))*PI) mod 4;
+            assert mod_q(0) = expected_mod_q(0)
+                report "Error: Qubit 1: Actual result is : " & integer'image(mod_q(0))
+                        & " . Expected result is : " & integer'image(expected_mod_q(0))
+                severity failure;
 
-                    if INT_QUBITS_CNT > 1 then
-                        sx_sz_q1 := (others => '0');
-                        result_q1 := (((-1)**to_integer(unsigned(sx_sz_q1(0 downto 0))) * 0)
-                                    + (to_integer(unsigned(sx_sz_q1(1 downto 1))) + rand_q1)*PI) mod 4;
-                        assert mod_q1 = result_q1
-                            report "Error: Qubit 1: Actual result is : " & integer'image(mod_q1) 
-                                    & " . Expected result is : " & integer'image(result_q1)
-                            severity failure;
+            -- Loop over all qubits
+            if INT_QUBITS_CNT > 1 then
+                for i in 1 to INT_QUBITS_CNT-1 loop
+                    rand_q(i) := to_integer(unsigned(readout_random(i)));
+                    mod_q(i) := to_integer(unsigned(readout_modulo(i)));
 
-                        sx_sz_q2 := std_logic_vector(to_unsigned(mod_q1, 2));
-                        result_q2 := (((-1)**to_integer(unsigned(sx_sz_q2(0 downto 0))) * 1)
-                                    + (to_integer(unsigned(sx_sz_q2(1 downto 1))) + rand_q2)*PI) mod 4;
-                        assert mod_q2 = result_q2
-                            report "Error: Qubit 2: Actual result is : " & integer'image(mod_q2)
-                                    & " . Expected result is : " & integer'image(result_q2)
-                            severity failure;
-                    end if;
+                    sx_sz_q(i) := std_logic_vector(to_unsigned(mod_q(i-1), 2)); -- Feedback is last modulo
+                    expected_mod_q(i) := (((-1)**to_integer(unsigned(sx_sz_q(i)(0 downto 0))) * (i mod 4))
+                                + (to_integer(unsigned(sx_sz_q(i)(1 downto 1))) + rand_q(i))*PI) mod 4; -- Always mod 4
+                    assert mod_q(i) = expected_mod_q(i)
+                        report "Error: Qubit " & integer'image(i+1) & ": Actual result is : " & integer'image(mod_q(i))
+                                & " . Expected result is : " & integer'image(expected_mod_q(i))
+                        severity failure;
+                end loop;
+            end if;
 
-                    if INT_QUBITS_CNT > 2 then
-                        sx_sz_q3 := std_logic_vector(to_unsigned(mod_q2, 2));
-                        result_q3 := (((-1)**to_integer(unsigned(sx_sz_q3(0 downto 0))) * 2)
-                                    + (to_integer(unsigned(sx_sz_q3(1 downto 1))) + rand_q3)*PI) mod 4;
-                        assert mod_q3 = result_q3
-                            report "Error: Qubit 3: Actual result is : " & integer'image(mod_q3) 
-                                    & " . Expected result is : " & integer'image(result_q3)
-                            severity failure;
-                    end if;
+        --     if INT_QUBITS_CNT > 1 then
+        --         sx_sz_q1 := (others => '0');
+        --         result_q1 := (((-1)**to_integer(unsigned(sx_sz_q1(0 downto 0))) * 0)
+        --                     + (to_integer(unsigned(sx_sz_q1(1 downto 1))) + rand_q1)*PI) mod 4;
+        --         assert mod_q1 = result_q1
+        --             report "Error: Qubit 1: Actual result is : " & integer'image(mod_q1) 
+        --                     & " . Expected result is : " & integer'image(result_q1)
+        --             severity failure;
 
-                    if INT_QUBITS_CNT > 3 then
-                        sx_sz_q4 := std_logic_vector(to_unsigned(mod_q3, 2));
-                        result_q4 := (((-1)**to_integer(unsigned(sx_sz_q4(0 downto 0))) * 3)
-                                    + (to_integer(unsigned(sx_sz_q4(1 downto 1))) + rand_q4)*PI) mod 4;
-                        assert mod_q4 = result_q4
-                            report "Error: Qubit 4: Actual result is : " & integer'image(mod_q4) 
-                                    & " . Expected result is : " & integer'image(result_q4)
-                            severity failure;
-                    end if;
-                end if;
+        --         sx_sz_q2 := std_logic_vector(to_unsigned(mod_q1, 2));
+        --         result_q2 := (((-1)**to_integer(unsigned(sx_sz_q2(0 downto 0))) * 1)
+        --                     + (to_integer(unsigned(sx_sz_q2(1 downto 1))) + rand_q2)*PI) mod 4;
+        --         assert mod_q2 = result_q2
+        --             report "Error: Qubit 2: Actual result is : " & integer'image(mod_q2)
+        --                     & " . Expected result is : " & integer'image(result_q2)
+        --             severity failure;
+        --     end if;
 
-                -- Parse the data vector
-                if readout_data_32b(3 downto 0) = x"5" then
-                    rand_q5 := to_integer(unsigned(readout_data_32b(15 downto 15)));
-                    rand_q6 := to_integer(unsigned(readout_data_32b(14 downto 14)));
-                    rand_q7 := to_integer(unsigned(readout_data_32b(13 downto 13)));
-                    rand_q8 := to_integer(unsigned(readout_data_32b(12 downto 12)));
+        --         if INT_QUBITS_CNT > 2 then
+        --             sx_sz_q3 := std_logic_vector(to_unsigned(mod_q2, 2));
+        --             result_q3 := (((-1)**to_integer(unsigned(sx_sz_q3(0 downto 0))) * 2)
+        --                         + (to_integer(unsigned(sx_sz_q3(1 downto 1))) + rand_q3)*PI) mod 4;
+        --             assert mod_q3 = result_q3
+        --                 report "Error: Qubit 3: Actual result is : " & integer'image(mod_q3) 
+        --                         & " . Expected result is : " & integer'image(result_q3)
+        --                 severity failure;
+        --         end if;
 
-                    mod_q5 := to_integer(unsigned(readout_data_32b(11 downto 10)));
-                    mod_q6 := to_integer(unsigned(readout_data_32b(9 downto 8)));
-                    mod_q7 := to_integer(unsigned(readout_data_32b(7 downto 6)));
-                    mod_q8 := to_integer(unsigned(readout_data_32b(5 downto 4)));
+        --         if INT_QUBITS_CNT > 3 then
+        --             sx_sz_q4 := std_logic_vector(to_unsigned(mod_q3, 2));
+        --             result_q4 := (((-1)**to_integer(unsigned(sx_sz_q4(0 downto 0))) * 3)
+        --                         + (to_integer(unsigned(sx_sz_q4(1 downto 1))) + rand_q4)*PI) mod 4;
+        --             assert mod_q4 = result_q4
+        --                 report "Error: Qubit 4: Actual result is : " & integer'image(mod_q4) 
+        --                         & " . Expected result is : " & integer'image(result_q4)
+        --                 severity failure;
+        --         end if;
+        --     end if;
 
-                    if INT_QUBITS_CNT > 4 then
-                        sx_sz_q5 := std_logic_vector(to_unsigned(mod_q4, 2));
-                        result_q5 := (((-1)**to_integer(unsigned(sx_sz_q5(0 downto 0))) * 0)
-                                    + (to_integer(unsigned(sx_sz_q5(1 downto 1))) + rand_q5)*PI) mod 4;
-                        assert mod_q5 = result_q5
-                            report "Error: Qubit 5: Actual result is : " & integer'image(mod_q5) 
-                                    & " . Expected result is : " & integer'image(result_q5)
-                            severity failure;
-                    end if;
+        --     if INT_QUBITS_CNT > 4 then
+        --         sx_sz_q5 := std_logic_vector(to_unsigned(mod_q4, 2));
+        --         result_q5 := (((-1)**to_integer(unsigned(sx_sz_q5(0 downto 0))) * 0)
+        --                     + (to_integer(unsigned(sx_sz_q5(1 downto 1))) + rand_q5)*PI) mod 4;
+        --         assert mod_q5 = result_q5
+        --             report "Error: Qubit 5: Actual result is : " & integer'image(mod_q5) 
+        --                     & " . Expected result is : " & integer'image(result_q5)
+        --             severity failure;
+        --     end if;
 
-                    if INT_QUBITS_CNT > 5 then
-                        sx_sz_q6 := std_logic_vector(to_unsigned(mod_q5, 2));
-                        result_q6 := (((-1)**to_integer(unsigned(sx_sz_q6(0 downto 0))) * 1)
-                                    + (to_integer(unsigned(sx_sz_q6(1 downto 1))) + rand_q6)*PI) mod 4;
-                        assert mod_q6 = result_q6
-                            report "Error: Qubit 6: Actual result is : " & integer'image(mod_q6)
-                                    & " . Expected result is : " & integer'image(result_q6)
-                            severity failure;
-                    end if;
-                end if;
+        --     if INT_QUBITS_CNT > 5 then
+        --         sx_sz_q6 := std_logic_vector(to_unsigned(mod_q5, 2));
+        --         result_q6 := (((-1)**to_integer(unsigned(sx_sz_q6(0 downto 0))) * 1)
+        --                     + (to_integer(unsigned(sx_sz_q6(1 downto 1))) + rand_q6)*PI) mod 4;
+        --         assert mod_q6 = result_q6
+        --             report "Error: Qubit 6: Actual result is : " & integer'image(mod_q6)
+        --                     & " . Expected result is : " & integer'image(result_q6)
+        --             severity failure;
+        --     end if;
 
-                -- Parse the next transaction
-                wait until rising_edge(readout_clk);
-            end loop;
+        --     -- Parse the data vector
+        --     if readout_data_32b(3 downto 0) = x"5" then
+        --         rand_q5 := to_integer(unsigned(readout_data_32b(15 downto 15)));
+        --         rand_q6 := to_integer(unsigned(readout_data_32b(14 downto 14)));
+        --         rand_q7 := to_integer(unsigned(readout_data_32b(13 downto 13)));
+        --         rand_q8 := to_integer(unsigned(readout_data_32b(12 downto 12)));
+
+        --         mod_q5 := to_integer(unsigned(readout_data_32b(11 downto 10)));
+        --         mod_q6 := to_integer(unsigned(readout_data_32b(9 downto 8)));
+        --         mod_q7 := to_integer(unsigned(readout_data_32b(7 downto 6)));
+        --         mod_q8 := to_integer(unsigned(readout_data_32b(5 downto 4)));
+
+        --         if INT_QUBITS_CNT > 4 then
+        --             sx_sz_q5 := std_logic_vector(to_unsigned(mod_q4, 2));
+        --             result_q5 := (((-1)**to_integer(unsigned(sx_sz_q5(0 downto 0))) * 0)
+        --                         + (to_integer(unsigned(sx_sz_q5(1 downto 1))) + rand_q5)*PI) mod 4;
+        --             assert mod_q5 = result_q5
+        --                 report "Error: Qubit 5: Actual result is : " & integer'image(mod_q5) 
+        --                         & " . Expected result is : " & integer'image(result_q5)
+        --                 severity failure;
+        --         end if;
+
+        --         if INT_QUBITS_CNT > 5 then
+        --             sx_sz_q6 := std_logic_vector(to_unsigned(mod_q5, 2));
+        --             result_q6 := (((-1)**to_integer(unsigned(sx_sz_q6(0 downto 0))) * 1)
+        --                         + (to_integer(unsigned(sx_sz_q6(1 downto 1))) + rand_q6)*PI) mod 4;
+        --             assert mod_q6 = result_q6
+        --                 report "Error: Qubit 6: Actual result is : " & integer'image(mod_q6)
+        --                         & " . Expected result is : " & integer'image(result_q6)
+        --                 severity failure;
+        --         end if;
+        --     end if;
         end process;
 
     end architecture;

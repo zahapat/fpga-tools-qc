@@ -9,15 +9,12 @@
     library lib_src;
     use lib_src.types_pack.all;
 
-    entity universal_readout is
+    entity csv_readout is
         generic (
             INT_CHANNEL_WIDTH : positive := 32;
             INT_QUBITS_CNT : positive := 4;
-            RST_VAL : std_logic := '1';
             CLK_HZ : real := 100.0e6;
-            REGULAR_SAMPLER_SECONDS : real := 1.0e-6;
-            WRITE_VALID_SIGNALS_CNT : positive := 4;
-            WRITE_ON_VALID : boolean := true
+            REGULAR_SAMPLER_SECONDS : real := 1.0e-6
         );
         port (
             -- Reset, write clock
@@ -48,9 +45,9 @@
             -- LED
             fifo_full_latched : out std_logic
         );
-    end universal_readout;
+    end csv_readout;
 
-    architecture rtl of universal_readout is
+    architecture rtl of csv_readout is
 
         -- Xilinx FIFO Generator
         component fifo_generator_0
@@ -143,12 +140,12 @@
         signal sl_readout_request_gflow : std_logic := '0'; -- '1' value will be latched
 
         -- Notify the FSM to transfer data from samplers to shifters and perform the readout
-        signal sl_request_read_coincidences_to_shreg : std_logic := '0';
-        signal sl_request_read_photons_to_shreg : std_logic := '0';
-        signal sl_request_read_alpha_to_shreg : std_logic := '0';
-        signal sl_request_read_modulo_to_shreg : std_logic := '0';
-        signal sl_request_read_random_to_shreg : std_logic := '0';
-        signal sl_request_read_timestamp_to_shreg : std_logic := '0';
+        signal sl_request_read_coincidences_shift_enable : std_logic := '0';
+        signal sl_request_read_photons_shift_enable : std_logic := '0';
+        signal sl_request_read_alpha_shift_enable : std_logic := '0';
+        signal sl_request_read_modulo_shift_enable : std_logic := '0';
+        signal sl_request_read_random_shift_enable : std_logic := '0';
+        signal sl_request_read_timestamp_shift_enable : std_logic := '0';
 
         type t_state_write_data_transac is (
             SCAN_READOUT_REQUESTS,
@@ -172,6 +169,25 @@
         end function;
 
     begin
+
+        -- Legend for bits (3 downto 0) in slv_wr_data_stream_32b
+        -- x"0" = Do not use
+        -- x"1" = SEND_GFLOW_PHOTONS    (multi-transactional readout start on event)
+        -- x"2" = SEND_GFLOW_ALPHA      (continues the x"1")
+        -- x"3" = SEND_GFLOW_MODULO     (continues the x"2")
+        -- x"4" = SEND_GFLOW_RANDOM     (continues the x"3")
+        -- x"5" = SEND_GFLOW_TIMESTAMP  (continues the x"4", readout end)
+        -- x"6" = SEND_COINCIDENCES     (periodical readout)
+        -- x"7" = abavilable
+        -- x"8" = abavilable
+        -- x"9" = abavilable
+        -- x"A" = abavilable
+        -- x"B" = abavilable
+        -- x"C" = abavilable
+        -- x"D" = abavilable
+        -- x"E" = EXTRA COMMA DELIMITER
+        -- x"F" = ENTER (PRINT LINE)
+
 
 
         -------------------------------------
@@ -231,127 +247,122 @@
         proc_sample_photons_buffer : process(wr_sys_clk)
         begin
             if rising_edge(wr_sys_clk) then
-                -- Shift right by default
-                slv_flow_photons_buffer_shreg <= 
-                    slv_shift_right(slv_flow_photons_buffer_shreg, 2);
 
-                if wr_valid_gflow_success_done = '1' then
+                -- Sample on sample request
+                if wr_valid_gflow_success_done = '1' then -- Sample request signal
                     for i in 0 to INT_QUBITS_CNT-1 loop
-                        slv_flow_photons_buffer_sampled((i+1)*2-1 downto i*2) 
+                        slv_flow_photons_buffer_shreg((i+1)*2-1 downto i*2) 
                             <= wr_data_qubit_buffer(i);
                     end loop;
                 end if;
-            end if;
 
-            -- Set Shreg readout pipe on to_shreg request
-            if sl_request_read_photons_to_shreg = '1' then -- This must be 1 clk long pulse
-                slv_flow_photons_buffer_shreg <= slv_flow_photons_buffer_sampled;
+                -- Shift right by a certain number of bits on enable
+                if sl_request_read_photons_shift_enable = '1' then
+                    slv_flow_photons_buffer_shreg <= 
+                        slv_shift_right(slv_flow_photons_buffer_shreg, 2);
+                end if;
             end if;
         end process;
 
         proc_sample_alpha_buffer : process(wr_sys_clk)
         begin
             if rising_edge(wr_sys_clk) then
-                -- Shift right by default
-                slv_flow_alpha_buffer_shreg <= 
-                    slv_shift_right(slv_flow_alpha_buffer_shreg, 2);
-
-                if wr_valid_gflow_success_done = '1' then
+                
+                -- Sample on sample request
+                if wr_valid_gflow_success_done = '1' then -- Sample request signal
                     for i in 0 to INT_QUBITS_CNT-1 loop
-                        slv_flow_alpha_buffer_sampled((i+1)*2-1 downto i*2) 
+                        slv_flow_alpha_buffer_shreg((i+1)*2-1 downto i*2) 
                             <= wr_data_alpha_buffer(i);
                     end loop;
                 end if;
-            end if;
 
-            -- Set Shreg readout pipe on to_shreg request
-            if sl_request_read_alpha_to_shreg = '1' then -- This must be 1 clk long pulse
-                slv_flow_alpha_buffer_shreg <= slv_flow_alpha_buffer_sampled;
+                -- Shift right by a certain number of bits on enable
+                if sl_request_read_alpha_shift_enable = '1' then
+                    slv_flow_alpha_buffer_shreg <= 
+                        slv_shift_right(slv_flow_alpha_buffer_shreg, 2);
+                end if;
             end if;
         end process;
 
         proc_sample_modulo_buffer_readout : process(wr_sys_clk)
         begin
             if rising_edge(wr_sys_clk) then
-                -- Shift right by default
-                slv_flow_modulo_buffer_shreg <= 
-                    slv_shift_right(slv_flow_modulo_buffer_shreg, 2);
 
-                if wr_valid_gflow_success_done = '1' then
+                -- Sample on sample request
+                if wr_valid_gflow_success_done = '1' then -- Sample request signal
                     for i in 0 to INT_QUBITS_CNT-1 loop
-                        slv_flow_modulo_buffer_sampled((i+1)*2-1 downto i*2) 
+                        slv_flow_modulo_buffer_shreg((i+1)*2-1 downto i*2) 
                             <= wr_data_modulo_buffer(i);
                     end loop;
                 end if;
-            end if;
 
-            -- Set Shreg readout pipe on to_shreg request
-            if sl_request_read_modulo_to_shreg = '1' then -- This must be 1 clk long pulse
-                slv_flow_modulo_buffer_shreg <= slv_flow_modulo_buffer_sampled;
+                -- Shift right by a certain number of bits on enable
+                if sl_request_read_modulo_shift_enable = '1' then
+                    slv_flow_modulo_buffer_shreg <= 
+                        slv_shift_right(slv_flow_modulo_buffer_shreg, 2);
+                end if;
             end if;
         end process;
 
         proc_sample_random_buffer : process(wr_sys_clk)
         begin
-            -- Shift right by default
-            slv_flow_random_buffer_shreg <= 
-                slv_shift_right(slv_flow_random_buffer_shreg, 1);
-
+            
             if rising_edge(wr_sys_clk) then
-                if wr_valid_gflow_success_done = '1' then
+
+                -- Sample on sample request
+                if wr_valid_gflow_success_done = '1' then -- Sample request signal
                     for i in 0 to INT_QUBITS_CNT-1 loop
-                        slv_flow_random_buffer_sampled((i+1)*1-1 downto i*1) 
+                        slv_flow_random_buffer_shreg((i+1)*1-1 downto i*1) 
                             <= wr_data_random_buffer(i);
                     end loop;
                 end if;
-            end if;
 
-            -- Set Shreg readout pipe on to_shreg request
-            if sl_request_read_random_to_shreg = '1' then -- This must be 1 clk long pulse
-                slv_flow_random_buffer_shreg <= slv_flow_random_buffer_sampled;
+                -- Shift right by a certain number of bits on enable
+                if sl_request_read_random_shift_enable = '1' then
+                    slv_flow_random_buffer_shreg <= 
+                        slv_shift_right(slv_flow_random_buffer_shreg, 1);
+                end if;
             end if;
         end process;
 
         proc_sample_timestamp_buffer : process(wr_sys_clk)
         begin
             if rising_edge(wr_sys_clk) then
-                -- Shift right by default
-                slv_flow_timestamp_buffer_shreg <= 
-                    slv_shift_right(slv_flow_timestamp_buffer_shreg, 2);
 
                 -- Sample on sample request
-                if wr_valid_gflow_success_done = '1' then
+                if wr_valid_gflow_success_done = '1' then -- Sample request signal
                     for i in 0 to INT_QUBITS_CNT-1 loop
-                        slv_flow_timestamp_buffer_sampled((i+1)*28-1 downto i*28)
+                        slv_flow_timestamp_buffer_shreg((i+1)*28-1 downto i*28)
                             <= wr_data_time_stamp_buffer(i);
                     end loop;
                 end if;
 
-                -- Set Shreg readout pipe on to_shreg request
-                if sl_request_read_timestamp_to_shreg = '1' then -- This must be 1 clk long pulse
-                    slv_flow_timestamp_buffer_shreg <= slv_flow_timestamp_buffer_sampled;
+                -- Shift right by a certain number of bits on enable
+                if sl_request_read_timestamp_shift_enable = '1' then
+                    slv_flow_timestamp_buffer_shreg <= 
+                        slv_shift_right(slv_flow_timestamp_buffer_shreg, 28);
                 end if;
             end if;
         end process;
 
+
+
         proc_sample_accumulated_values : process(wr_sys_clk)
         begin
             if rising_edge(wr_sys_clk) then
-                -- Shift right by default
-                slv_combinations_counters_shreg <= 
-                    slv_shift_right(slv_combinations_counters_shreg, ACCUMULATOR_COUNTER_WIDTH);
 
                 -- Sample on sample request
                 for i in 0 to INT_QUBITS_CNT**2-1 loop
-                    if sl_periodic_report_sample_request(i) = '1' then
-                            slv_combinations_counters_sampled((i+1)*ACCUMULATOR_COUNTER_WIDTH-1 downto i*ACCUMULATOR_COUNTER_WIDTH) 
+                    if sl_periodic_report_sample_request(i) = '1' then -- Sample request signal
+                            slv_combinations_counters_shreg((i+1)*ACCUMULATOR_COUNTER_WIDTH-1 downto i*ACCUMULATOR_COUNTER_WIDTH) 
                                 <= slv_combinations_counters_2d(i);
                     end if;
                 end loop;
 
-                -- Set Shreg readout pipe on to_shreg request
-                if sl_request_read_coincidences_to_shreg = '1' then -- This must be 1 clk long pulse
-                    slv_combinations_counters_shreg <= slv_combinations_counters_sampled;
+                -- Shift right by a certain number of bits on enable
+                if sl_request_read_coincidences_shift_enable = '1' then
+                    slv_combinations_counters_shreg <= 
+                        slv_shift_right(slv_combinations_counters_shreg, ACCUMULATOR_COUNTER_WIDTH);
                 end if;
             end if;
         end process;
@@ -364,20 +375,13 @@
                 -- Tie to 0
                 sl_wr_en_flag_pulsed <= '0';
 
-                -- Queued Requests
-                if wr_valid_gflow_success_done = '1' then
-                    sl_readout_request_gflow <= wr_valid_gflow_success_done;
-                end if;
-
-                if sl_periodic_report_flag = '1' then
-                    sl_readout_request_coincidences <= sl_periodic_report_flag;
-                end if;
-
-
-                -- -- Sample the time stamp buffer values to read from later
-                -- if wr_valid_gflow_success_done = '1' then
-                --     slv_time_stamp_buffer_2d <= wr_data_time_stamp_buffer;
-                -- end if;
+                -- Pipes Off by default
+                sl_request_read_coincidences_shift_enable <= '0';
+                sl_request_read_photons_shift_enable <= '0';
+                sl_request_read_alpha_shift_enable <= '0';
+                sl_request_read_modulo_shift_enable <= '0';
+                sl_request_read_random_shift_enable <= '0';
+                sl_request_read_timestamp_shift_enable <= '0';
 
 
                 -- Counter to send a value per desired number of seconds
@@ -392,38 +396,61 @@
                 end if;
 
 
+                -- Queued Requests
+                if wr_valid_gflow_success_done = '1' then
+                    sl_readout_request_gflow <= wr_valid_gflow_success_done;
+                end if;
+
+                if sl_periodic_report_flag = '1' then
+                    sl_readout_request_coincidences <= sl_periodic_report_flag;
+                end if;
+
+
 
                 -- Controller for sending data over USB3
                 case state_fifo_readout is
                     when SCAN_READOUT_REQUESTS => 
 
-                        -- (Lower Priority) Wait for periodic report readout request
-                        if sl_readout_request_coincidences = '1' then
+                        -- Default
+                        if sl_readout_request_gflow = '1' then -- (Higher Priority)
+                            -- Gflow report readout request
+                            state_fifo_readout <= SEND_GFLOW_PHOTONS; -- Multi-transactional sequence of readout tx commands
+                            sl_request_read_photons_shift_enable <= '1'; -- Pipe On (will be done after 2 clk cycles)
+
+                        elsif sl_readout_request_coincidences = '1' then -- (Lower Priority)
+                            -- Periodic report readout request
                             state_fifo_readout <= SEND_COINCIDENCES;
-                            sl_request_read_coincidences_to_shreg <= '1'; -- Must be 1 clk long pulse
+                            sl_request_read_coincidences_shift_enable <= '1'; -- Pipe On (will be done after 2 clk cycles)
                         end if;
 
-                        -- (Higher Priority) Wait for gflow report readout request
-                        if sl_readout_request_gflow = '1' then
-                            state_fifo_readout <= SEND_GFLOW_PHOTONS;
-                            sl_request_read_photons_to_shreg <= '1'; -- Must be 1 clk long pulse
-                        end if;
+                        -- PRIORITIES SWITCHED
+                        -- if sl_readout_request_coincidences = '1' then -- (Higher Priority)
+                        --     -- Gflow report readout request
+                        --     state_fifo_readout <= SEND_COINCIDENCES;
+                        --     sl_request_read_coincidences_shift_enable <= '1'; -- Pipe On (will be done after 2 clk cycles)
+
+                        -- elsif sl_readout_request_gflow = '1' then -- (Lower Priority)
+                        --     -- Periodic report readout request
+                        --     state_fifo_readout <= SEND_GFLOW_PHOTONS; -- Multi-transactional sequence of readout tx commands
+                        --     sl_request_read_photons_shift_enable <= '1'; -- Pipe On (will be done after 2 clk cycles)
+                        -- end if;
+
 
 
                     when SEND_COINCIDENCES =>
 
-                        sl_request_read_coincidences_to_shreg <= '0'; -- Must be 1 clk pulse
-
                         -- Send periodic report in a way it has a higher priority over the 'sl_readout_request_gflow' but does not interfere with it
                         if int_readout_counter = INT_QUBITS_CNT**2 then
                             int_readout_counter <= 0;
-                            sl_wr_en_flag_pulsed <= '0'; -- Writing to FIFO shut down
 
-                            -- Send comma or something like that
-                            -- # TODO
+                            -- Send enter
+                            sl_wr_en_flag_pulsed <= '1'; -- Writing to FIFO shut down
+                            slv_wr_data_stream_32b(31 downto 4) <= (others => '0');
+                            slv_wr_data_stream_32b(3 downto 0) <= x"F";
+
+                            sl_readout_request_coincidences <= '0';      -- Job Done
 
                             state_fifo_readout <= SCAN_READOUT_REQUESTS; -- Coordinate the readout logic
-                            sl_readout_request_coincidences <= '0'; -- Job done indication
                         else
                             int_readout_counter <= int_readout_counter + 1;
                             sl_wr_en_flag_pulsed <= '1';
@@ -434,23 +461,25 @@
 
                             slv_wr_data_stream_32b(3 downto 0) <= x"6"; -- Encoded command for the RX counterpart
 
+                            sl_request_read_coincidences_shift_enable <= '1'; -- Keep Pipe On
+
                         end if;
 
 
                     when SEND_GFLOW_PHOTONS => 
-                        sl_request_read_photons_to_shreg <= '0'; -- Must be 1 clk pulse
 
                         -- Send periodic report in a way it has a higher priority over the 'sl_readout_request_gflow' but does not interfere with it
                         if int_readout_counter = INT_QUBITS_CNT then
                             int_readout_counter <= 0;
-                            sl_wr_en_flag_pulsed <= '0'; -- Writing to FIFO shut down
 
-                            -- Send comma or something like that
-                            -- # TODO
+                            -- Send extra comma delimiter
+                            sl_wr_en_flag_pulsed <= '1';
+                            slv_wr_data_stream_32b(31 downto 4) <= (others => '0');
+                            slv_wr_data_stream_32b(3 downto 0) <= x"E";
 
                             state_fifo_readout <= SEND_GFLOW_ALPHA; -- Coordinate the readout logic
-                            sl_request_read_alpha_to_shreg <= '1'; -- 1 clk long pulse
-                            -- sl_readout_request_gflow <= '0'; -- Job done indication
+                            sl_request_read_alpha_shift_enable <= '1'; -- Pipe On (will be done after 2 clk cycles)
+
                         else
                             int_readout_counter <= int_readout_counter + 1;
                             sl_wr_en_flag_pulsed <= '1';
@@ -459,25 +488,26 @@
                                 <= std_logic_vector(to_unsigned(0, INT_DATA_SPACE_IN_CHANNEL-2))
                                     & slv_flow_photons_buffer_shreg(2-1 downto 0);
 
-                            slv_wr_data_stream_32b(3 downto 0) <= x"1"; -- Encoded command for the RX counterpart
+                            slv_wr_data_stream_32b(3 downto 0) <= x"1"; -- Encoded command for the RX readout counterpart
+
+                            sl_request_read_photons_shift_enable <= '1'; -- Keep Pipe On
 
                         end if;
 
 
                     when SEND_GFLOW_ALPHA =>
-                        sl_request_read_alpha_to_shreg <= '0'; -- Must be 1 clk pulse
 
                         -- Send periodic report in a way it has a higher priority over the 'sl_readout_request_gflow' but does not interfere with it
                         if int_readout_counter = INT_QUBITS_CNT then
                             int_readout_counter <= 0;
-                            sl_wr_en_flag_pulsed <= '0'; -- Writing to FIFO shut down
-                            
-                            -- Send comma or something like that
-                            -- # TODO
+
+                            -- Send extra comma delimiter
+                            sl_wr_en_flag_pulsed <= '1';
+                            slv_wr_data_stream_32b(31 downto 4) <= (others => '0');
+                            slv_wr_data_stream_32b(3 downto 0) <= x"E";
 
                             state_fifo_readout <= SEND_GFLOW_MODULO; -- Coordinate the readout logic
-                            sl_request_read_modulo_to_shreg <= '1';
-                            -- sl_readout_request_gflow <= '0'; -- Job done indication
+                            sl_request_read_modulo_shift_enable <= '1'; -- Pipe On (will be done after 2 clk cycles)
                         else
                             int_readout_counter <= int_readout_counter + 1;
                             sl_wr_en_flag_pulsed <= '1';
@@ -486,24 +516,26 @@
                                 <= std_logic_vector(to_unsigned(0, INT_DATA_SPACE_IN_CHANNEL-2))
                                     & slv_flow_alpha_buffer_shreg(2-1 downto 0);
 
-                            slv_wr_data_stream_32b(3 downto 0) <= x"2"; -- Encoded command for the RX counterpart
+                            slv_wr_data_stream_32b(3 downto 0) <= x"2"; -- Encoded command for the RX readout counterpart
+
+                            sl_request_read_alpha_shift_enable <= '1'; -- Keep Pipe On
 
                         end if;
 
                     when SEND_GFLOW_MODULO =>
-                        sl_request_read_modulo_to_shreg <= '0'; -- Must be 1 clk pulse
 
                         -- Send periodic report in a way it has a higher priority over the 'sl_readout_request_gflow' but does not interfere with it
                         if int_readout_counter = INT_QUBITS_CNT then
                             int_readout_counter <= 0;
-                            sl_wr_en_flag_pulsed <= '0'; -- Writing to FIFO shut down
-                            
-                            -- Send comma or something like that
-                            -- # TODO
+
+                            -- Send extra comma delimiter
+                            sl_wr_en_flag_pulsed <= '1';
+                            slv_wr_data_stream_32b(31 downto 4) <= (others => '0');
+                            slv_wr_data_stream_32b(3 downto 0) <= x"E";
 
                             state_fifo_readout <= SEND_GFLOW_RANDOM; -- Coordinate the readout logic
-                            sl_request_read_random_to_shreg <= '1';
-                            -- sl_readout_request_gflow <= '0'; -- Job done indication
+                            sl_request_read_random_shift_enable <= '1'; -- Pipe On (will be done after 2 clk cycles)
+
                         else
                             int_readout_counter <= int_readout_counter + 1;
                             sl_wr_en_flag_pulsed <= '1';
@@ -512,68 +544,72 @@
                                 <= std_logic_vector(to_unsigned(0, INT_DATA_SPACE_IN_CHANNEL-2))
                                     & slv_flow_modulo_buffer_shreg(2-1 downto 0);
 
-                            slv_wr_data_stream_32b(3 downto 0) <= x"3"; -- Encoded command for the RX counterpart
+                            slv_wr_data_stream_32b(3 downto 0) <= x"3"; -- Encoded command for the RX readout counterpart
+
+                            sl_request_read_modulo_shift_enable <= '1'; -- Pipe On
 
                         end if;
 
                     when SEND_GFLOW_RANDOM =>
-                        sl_request_read_random_to_shreg <= '0'; -- Must be 1 clk pulse
 
                         -- Send periodic report in a way it has a higher priority over the 'sl_readout_request_gflow' but does not interfere with it
                         if int_readout_counter = INT_QUBITS_CNT then
                             int_readout_counter <= 0;
-                            sl_wr_en_flag_pulsed <= '0'; -- Writing to FIFO shut down
-                            
-                            -- Send comma or something like that
-                            -- # TODO
+
+                            -- Send extra comma delimiter
+                            sl_wr_en_flag_pulsed <= '1';
+                            slv_wr_data_stream_32b(31 downto 4) <= (others => '0');
+                            slv_wr_data_stream_32b(3 downto 0) <= x"E";
 
                             state_fifo_readout <= SEND_GFLOW_TIMESTAMP; -- Coordinate the readout logic
-                            sl_request_read_timestamp_to_shreg <= '1';
-                            -- sl_readout_request_gflow <= '0'; -- Job done indication
+                            sl_request_read_timestamp_shift_enable <= '1'; -- Pipe On (will be done after 2 clk cycles)
+
                         else
                             int_readout_counter <= int_readout_counter + 1;
-                            sl_wr_en_flag_pulsed <= '1';
 
+                            -- Send data
+                            sl_wr_en_flag_pulsed <= '1';
                             slv_wr_data_stream_32b(31 downto 4) -- Define All bits!
                                 <= std_logic_vector(to_unsigned(0, INT_DATA_SPACE_IN_CHANNEL-1))
                                     & slv_flow_random_buffer_shreg(1-1 downto 0);
 
-                            slv_wr_data_stream_32b(3 downto 0) <= x"4"; -- Encoded command for the RX counterpart
+                            slv_wr_data_stream_32b(3 downto 0) <= x"4"; -- Encoded command for the RX readout counterpart
+
+                            sl_request_read_random_shift_enable <= '1'; -- Pipe On
 
                         end if;
 
                     when SEND_GFLOW_TIMESTAMP =>
-                        sl_request_read_timestamp_to_shreg <= '0'; -- Must be 1 clk pulse
 
                         -- Send periodic report in a way it has a higher priority over the 'sl_readout_request_gflow' but does not interfere with it
                         if int_readout_counter = INT_QUBITS_CNT then
                             int_readout_counter <= 0;
-                            sl_wr_en_flag_pulsed <= '0'; -- Writing to FIFO shut down
-                            
-                            -- Send comma or something like that
-                            -- # TODO
+
+                            -- Send enter
+                            sl_wr_en_flag_pulsed <= '1';
+                            slv_wr_data_stream_32b(31 downto 4) <= (others => '0');
+                            slv_wr_data_stream_32b(3 downto 0) <= x"F";
 
                             state_fifo_readout <= SCAN_READOUT_REQUESTS; -- Coordinate the readout logic
-                            -- sl_request_read_timestamp_to_shreg <= '1';
-                            sl_readout_request_gflow <= '0'; -- Job done indication
+                            sl_readout_request_gflow <= '0'; -- Job done flag
+
                         else
                             int_readout_counter <= int_readout_counter + 1;
-                            sl_wr_en_flag_pulsed <= '1';
 
-                            -- slv_wr_data_stream_32b(31 downto 4) -- Define All bits!
-                            --     <= std_logic_vector(to_unsigned(0, INT_DATA_SPACE_IN_CHANNEL-28))
-                            --         & slv_flow_timestamp_buffer_shreg(28-1 downto 0);
+                            -- Send data
+                            sl_wr_en_flag_pulsed <= '1';
                             slv_wr_data_stream_32b(31 downto 4) -- Define All bits!
                                 <= slv_flow_timestamp_buffer_shreg(28-1 downto 0);
+                            slv_wr_data_stream_32b(3 downto 0) <= x"5"; -- Encoded command for the RX readout counterpart
 
-                            slv_wr_data_stream_32b(3 downto 0) <= x"5"; -- Encoded command for the RX counterpart
+                            sl_request_read_timestamp_shift_enable <= '1'; -- Pipe On
 
                         end if;
 
                     when others =>
                         sl_wr_en_flag_pulsed <= '0';
                         state_fifo_readout <= SCAN_READOUT_REQUESTS;
-                        
+
                         -- Set next transaction request to zero, wait to be asserted once next cluster has been measured
                         sl_readout_request_gflow <= '0';
 
