@@ -1219,30 +1219,6 @@
             variable mod_q : t_INT_QUBITS_CNT_x_int_2d;
             variable sx_sz_q : t_INT_QUBITS_CNT_x_2b_2d;
             variable expected_mod_q : t_INT_QUBITS_CNT_x_int_2d;
-
-            variable rand_q1, rand_q2, rand_q3, rand_q4 : integer;
-            variable rand_q5, rand_q6, rand_q7, rand_q8 : integer;
-            variable mod_q1, mod_q2, mod_q3, mod_q4 : integer;
-            variable mod_q5, mod_q6, mod_q7, mod_q8 : integer;
-
-            variable sx_sz_q1 : std_logic_vector(1 downto 0);
-            variable result_q1 : integer; -- mod_q1
-
-            variable sx_sz_q2 : std_logic_vector(1 downto 0);
-            variable result_q2 : integer; -- mod_q2
-
-            variable sx_sz_q3 : std_logic_vector(1 downto 0);
-            variable result_q3 : integer; -- mod_q3
-
-            variable sx_sz_q4 : std_logic_vector(1 downto 0);
-            variable result_q4 : integer; -- mod_q4
-
-            variable sx_sz_q5 : std_logic_vector(1 downto 0);
-            variable result_q5 : integer; -- mod_q5
-
-            variable sx_sz_q6 : std_logic_vector(1 downto 0);
-            variable result_q6 : integer; -- mod_q6
-
             constant PI : natural := 2;
         begin
             -- Wait until readout transaction is completely reconstructed
@@ -1279,97 +1255,6 @@
                 end loop;
             end if;
 
-        --     if INT_QUBITS_CNT > 1 then
-        --         sx_sz_q1 := (others => '0');
-        --         result_q1 := (((-1)**to_integer(unsigned(sx_sz_q1(0 downto 0))) * 0)
-        --                     + (to_integer(unsigned(sx_sz_q1(1 downto 1))) + rand_q1)*PI) mod 4;
-        --         assert mod_q1 = result_q1
-        --             report "Error: Qubit 1: Actual result is : " & integer'image(mod_q1) 
-        --                     & " . Expected result is : " & integer'image(result_q1)
-        --             severity failure;
-
-        --         sx_sz_q2 := std_logic_vector(to_unsigned(mod_q1, 2));
-        --         result_q2 := (((-1)**to_integer(unsigned(sx_sz_q2(0 downto 0))) * 1)
-        --                     + (to_integer(unsigned(sx_sz_q2(1 downto 1))) + rand_q2)*PI) mod 4;
-        --         assert mod_q2 = result_q2
-        --             report "Error: Qubit 2: Actual result is : " & integer'image(mod_q2)
-        --                     & " . Expected result is : " & integer'image(result_q2)
-        --             severity failure;
-        --     end if;
-
-        --         if INT_QUBITS_CNT > 2 then
-        --             sx_sz_q3 := std_logic_vector(to_unsigned(mod_q2, 2));
-        --             result_q3 := (((-1)**to_integer(unsigned(sx_sz_q3(0 downto 0))) * 2)
-        --                         + (to_integer(unsigned(sx_sz_q3(1 downto 1))) + rand_q3)*PI) mod 4;
-        --             assert mod_q3 = result_q3
-        --                 report "Error: Qubit 3: Actual result is : " & integer'image(mod_q3) 
-        --                         & " . Expected result is : " & integer'image(result_q3)
-        --                 severity failure;
-        --         end if;
-
-        --         if INT_QUBITS_CNT > 3 then
-        --             sx_sz_q4 := std_logic_vector(to_unsigned(mod_q3, 2));
-        --             result_q4 := (((-1)**to_integer(unsigned(sx_sz_q4(0 downto 0))) * 3)
-        --                         + (to_integer(unsigned(sx_sz_q4(1 downto 1))) + rand_q4)*PI) mod 4;
-        --             assert mod_q4 = result_q4
-        --                 report "Error: Qubit 4: Actual result is : " & integer'image(mod_q4) 
-        --                         & " . Expected result is : " & integer'image(result_q4)
-        --                 severity failure;
-        --         end if;
-        --     end if;
-
-        --     if INT_QUBITS_CNT > 4 then
-        --         sx_sz_q5 := std_logic_vector(to_unsigned(mod_q4, 2));
-        --         result_q5 := (((-1)**to_integer(unsigned(sx_sz_q5(0 downto 0))) * 0)
-        --                     + (to_integer(unsigned(sx_sz_q5(1 downto 1))) + rand_q5)*PI) mod 4;
-        --         assert mod_q5 = result_q5
-        --             report "Error: Qubit 5: Actual result is : " & integer'image(mod_q5) 
-        --                     & " . Expected result is : " & integer'image(result_q5)
-        --             severity failure;
-        --     end if;
-
-        --     if INT_QUBITS_CNT > 5 then
-        --         sx_sz_q6 := std_logic_vector(to_unsigned(mod_q5, 2));
-        --         result_q6 := (((-1)**to_integer(unsigned(sx_sz_q6(0 downto 0))) * 1)
-        --                     + (to_integer(unsigned(sx_sz_q6(1 downto 1))) + rand_q6)*PI) mod 4;
-        --         assert mod_q6 = result_q6
-        --             report "Error: Qubit 6: Actual result is : " & integer'image(mod_q6)
-        --                     & " . Expected result is : " & integer'image(result_q6)
-        --             severity failure;
-        --     end if;
-
-        --     -- Parse the data vector
-        --     if readout_data_32b(3 downto 0) = x"5" then
-        --         rand_q5 := to_integer(unsigned(readout_data_32b(15 downto 15)));
-        --         rand_q6 := to_integer(unsigned(readout_data_32b(14 downto 14)));
-        --         rand_q7 := to_integer(unsigned(readout_data_32b(13 downto 13)));
-        --         rand_q8 := to_integer(unsigned(readout_data_32b(12 downto 12)));
-
-        --         mod_q5 := to_integer(unsigned(readout_data_32b(11 downto 10)));
-        --         mod_q6 := to_integer(unsigned(readout_data_32b(9 downto 8)));
-        --         mod_q7 := to_integer(unsigned(readout_data_32b(7 downto 6)));
-        --         mod_q8 := to_integer(unsigned(readout_data_32b(5 downto 4)));
-
-        --         if INT_QUBITS_CNT > 4 then
-        --             sx_sz_q5 := std_logic_vector(to_unsigned(mod_q4, 2));
-        --             result_q5 := (((-1)**to_integer(unsigned(sx_sz_q5(0 downto 0))) * 0)
-        --                         + (to_integer(unsigned(sx_sz_q5(1 downto 1))) + rand_q5)*PI) mod 4;
-        --             assert mod_q5 = result_q5
-        --                 report "Error: Qubit 5: Actual result is : " & integer'image(mod_q5) 
-        --                         & " . Expected result is : " & integer'image(result_q5)
-        --                 severity failure;
-        --         end if;
-
-        --         if INT_QUBITS_CNT > 5 then
-        --             sx_sz_q6 := std_logic_vector(to_unsigned(mod_q5, 2));
-        --             result_q6 := (((-1)**to_integer(unsigned(sx_sz_q6(0 downto 0))) * 1)
-        --                         + (to_integer(unsigned(sx_sz_q6(1 downto 1))) + rand_q6)*PI) mod 4;
-        --             assert mod_q6 = result_q6
-        --                 report "Error: Qubit 6: Actual result is : " & integer'image(mod_q6)
-        --                         & " . Expected result is : " & integer'image(result_q6)
-        --                 severity failure;
-        --         end if;
-        --     end if;
         end process;
 
     end architecture;

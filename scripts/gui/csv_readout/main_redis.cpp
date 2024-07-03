@@ -30,7 +30,7 @@ using namespace sw::redis;
 #endif
 
 #include "./lib/okFrontPanel.h"
-#include "./lib/guiBackendObj.h"
+#include "./lib/guiBackendObj_redis.h"
 
 
 

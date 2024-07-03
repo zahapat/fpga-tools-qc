@@ -17,6 +17,7 @@ build_x64
 *.pdf
 *.gdb
 *.str
+CMakeCache.txt
 
 backup
 

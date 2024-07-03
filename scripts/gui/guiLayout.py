@@ -71,7 +71,7 @@ def get_parameters_from_entryboxes():
 def generate_hardware():
 
     # Recompile C++ files
-    subprocess.Popen('make rescan', cwd="./scripts/gui/redis", creationflags=subprocess.CREATE_NEW_CONSOLE)
+    subprocess.Popen('make rescan', cwd="./scripts/gui/csv_readout", creationflags=subprocess.CREATE_NEW_CONSOLE)
 
     # Regenerate Hardware with or without arguments
     makefile_arguments = get_parameters_from_entryboxes()
