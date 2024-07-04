@@ -118,16 +118,28 @@ set_property PACKAGE_PIN AA23 [get_ports o_photon_sampled]
 ## Set Clock Domain Crossing Constraints
 ############################################################################
 # Best = 1.36 -> explore around 1.36 (best found at 625 MHz)
-# *** Do not remove this in "nff_cdcc" to pass timing
+# *** Do not remove this in "nff_cdcc*" modules to pass timing
 #       attribute KEEP : string; and attribute DONT_TOUCH : string;
 
-# Setting for 600 MHz -> 300 Mhz and 300 MHz -> 200 MHz
-set max_delay1 1.59
-set max_delay2 1.68
+# Setting for 600->300 Mhz and 300->200 MHz crossing domains
+set max_delay1 1.6
+set max_delay2 1.69
 
-# Uncertainty 0.176
-set min_delay1 [expr - 0.176]
-set min_delay2 [expr - 0.178]
+set clk_uncertainty1 0.176
+set clk_uncertainty2 0.178
+
+# Uncertainty consideration
+set min_delay1 [expr - ${clk_uncertainty1}]
+set min_delay2 [expr - ${clk_uncertainty2}]
+
+# Timing Results:
+# +------+-------+-------+-------+-------+--------+--------------+-------------------+
+# | Pass |  WNS  |  TNS  |  WHS  |  THS  | Status | Elapsed Time | Solution Selected |
+# +------+-------+-------+-------+-------+--------+--------------+-------------------+
+# |  1   | 0.045 | 0.000 | 0.082 | 0.000 |  Pass  |   00:00:06   |         x         |
+# +------+-------+-------+-------+-------+--------+--------------+-------------------+
+# |  2   |   -   |   -   |   -   |   -   |  Fail  |   00:00:00   |                   |
+# +------+-------+-------+-------+-------+--------+--------------+-------------------+
 
 
 # max_delay constraint: to cover/override setup checks
@@ -177,7 +189,15 @@ set_min_delay $min_delay2 -from [get_cells inst_gflow/gen_cdcc_transfer_data[*].
 set_max_delay $max_delay2 -from [get_cells inst_gflow/gen_cdcc_transfer_data[*].${inst_name}/gen_if_clocks_different.slv_data_to_cross_2d_reg[1][*]] -to [get_cells inst_gflow/gen_cdcc_transfer_data[*].${inst_name}/gen_if_clocks_different.slv_data_asyncff_2d_reg[0][*]];
 set_min_delay $min_delay2 -from [get_cells inst_gflow/gen_cdcc_transfer_data[*].${inst_name}/gen_if_clocks_different.slv_data_to_cross_2d_reg[1][*]] -to [get_cells inst_gflow/gen_cdcc_transfer_data[*].${inst_name}/gen_if_clocks_different.slv_data_asyncff_2d_reg[0][*]];
 
-# set inst_name "inst_nff_cdcc_unsuccessful_cntr"
+set inst_name "inst_nff_cdcc_cntr_ch_photons"
+set_max_delay $max_delay2 -from [get_cells inst_gflow/gen_cdcc_cntr_ch_photons[*].${inst_name}/slv_data_to_cross_2d_reg[1][*]] -to [get_cells inst_gflow/gen_cdcc_cntr_ch_photons[*].${inst_name}/slv_data_asyncff_2d_reg[0][*]];
+set_min_delay $min_delay2 -from [get_cells inst_gflow/gen_cdcc_cntr_ch_photons[*].${inst_name}/slv_data_to_cross_2d_reg[1][*]] -to [get_cells inst_gflow/gen_cdcc_cntr_ch_photons[*].${inst_name}/slv_data_asyncff_2d_reg[0][*]];
+
+set inst_name "inst_nff_cdcc_photon_loss_event"
+set_max_delay $max_delay2 -from [get_cells inst_gflow/gen_cdcc_photon_losses_flags[*].${inst_name}/gen_if_clocks_different.slv_wr_en_event_to_cross_reg[1]] -to [get_cells inst_gflow/gen_cdcc_photon_losses_flags[*].${inst_name}/gen_if_clocks_different.slv_wr_en_event_asyncff_reg[0]];
+set_min_delay $min_delay2 -from [get_cells inst_gflow/gen_cdcc_photon_losses_flags[*].${inst_name}/gen_if_clocks_different.slv_wr_en_event_to_cross_reg[1]] -to [get_cells inst_gflow/gen_cdcc_photon_losses_flags[*].${inst_name}/gen_if_clocks_different.slv_wr_en_event_asyncff_reg[0]];
+
+# set inst_name "inst_module_name"
 # set_max_delay $max_delay2 -from [get_cells inst_gflow/gen_cdcc_transfer_data[*].${inst_name}/gen_if_clocks_different.slv_wr_en_event_to_cross_reg[1]] -to [get_cells inst_gflow/gen_cdcc_transfer_data[*].${inst_name}/gen_if_clocks_different.slv_wr_en_event_asyncff_reg[0]];
 # set_min_delay $min_delay2 -from [get_cells inst_gflow/gen_cdcc_transfer_data[*].${inst_name}/gen_if_clocks_different.slv_wr_en_event_to_cross_reg[1]] -to [get_cells inst_gflow/gen_cdcc_transfer_data[*].${inst_name}/gen_if_clocks_different.slv_wr_en_event_asyncff_reg[0]];
 # set_max_delay $max_delay2 -from [get_cells inst_gflow/gen_cdcc_transfer_data[*].${inst_name}/gen_if_clocks_different.slv_data_to_cross_2d_reg[1][*]] -to [get_cells inst_gflow/gen_cdcc_transfer_data[*].${inst_name}/gen_if_clocks_different.slv_data_asyncff_2d_reg[0][*]];
