@@ -32,7 +32,6 @@
         signal files_recreated : bit := '0';
 
         -- Generics
-        constant INT_CHANNEL_WIDTH : positive := 32;
         constant INT_QUBITS_CNT : positive := 4;
         constant CLK_HZ : real := 100.0e6;
         constant REGULAR_SAMPLER_SECONDS : real := 1.0e-6;
@@ -87,7 +86,6 @@
 
         dut_csv_readout : entity lib_src.csv_readout(rtl)
         generic map (
-            INT_CHANNEL_WIDTH => INT_CHANNEL_WIDTH,
             INT_QUBITS_CNT => INT_QUBITS_CNT,
             CLK_HZ => CLK_HZ,
             REGULAR_SAMPLER_SECONDS => REGULAR_SAMPLER_SECONDS,
@@ -137,7 +135,7 @@
             end loop;
         end process;
 
-        -- Emulate wr_photon_losses
+        -- Emulate wr_channels_detections
         trans_wr_channels_detections : process
         begin
             loop
@@ -237,8 +235,11 @@
                     end if;
                 end if;
 
-                -- 2) CSV file line creation
+                -- 2) CSV file line creation: append time at each EOF (x"F" = end of frame command)
                 if readout_data_32b(4-1 downto 0) = x"F" then -- Print out the line buffer
+                    write(v_line_buffer, string'(",") );
+                    write(v_line_buffer, string'(
+                        to_string(to_integer(unsigned(readout_data_32b(32-1 downto 4))) ) ));
                     -- writeline(output, v_line_buffer);     -- To the console (but this deletes the v_line_buffer content)
                     writeline(actual_csv, v_line_buffer); -- To the CSV file
                     file_close(actual_csv);

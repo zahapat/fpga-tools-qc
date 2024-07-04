@@ -381,7 +381,6 @@
         -- Readout with FIFO and CSV read instructions
         inst_csv_readout : entity lib_src.csv_readout(rtl)
         generic map (
-            INT_CHANNEL_WIDTH => 32,
             INT_QUBITS_CNT => INT_QUBITS_CNT,
             CLK_HZ => REAL_CLK_SYS_HZ,
             REGULAR_SAMPLER_SECONDS => 5.0e-6,  -- Change this value to alter the frequency of regular reporting

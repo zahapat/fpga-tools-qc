@@ -3,7 +3,6 @@ quietly WaveActivateNextPane {} 0
 add wave -noupdate -divider {TB: universal_readout_tb ALL signals}
 add wave -noupdate /csv_readout_tb/files_recreated
 add wave -noupdate /csv_readout_tb/rst
-add wave -noupdate /csv_readout_tb/wr_unsuccessful_cnt
 add wave -noupdate /csv_readout_tb/wr_valid_gflow_success_done
 add wave -noupdate /csv_readout_tb/wr_data_qubit_buffer
 add wave -noupdate /csv_readout_tb/wr_data_time_stamp_buffer
@@ -23,7 +22,6 @@ add wave -noupdate /csv_readout_tb/clk_rd
 add wave -noupdate -divider DUT
 add wave -noupdate /csv_readout_tb/dut_csv_readout/rst
 add wave -noupdate /csv_readout_tb/dut_csv_readout/wr_sys_clk
-add wave -noupdate /csv_readout_tb/dut_csv_readout/wr_unsuccessful_cnt
 add wave -noupdate /csv_readout_tb/dut_csv_readout/wr_valid_gflow_success_done
 add wave -noupdate /csv_readout_tb/dut_csv_readout/wr_data_qubit_buffer
 add wave -noupdate /csv_readout_tb/dut_csv_readout/wr_data_time_stamp_buffer
@@ -54,7 +52,6 @@ add wave -noupdate /csv_readout_tb/dut_csv_readout/slv_wr_data_stream_32b
 add wave -noupdate /csv_readout_tb/dut_csv_readout/sl_full_latched
 add wave -noupdate /csv_readout_tb/dut_csv_readout/int_periodic_report_counter
 add wave -noupdate /csv_readout_tb/dut_csv_readout/sl_periodic_report_flag
-add wave -noupdate /csv_readout_tb/dut_csv_readout/sl_readout_request_coincidences
 add wave -noupdate /csv_readout_tb/dut_csv_readout/sl_periodic_report_sample_request
 add wave -noupdate /csv_readout_tb/dut_csv_readout/slv_combinations_counters_2d
 add wave -noupdate /csv_readout_tb/dut_csv_readout/slv_higher_bits_qubit_buffer

@@ -1136,6 +1136,9 @@
 
                     -- 2) CSV file line creation
                     if readout_data_32b(4-1 downto 0) = x"F" then -- Print out the line buffer
+                        write(v_line_buffer, string'(","));
+                        write(v_line_buffer, string'(
+                            to_string(to_integer(unsigned(readout_data_32b(32-1 downto 4))) ) ));
                         -- writeline(output, v_line_buffer);     -- To the console (but this deletes the v_line_buffer content)
                         writeline(actual_csv, v_line_buffer); -- To the CSV file
                         file_close(actual_csv);

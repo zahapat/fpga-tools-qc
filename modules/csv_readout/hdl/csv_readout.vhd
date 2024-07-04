@@ -11,7 +11,6 @@
 
     entity csv_readout is
         generic (
-            INT_CHANNEL_WIDTH : positive := 32;
             INT_QUBITS_CNT : positive := 4;
             CLK_HZ : real := 100.0e6;
             REGULAR_SAMPLER_SECONDS : real := 1.0e-6;
@@ -72,20 +71,25 @@
         end component;
 
         -- Channel Widths Breakdown
+        constant INT_CHANNEL_WIDTH : positive := 32;
         constant INT_COMMAND_WIDTH : positive := 4;
         constant INT_DATA_SPACE_IN_CHANNEL : positive := INT_CHANNEL_WIDTH - INT_COMMAND_WIDTH;
 
+        -- Actual time counter
+        constant ACTUAL_TIME_COUNTER_WIDTH : natural := INT_DATA_SPACE_IN_CHANNEL;
+        signal slv_time_now : std_logic_vector(ACTUAL_TIME_COUNTER_WIDTH-1 downto 0) := (others => '0');
+        signal slv_time_gflow_sample_request : std_logic_vector(slv_time_now'range) := (others => '0');
+        signal slv_time_periodic_sample_request : std_logic_vector(slv_time_now'range) := (others => '0');
+        signal slv_time_periodic_sample_request_2 : std_logic_vector(slv_time_now'range) := (others => '0');
+
         -- FIFO signals
         signal sl_rst        : std_logic := '0'; -- not bound to any clk
-
         signal wr_clk      : std_logic := '0';
         signal sl_wr_en    : std_logic := '0';
         signal slv_wr_data : std_logic_vector(31 downto 0) := (others => '0');
-
         signal rd_clk          : std_logic := '0';
         signal sl_rd_valid     : std_logic := '0';
         signal slv_rd_data_out : std_logic_vector(31 downto 0) := (others => '0');
-
         signal sl_full       : std_logic := '0';
         signal sl_empty      : std_logic := '0';
         signal sl_prog_empty : std_logic := '0';
@@ -217,6 +221,31 @@
         -- x"E" = EXTRA COMMA DELIMITER
         -- x"F" = ENTER (PRINT LINE)
 
+
+        -----------------
+        -- ACTUAL TIME --
+        -----------------
+        proc_slv_time_now : process(wr_sys_clk)
+        begin
+            if rising_edge(wr_sys_clk) then
+                slv_time_now <= std_logic_vector(unsigned(slv_time_now) + "1");
+
+                -- Sample actual time along with sample requests
+                if wr_valid_gflow_success_done = '1' then
+                    slv_time_gflow_sample_request <= slv_time_now;
+                end if;
+                
+                if sl_periodic_report_sample_request(sl_periodic_report_sample_request'high) = '1' then
+                    slv_time_periodic_sample_request <= slv_time_now;
+                end if;
+
+                if sl_periodic_report_sample_request_2(sl_periodic_report_sample_request_2'high) = '1' then
+                    slv_time_periodic_sample_request_2 <= slv_time_now;
+                end if;
+                
+                    
+            end if;
+        end process;
 
 
         -------------------------------------
@@ -462,7 +491,7 @@
                 -- Sample on sample request
                 for i in 1 to INT_QUBITS_CNT-1 loop
                     if sl_periodic_report_sample_request_2(i) = '1' then -- Sample request signal
-                            slv_photon_losses_shreg((i+1)*ALL_PHOTON_LOSSES_ACC_WIDTH-1 downto i*ALL_PHOTON_LOSSES_ACC_WIDTH) 
+                            slv_photon_losses_shreg(((i-1)+1)*ALL_PHOTON_LOSSES_ACC_WIDTH-1 downto (i-1)*ALL_PHOTON_LOSSES_ACC_WIDTH) 
                                 <= slv_all_unsuccessful_coincidences_2d(i);
                     end if;
                 end loop;
@@ -564,7 +593,7 @@
 
                             -- Send enter
                             sl_wr_en_flag_pulsed <= '1'; -- Writing to FIFO shut down
-                            slv_wr_data_stream_32b(31 downto 4) <= (others => '0');
+                            slv_wr_data_stream_32b(31 downto 4) <= slv_time_periodic_sample_request; -- Send TIME information about when data were sampled along with x"F" (end of frame)
                             slv_wr_data_stream_32b(3 downto 0) <= x"F";
 
                             sl_readout_request_periodic <= '0';      -- Job Done
@@ -622,7 +651,7 @@
 
                             -- Send enter
                             sl_wr_en_flag_pulsed <= '1'; -- Writing to FIFO shut down
-                            slv_wr_data_stream_32b(31 downto 4) <= (others => '0');
+                            slv_wr_data_stream_32b(31 downto 4) <= slv_time_periodic_sample_request_2; -- Send TIME information about when data were sampled along with x"F" (end of frame)
                             slv_wr_data_stream_32b(3 downto 0) <= x"F";
 
                             sl_readout_request_periodic_2 <= '0';      -- Job Done
@@ -766,7 +795,7 @@
 
                             -- Send enter
                             sl_wr_en_flag_pulsed <= '1';
-                            slv_wr_data_stream_32b(31 downto 4) <= (others => '0');
+                            slv_wr_data_stream_32b(31 downto 4) <= slv_time_gflow_sample_request; -- Send TIME information about when data were sampled along with x"F" (end of frame)
                             slv_wr_data_stream_32b(3 downto 0) <= x"F";
 
                             state_fifo_readout <= SCAN_READOUT_REQUESTS; -- Coordinate the readout logic

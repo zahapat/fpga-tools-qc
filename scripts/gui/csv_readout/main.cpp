@@ -153,15 +153,15 @@ std::tuple<int, int> guiBackendObj::processReceivedData(std::tuple<int, int> col
         switch (command){
             case 15: // Print out the line buffer to outFile1/2
                 if (actual_file_id = 1){
-                    outFile1 << std::endl;
+                    outFile1 << ","<< std::to_string(data) << std::endl;
                 } else if (actual_file_id = 2){
-                    outFile2 << std::endl;
+                    outFile2 << "," << std::to_string(data) << std::endl;
                 } else if (actual_file_id = 3){
-                    outFile3 << std::endl;
+                    outFile3 << "," << std::to_string(data) << std::endl;
                 }
                 actual_column_cntr = 0;
 
-            case 14: // Extra Comma Delimiter to outFile1/2
+            case 14: // Extra Comma Delimiter to outFile1/2/..
                 if (actual_file_id = 1){
                     outFile1 << ",";
                 } else if (actual_file_id = 2){
