@@ -5,6 +5,7 @@ set files_to_delete [glob -type f -nocomplain -directory ${origin_dir} \
     *.tmp \
     *.debug \
     *.zip \
+    *.log \
 ]
 
 # Delete the found files
