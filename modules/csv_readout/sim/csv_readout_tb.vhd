@@ -27,6 +27,7 @@
         -- File I/O: Write to ONE file at a time
         constant CSV1_PATH : string := PROJ_DIR & "modules/csv_readout/sim/sim_reports/csv1.csv";
         constant CSV2_PATH : string := PROJ_DIR & "modules/csv_readout/sim/sim_reports/csv2.csv";
+        constant CSV3_PATH : string := PROJ_DIR & "modules/csv_readout/sim/sim_reports/csv3.csv";
         file actual_csv : text;
         signal files_recreated : bit := '0';
 
@@ -35,12 +36,14 @@
         constant INT_QUBITS_CNT : positive := 4;
         constant CLK_HZ : real := 100.0e6;
         constant REGULAR_SAMPLER_SECONDS : real := 1.0e-6;
+        constant REGULAR_SAMPLER_SECONDS_2 : real := 2.0e-6;
 
         -- Ports
         signal rst : std_logic := '0';
 
         -- Data Signals
-        signal wr_unsuccessful_cnt : t_unsuccessful_cntr_2d := (others => (others => '0'));
+        signal wr_channels_detections : t_photon_counter_2d := (others => (others => '0'));
+        signal wr_photon_losses : std_logic_vector(INT_QUBITS_CNT-1 downto 1) := (others => '0');
         signal wr_valid_gflow_success_done : std_logic := '0';
         signal wr_data_qubit_buffer : t_qubit_buffer_2d := (others => (others => '0'));
         signal wr_data_time_stamp_buffer : t_time_stamp_buffer_2d := (others => (others => '0'));
@@ -87,7 +90,8 @@
             INT_CHANNEL_WIDTH => INT_CHANNEL_WIDTH,
             INT_QUBITS_CNT => INT_QUBITS_CNT,
             CLK_HZ => CLK_HZ,
-            REGULAR_SAMPLER_SECONDS => REGULAR_SAMPLER_SECONDS
+            REGULAR_SAMPLER_SECONDS => REGULAR_SAMPLER_SECONDS,
+            REGULAR_SAMPLER_SECONDS_2 => REGULAR_SAMPLER_SECONDS_2
         )
         port map (
             -- Reset, write clock
@@ -95,7 +99,8 @@
             wr_sys_clk => clk_wr,
 
             -- Data Signals
-            wr_unsuccessful_cnt => wr_unsuccessful_cnt,
+            wr_channels_detections => wr_channels_detections,
+            wr_photon_losses => wr_photon_losses, 
             wr_valid_gflow_success_done => wr_valid_gflow_success_done,
             wr_data_qubit_buffer => wr_data_qubit_buffer,
             wr_data_time_stamp_buffer => wr_data_time_stamp_buffer,
@@ -119,16 +124,29 @@
             fifo_full_latched => fifo_full_latched
         );
 
-        -- Emulate unsuccessful_cnt
-        trans_unsuccessful_cnt : process
+        -- Emulate wr_photon_losses
+        trans_wr_photon_losses : process
         begin
             loop
                 wait for 1000 ns;
 
-                for i in 1 to INT_QUBITS_CNT-1 loop
-                    wr_unsuccessful_cnt(i) <= 
-                        -- is array(MAX_QUBITS_CNT-1 downto 1) of std_logic_vector(8-1 downto 0)
-                        std_logic_vector(unsigned(wr_unsuccessful_cnt(i)) + "1");
+                wait until rising_edge(clk_wr);
+                wr_photon_losses <= (others => '1');
+                wait until rising_edge(clk_wr);
+                wr_photon_losses <= (others => '0');
+            end loop;
+        end process;
+
+        -- Emulate wr_photon_losses
+        trans_wr_channels_detections : process
+        begin
+            loop
+                wait for 25 ns;
+
+                wait until rising_edge(clk_wr);
+                for i in INT_QUBITS_CNT*2-1 downto 0 loop
+                    wr_channels_detections(i) <= 
+                        std_logic_vector(unsigned(wr_channels_detections(i)) + "1");
                 end loop;
             end loop;
         end process;
@@ -194,6 +212,8 @@
         file_close(actual_csv);
         file_open(actual_csv, CSV2_PATH, write_mode);
         file_close(actual_csv);
+        file_open(actual_csv, CSV3_PATH, write_mode);
+        file_close(actual_csv);
         files_recreated <= '1';
         report "CSV files have been re-created successfully.";
 
@@ -210,6 +230,9 @@
                         v_line_being_created := '1'; -- Job Started
                     elsif readout_data_32b(4-1 downto 0) = x"6" then
                         file_open(actual_csv, CSV2_PATH, append_mode);
+                        v_line_being_created := '1'; -- Job Started
+                    elsif readout_data_32b(4-1 downto 0) = x"7" then
+                        file_open(actual_csv, CSV3_PATH, append_mode);
                         v_line_being_created := '1'; -- Job Started
                     end if;
                 end if;
@@ -255,9 +278,15 @@
                     write(v_line_buffer, string'(",") );
 
                 elsif readout_data_32b(4-1 downto 0) = x"7" then -- Regular reporting 2
-                    null;
+                    write(v_line_buffer, string'(
+                        to_string(to_integer(unsigned(readout_data_32b(32-1 downto 4))) ) ));
+                    write(v_line_buffer, string'(",") );
+
                 elsif readout_data_32b(4-1 downto 0) = x"8" then -- Regular reporting 3
-                    null;
+                    write(v_line_buffer, string'(
+                        to_string(to_integer(unsigned(readout_data_32b(32-1 downto 4))) ) ));
+                    write(v_line_buffer, string'(",") );
+
                 elsif readout_data_32b(4-1 downto 0) = x"9" then -- Regular reporting 4
                     null;
                 elsif readout_data_32b(4-1 downto 0) = x"A" then -- Regular reporting 5

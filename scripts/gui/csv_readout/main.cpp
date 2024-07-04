@@ -101,18 +101,19 @@ std::tuple<int, int> guiBackendObj::processReceivedData(std::tuple<int, int> col
 
     outFile1.open("outputFile1.csv", std::ofstream::app);
     outFile2.open("outputFile2.csv", std::ofstream::app);
+    outFile3.open("outputFile3.csv", std::ofstream::app);
 
     // CSV file line creation plan
     // readout_data_32b(3 downto 0) = x"F"    : Print out the line buffer
     // readout_data_32b(3 downto 0) = x"E"    : Extra Comma Delimiter
-    // readout_data_32b(3 downto 0) = x"1"    : Event-based data group (Photons H/V)
-    // readout_data_32b(3 downto 0) = x"2"    : Event-based data group (Alpha)
-    // readout_data_32b(3 downto 0) = x"3"    : Event-based data group (Modulo)
-    // readout_data_32b(3 downto 0) = x"4"    : Event-based data group (Random bit)
-    // readout_data_32b(3 downto 0) = x"5"    : Event-based data group (Timestamps)
-    // readout_data_32b(3 downto 0) = x"6"    : Regular reporting group (Coincidence patterns)
-    // readout_data_32b(3 downto 0) = x"7"    : Regular reporting 2 (Available)
-    // readout_data_32b(3 downto 0) = x"8"    : Regular reporting 3 (Available)
+    // readout_data_32b(3 downto 0) = x"1"    : Event-based data group 1/5 (Photons H/V)
+    // readout_data_32b(3 downto 0) = x"2"    : Event-based data group 2/5 (Alpha)
+    // readout_data_32b(3 downto 0) = x"3"    : Event-based data group 3/5 (Modulo)
+    // readout_data_32b(3 downto 0) = x"4"    : Event-based data group 4/5 (Random bit)
+    // readout_data_32b(3 downto 0) = x"5"    : Event-based data group 5/5 (Timestamps)
+    // readout_data_32b(3 downto 0) = x"6"    : Regular reporting group 1/1 (Coincidence patterns)
+    // readout_data_32b(3 downto 0) = x"7"    : Regular reporting group 1/2 (Photon Counting per channel)
+    // readout_data_32b(3 downto 0) = x"8"    : Regular reporting group 2/2 (Photon Losses in coincidence window)
     // readout_data_32b(3 downto 0) = x"9"    : Regular reporting 4 (Available)
     // readout_data_32b(3 downto 0) = x"A"    : Regular reporting 5 (Available)
     // readout_data_32b(3 downto 0) = x"B"    : Regular reporting 6 (Available)
@@ -155,6 +156,8 @@ std::tuple<int, int> guiBackendObj::processReceivedData(std::tuple<int, int> col
                     outFile1 << std::endl;
                 } else if (actual_file_id = 2){
                     outFile2 << std::endl;
+                } else if (actual_file_id = 3){
+                    outFile3 << std::endl;
                 }
                 actual_column_cntr = 0;
 
@@ -163,6 +166,8 @@ std::tuple<int, int> guiBackendObj::processReceivedData(std::tuple<int, int> col
                     outFile1 << ",";
                 } else if (actual_file_id = 2){
                     outFile2 << ",";
+                } else if (actual_file_id = 3){
+                    outFile3 << ",";
                 }
                 actual_column_cntr++;
 
@@ -196,8 +201,16 @@ std::tuple<int, int> guiBackendObj::processReceivedData(std::tuple<int, int> col
                 actual_column_cntr++;
                 actual_file_id = 2;
 
-            // case 7:  // Regular reporting 2 (Available)
-            // case 8:  // Regular reporting 3 (Available)
+            case 7:  // Regular reporting (Photon Channel Counting)
+                outFile3 << std::to_string(data) << ",";
+                actual_column_cntr++;
+                actual_file_id = 3;
+
+            case 8:  // Regular reporting (Photon Losses)
+                outFile3 << std::to_string(data) << ",";
+                actual_column_cntr++;
+                actual_file_id = 3;
+
             // case 9:  // Regular reporting 4 (Available)
             // case 10: // Regular reporting 5 (Available) 
             // case 11: // Regular reporting 6 (Available) 
@@ -208,6 +221,7 @@ std::tuple<int, int> guiBackendObj::processReceivedData(std::tuple<int, int> col
 
     outFile1.close();
     outFile2.close();
+    outFile3.close();
     return {actual_column_cntr, actual_file_id};
 }
 

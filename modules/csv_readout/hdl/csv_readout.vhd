@@ -14,7 +14,8 @@
             INT_CHANNEL_WIDTH : positive := 32;
             INT_QUBITS_CNT : positive := 4;
             CLK_HZ : real := 100.0e6;
-            REGULAR_SAMPLER_SECONDS : real := 1.0e-6
+            REGULAR_SAMPLER_SECONDS : real := 1.0e-6;
+            REGULAR_SAMPLER_SECONDS_2 : real := 2.0e-6
         );
         port (
             -- Reset, write clock
@@ -22,7 +23,8 @@
             wr_sys_clk : in std_logic;
 
             -- Data Signals
-            wr_unsuccessful_cnt : in t_unsuccessful_cntr_2d;
+            wr_channels_detections : t_photon_counter_2d;
+            wr_photon_losses : in std_logic_vector(INT_QUBITS_CNT-1 downto 1);
             wr_valid_gflow_success_done : in std_logic;
             wr_data_qubit_buffer : in t_qubit_buffer_2d;
             wr_data_time_stamp_buffer : in t_time_stamp_buffer_2d;
@@ -95,17 +97,24 @@
         signal sl_full_latched : std_logic := '0';
 
 
-        -- Regular monitoring counter
+        -- Regular monitoring counter 1
         constant PERIODIC_REPORT_CLK_PERIODS : natural := natural(REGULAR_SAMPLER_SECONDS * CLK_HZ);
         signal int_periodic_report_counter : integer range 0 to PERIODIC_REPORT_CLK_PERIODS-1 := 0;
         signal sl_periodic_report_flag : std_logic := '0';
-        signal sl_readout_request_coincidences : std_logic := '0';
+        signal sl_readout_request_periodic : std_logic := '0';
         signal sl_periodic_report_sample_request : std_logic_vector((INT_QUBITS_CNT**2)-1 downto 0) := (others => '0');
 
-        -- Photon Combination Accumulation
-        constant ACCUMULATOR_COUNTER_WIDTH : positive := 16; -- 65536 counts max
+        -- Regular monitoring counter 1
+        constant PERIODIC_REPORT_CLK_PERIODS_2 : natural := natural(REGULAR_SAMPLER_SECONDS_2 * CLK_HZ);
+        signal int_periodic_report_counter_2 : integer range 0 to PERIODIC_REPORT_CLK_PERIODS_2-1 := 0;
+        signal sl_periodic_report_flag_2 : std_logic := '0';
+        signal sl_readout_request_periodic_2 : std_logic := '0';
+        signal sl_periodic_report_sample_request_2 : std_logic_vector((INT_QUBITS_CNT*2)-1 downto 0) := (others => '0');
+
+        -- Photon Coincidences Combination Accumulation
+        constant COINCIDENCE_PATTERN_ACC_WIDTH : positive := 16; -- 65536 counts max
         type t_all_combinations_2d is array(INT_QUBITS_CNT**2-1 downto 0) of natural;
-        type t_all_combinations_counters_2d is array(INT_QUBITS_CNT**2-1 downto 0) of std_logic_vector(ACCUMULATOR_COUNTER_WIDTH-1 downto 0);
+        type t_all_coincidences_combinations_2d is array(INT_QUBITS_CNT**2-1 downto 0) of std_logic_vector(COINCIDENCE_PATTERN_ACC_WIDTH-1 downto 0);
         impure function get_all_combinations_qubits return t_all_combinations_2d is
             variable v_all_combinations_2d : t_all_combinations_2d := (others => 0);
         begin
@@ -115,14 +124,28 @@
             return v_all_combinations_2d;
         end function;
         constant COMBINATION_ADDR : t_all_combinations_2d := get_all_combinations_qubits;
-        signal slv_combinations_counters_2d : t_all_combinations_counters_2d := (others => (others => '0'));
+        signal slv_combinations_counters_2d : t_all_coincidences_combinations_2d := (others => (others => '0'));
         signal slv_higher_bits_qubit_buffer : std_logic_vector(INT_QUBITS_CNT-1 downto 0) := (others => '0');
+
+        -- All channels detections accumulator
+        constant ALL_CH_DETECTIONS_ACC_WIDTH : positive := 16; -- 65536 counts max
+        type t_all_channels_detections_2d is array(INT_QUBITS_CNT*2-1 downto 0) of std_logic_vector(ALL_CH_DETECTIONS_ACC_WIDTH-1 downto 0);
+        signal slv_all_channels_detections_2d : t_all_channels_detections_2d := (others => (others => '0'));
+        signal sl_overflow_counter : std_logic := '0';
+        signal slv_last_bit_p1 : std_logic_vector(INT_QUBITS_CNT*2-1 downto 0) := (others => '0');
+
+        -- Photon Miss / Photon Loss accumulator
+        constant ALL_PHOTON_LOSSES_ACC_WIDTH : positive := 16; -- 65536 counts max
+        type t_all_unsuccessful_coincidences_2d is array(INT_QUBITS_CNT-1 downto 1) of std_logic_vector(ALL_PHOTON_LOSSES_ACC_WIDTH-1 downto 0);
+        signal slv_all_unsuccessful_coincidences_2d : t_all_unsuccessful_coincidences_2d := (others => (others => '0'));
 
         -- Readout counter
         signal int_readout_counter : natural := 0;
 
-        -- Samplers before transmission
-        signal slv_combinations_counters_sampled : std_logic_vector(ACCUMULATOR_COUNTER_WIDTH*(INT_QUBITS_CNT**2)-1 downto 0) := (others => '0');
+        -- Samplers before transmission # TODO?
+        signal slv_combinations_counters_sampled : std_logic_vector(COINCIDENCE_PATTERN_ACC_WIDTH*(INT_QUBITS_CNT**2)-1 downto 0) := (others => '0');
+        signal slv_ch_detections_sampled : std_logic_vector(ALL_CH_DETECTIONS_ACC_WIDTH*(INT_QUBITS_CNT*2)-1 downto 0) := (others => '0');
+        signal slv_photon_losses_sampled : std_logic_vector(ALL_PHOTON_LOSSES_ACC_WIDTH*(INT_QUBITS_CNT)-1 downto 0) := (others => '0');
         signal slv_flow_photons_buffer_sampled : std_logic_vector(2*INT_QUBITS_CNT-1 downto 0) := (others => '0');
         signal slv_flow_alpha_buffer_sampled : std_logic_vector(2*INT_QUBITS_CNT-1 downto 0) := (others => '0');
         signal slv_flow_modulo_buffer_sampled : std_logic_vector(2*INT_QUBITS_CNT-1 downto 0) := (others => '0');
@@ -130,7 +153,9 @@
         signal slv_flow_timestamp_buffer_sampled : std_logic_vector(28*INT_QUBITS_CNT-1 downto 0) := (others => '0');
 
         -- Shifters for data outflow
-        signal slv_combinations_counters_shreg : std_logic_vector(ACCUMULATOR_COUNTER_WIDTH*(INT_QUBITS_CNT**2)-1 downto 0) := (others => '0');
+        signal slv_combinations_counters_shreg : std_logic_vector(COINCIDENCE_PATTERN_ACC_WIDTH*(INT_QUBITS_CNT**2)-1 downto 0) := (others => '0');
+        signal slv_ch_detections_shreg : std_logic_vector(ALL_CH_DETECTIONS_ACC_WIDTH*(INT_QUBITS_CNT*2)-1 downto 0) := (others => '0');
+        signal slv_photon_losses_shreg : std_logic_vector(ALL_PHOTON_LOSSES_ACC_WIDTH*(INT_QUBITS_CNT)-1 downto 0) := (others => '0');
         signal slv_flow_photons_buffer_shreg : std_logic_vector(slv_flow_photons_buffer_sampled'range) := (others => '0');
         signal slv_flow_alpha_buffer_shreg : std_logic_vector(slv_flow_alpha_buffer_sampled'range) := (others => '0');
         signal slv_flow_modulo_buffer_shreg : std_logic_vector(slv_flow_modulo_buffer_sampled'range) := (others => '0');
@@ -141,6 +166,8 @@
 
         -- Notify the FSM to transfer data from samplers to shifters and perform the readout
         signal sl_request_read_coincidences_shift_enable : std_logic := '0';
+        signal sl_request_read_ch_detections_shift_enable : std_logic := '0';
+        signal sl_request_read_photon_losses_shift_enable : std_logic := '0';
         signal sl_request_read_photons_shift_enable : std_logic := '0';
         signal sl_request_read_alpha_shift_enable : std_logic := '0';
         signal sl_request_read_modulo_shift_enable : std_logic := '0';
@@ -150,6 +177,8 @@
         type t_state_write_data_transac is (
             SCAN_READOUT_REQUESTS,
             SEND_COINCIDENCES,
+            SEND_CH_DETECTIONS,
+            SEND_PHOTON_LOSSES,
             SEND_GFLOW_PHOTONS,
             SEND_GFLOW_ALPHA,
             SEND_GFLOW_MODULO,
@@ -178,8 +207,8 @@
         -- x"4" = SEND_GFLOW_RANDOM     (continues the x"3")
         -- x"5" = SEND_GFLOW_TIMESTAMP  (continues the x"4", readout end)
         -- x"6" = SEND_COINCIDENCES     (periodical readout)
-        -- x"7" = abavilable
-        -- x"8" = abavilable
+        -- x"7" = SEND_CH_DETECTIONS    (periodical readout)
+        -- x"8" = SEND_PHOTON_LOSSES    (periodical readout)
         -- x"9" = abavilable
         -- x"A" = abavilable
         -- x"B" = abavilable
@@ -220,9 +249,9 @@
         );
 
 
-        -------------------------------------
-        -- PHOTON COMBINATION ACCUMULATION --
-        -------------------------------------
+        -------------------------------------------
+        -- COINCIDENCES COMBINATION ACCUMULATION --
+        -------------------------------------------
         gen_pick_higher_bits : for i in 0 to INT_QUBITS_CNT-1 generate
             slv_higher_bits_qubit_buffer(i) <= wr_data_qubit_buffer(i)(1);
         end generate;
@@ -240,6 +269,43 @@
                 end if;
             end if;
         end process;
+
+        ------------------------------------------
+        -- ALL CHANNELS DETECTIONS ACCUMULATION --
+        ------------------------------------------
+        gen_channels_detections_accumulator : for i in 0 to INT_QUBITS_CNT*2-1 generate
+            proc_channels_detections_accumulator : process (wr_sys_clk)
+            begin
+                if rising_edge(wr_sys_clk) then
+                    -- Delay last bit to detect counter overflow (falling edge)
+                    slv_last_bit_p1(i) <= wr_channels_detections(i)(8-1);
+
+                    -- Increment on last bit overflow (falling edge of the MSB), append counter's bits into lower bits to form the wider counter for readout
+                    if slv_last_bit_p1(i) = '1' and wr_channels_detections(i)(8-1) = '0' then
+                        slv_all_channels_detections_2d(i)(ALL_CH_DETECTIONS_ACC_WIDTH-1 downto 8) 
+                            <= std_logic_vector(unsigned(slv_all_channels_detections_2d(i)(ALL_CH_DETECTIONS_ACC_WIDTH-1 downto 8)) + "1");
+                    end if;
+
+                    slv_all_channels_detections_2d(i)(8-1 downto 0) <= wr_channels_detections(i)(8-1 downto 0);
+                end if;
+            end process;
+        end generate;
+
+
+        -------------------------------------
+        -- PHOTON MISS / LOSS ACCUMULATION --
+        -------------------------------------
+        gen_photon_loss_accumulator : for i in 1 to INT_QUBITS_CNT-1 generate
+            proc_photon_loss_accumulator : process (wr_sys_clk)
+            begin
+                if rising_edge(wr_sys_clk) then
+                    if wr_photon_losses(i) = '1' then
+                        slv_all_unsuccessful_coincidences_2d(i) <= std_logic_vector(unsigned(slv_all_unsuccessful_coincidences_2d(i)) + "1");
+                    end if;
+                end if;
+            end process;
+        end generate;
+
 
         ----------------------------------
         -- Samplers Before Transmission --
@@ -267,7 +333,7 @@
         proc_sample_alpha_buffer : process(wr_sys_clk)
         begin
             if rising_edge(wr_sys_clk) then
-                
+
                 -- Sample on sample request
                 if wr_valid_gflow_success_done = '1' then -- Sample request signal
                     for i in 0 to INT_QUBITS_CNT-1 loop
@@ -306,7 +372,7 @@
 
         proc_sample_random_buffer : process(wr_sys_clk)
         begin
-            
+
             if rising_edge(wr_sys_clk) then
 
                 -- Sample on sample request
@@ -347,14 +413,14 @@
 
 
 
-        proc_sample_accumulated_values : process(wr_sys_clk)
+        proc_sample_coincidences_patterns : process(wr_sys_clk)
         begin
             if rising_edge(wr_sys_clk) then
 
                 -- Sample on sample request
                 for i in 0 to INT_QUBITS_CNT**2-1 loop
                     if sl_periodic_report_sample_request(i) = '1' then -- Sample request signal
-                            slv_combinations_counters_shreg((i+1)*ACCUMULATOR_COUNTER_WIDTH-1 downto i*ACCUMULATOR_COUNTER_WIDTH) 
+                            slv_combinations_counters_shreg((i+1)*COINCIDENCE_PATTERN_ACC_WIDTH-1 downto i*COINCIDENCE_PATTERN_ACC_WIDTH) 
                                 <= slv_combinations_counters_2d(i);
                     end if;
                 end loop;
@@ -362,10 +428,53 @@
                 -- Shift right by a certain number of bits on enable
                 if sl_request_read_coincidences_shift_enable = '1' then
                     slv_combinations_counters_shreg <= 
-                        slv_shift_right(slv_combinations_counters_shreg, ACCUMULATOR_COUNTER_WIDTH);
+                        slv_shift_right(slv_combinations_counters_shreg, COINCIDENCE_PATTERN_ACC_WIDTH);
                 end if;
             end if;
         end process;
+
+
+        proc_sample_all_channels_detections : process(wr_sys_clk)
+        begin
+            if rising_edge(wr_sys_clk) then
+
+                -- Sample on sample request
+                for i in 0 to INT_QUBITS_CNT*2-1 loop
+                    if sl_periodic_report_sample_request_2(i) = '1' then -- Sample request signal
+                            slv_ch_detections_shreg((i+1)*ALL_CH_DETECTIONS_ACC_WIDTH-1 downto i*ALL_CH_DETECTIONS_ACC_WIDTH) 
+                                <= slv_all_channels_detections_2d(i);
+                    end if;
+                end loop;
+
+                -- Shift right by a certain number of bits on enable
+                if sl_request_read_ch_detections_shift_enable = '1' then
+                    slv_ch_detections_shreg <= 
+                        slv_shift_right(slv_ch_detections_shreg, ALL_CH_DETECTIONS_ACC_WIDTH);
+                end if;
+            end if;
+        end process;
+
+
+        proc_sample_photon_losses : process(wr_sys_clk)
+        begin
+            if rising_edge(wr_sys_clk) then
+
+                -- Sample on sample request
+                for i in 1 to INT_QUBITS_CNT-1 loop
+                    if sl_periodic_report_sample_request_2(i) = '1' then -- Sample request signal
+                            slv_photon_losses_shreg((i+1)*ALL_PHOTON_LOSSES_ACC_WIDTH-1 downto i*ALL_PHOTON_LOSSES_ACC_WIDTH) 
+                                <= slv_all_unsuccessful_coincidences_2d(i);
+                    end if;
+                end loop;
+
+                -- Shift right by a certain number of bits on enable
+                if sl_request_read_photon_losses_shift_enable = '1' then
+                    slv_photon_losses_shreg <= 
+                        slv_shift_right(slv_photon_losses_shreg, ALL_PHOTON_LOSSES_ACC_WIDTH);
+                end if;
+            end if;
+        end process;
+
 
         -- Sample the data buffers and make them stable, since they change over time
         -- Then, prepare transactions and send them one by one to the fifo
@@ -377,6 +486,8 @@
 
                 -- Pipes Off by default
                 sl_request_read_coincidences_shift_enable <= '0';
+                sl_request_read_ch_detections_shift_enable <= '0';
+                sl_request_read_photon_losses_shift_enable <= '0';
                 sl_request_read_photons_shift_enable <= '0';
                 sl_request_read_alpha_shift_enable <= '0';
                 sl_request_read_modulo_shift_enable <= '0';
@@ -395,6 +506,17 @@
                     sl_periodic_report_sample_request <= (others => '0');
                 end if;
 
+                -- 2nd counter to send a value per desired number of seconds
+                if int_periodic_report_counter_2 = PERIODIC_REPORT_CLK_PERIODS_2-1 then
+                    int_periodic_report_counter_2 <= 0;
+                    sl_periodic_report_flag_2 <= '1';
+                    sl_periodic_report_sample_request_2 <= (others => '1');
+                else
+                    int_periodic_report_counter_2 <= int_periodic_report_counter_2 + 1;
+                    sl_periodic_report_flag_2 <= '0';
+                    sl_periodic_report_sample_request_2 <= (others => '0');
+                end if;
+
 
                 -- Queued Requests
                 if wr_valid_gflow_success_done = '1' then
@@ -402,7 +524,11 @@
                 end if;
 
                 if sl_periodic_report_flag = '1' then
-                    sl_readout_request_coincidences <= sl_periodic_report_flag;
+                    sl_readout_request_periodic <= sl_periodic_report_flag;
+                end if;
+
+                if sl_periodic_report_flag_2 = '1' then
+                    sl_readout_request_periodic_2 <= sl_periodic_report_flag_2;
                 end if;
 
 
@@ -417,23 +543,16 @@
                             state_fifo_readout <= SEND_GFLOW_PHOTONS; -- Multi-transactional sequence of readout tx commands
                             sl_request_read_photons_shift_enable <= '1'; -- Pipe On (will be done after 2 clk cycles)
 
-                        elsif sl_readout_request_coincidences = '1' then -- (Lower Priority)
+                        elsif sl_readout_request_periodic = '1' then -- (Lower Priority)
                             -- Periodic report readout request
                             state_fifo_readout <= SEND_COINCIDENCES;
                             sl_request_read_coincidences_shift_enable <= '1'; -- Pipe On (will be done after 2 clk cycles)
+
+                        elsif sl_readout_request_periodic_2 = '1' then -- (Lowest Priority)
+                            -- Periodic report readout request
+                            state_fifo_readout <= SEND_CH_DETECTIONS;
+                            sl_request_read_ch_detections_shift_enable <= '1'; -- Pipe On (will be done after 2 clk cycles)
                         end if;
-
-                        -- PRIORITIES SWITCHED
-                        -- if sl_readout_request_coincidences = '1' then -- (Higher Priority)
-                        --     -- Gflow report readout request
-                        --     state_fifo_readout <= SEND_COINCIDENCES;
-                        --     sl_request_read_coincidences_shift_enable <= '1'; -- Pipe On (will be done after 2 clk cycles)
-
-                        -- elsif sl_readout_request_gflow = '1' then -- (Lower Priority)
-                        --     -- Periodic report readout request
-                        --     state_fifo_readout <= SEND_GFLOW_PHOTONS; -- Multi-transactional sequence of readout tx commands
-                        --     sl_request_read_photons_shift_enable <= '1'; -- Pipe On (will be done after 2 clk cycles)
-                        -- end if;
 
 
 
@@ -448,22 +567,82 @@
                             slv_wr_data_stream_32b(31 downto 4) <= (others => '0');
                             slv_wr_data_stream_32b(3 downto 0) <= x"F";
 
-                            sl_readout_request_coincidences <= '0';      -- Job Done
+                            sl_readout_request_periodic <= '0';      -- Job Done
 
                             state_fifo_readout <= SCAN_READOUT_REQUESTS; -- Coordinate the readout logic
+                            -- No shift request to next FSM state
                         else
                             int_readout_counter <= int_readout_counter + 1;
                             sl_wr_en_flag_pulsed <= '1';
 
                             slv_wr_data_stream_32b(31 downto 4) -- Define All bits!
-                                <= std_logic_vector(to_unsigned(0, INT_DATA_SPACE_IN_CHANNEL-ACCUMULATOR_COUNTER_WIDTH)) 
-                                    & slv_combinations_counters_shreg(ACCUMULATOR_COUNTER_WIDTH-1 downto 0);
+                                <= std_logic_vector(to_unsigned(0, INT_DATA_SPACE_IN_CHANNEL-COINCIDENCE_PATTERN_ACC_WIDTH)) 
+                                    & slv_combinations_counters_shreg(COINCIDENCE_PATTERN_ACC_WIDTH-1 downto 0);
 
                             slv_wr_data_stream_32b(3 downto 0) <= x"6"; -- Encoded command for the RX counterpart
 
                             sl_request_read_coincidences_shift_enable <= '1'; -- Keep Pipe On
 
                         end if;
+
+                    when SEND_CH_DETECTIONS =>
+
+                        -- Send periodic report in a way it has a higher priority over the 'sl_readout_request_gflow' but does not interfere with it
+                        if int_readout_counter = INT_QUBITS_CNT*2 then
+                            int_readout_counter <= 0;
+
+                            -- Send enter
+                            sl_wr_en_flag_pulsed <= '1'; -- Writing to FIFO shut down
+                            slv_wr_data_stream_32b(31 downto 4) <= (others => '0');
+                            slv_wr_data_stream_32b(3 downto 0) <= x"E";
+
+                            -- sl_readout_request_periodic_2 <= '0';      -- Job Not Done Yet
+
+                            state_fifo_readout <= SEND_PHOTON_LOSSES; -- Coordinate the readout logic
+                            sl_request_read_photon_losses_shift_enable <= '1';
+                        else
+                            int_readout_counter <= int_readout_counter + 1;
+                            sl_wr_en_flag_pulsed <= '1';
+
+                            slv_wr_data_stream_32b(31 downto 4) -- Define All bits!
+                                <= std_logic_vector(to_unsigned(0, INT_DATA_SPACE_IN_CHANNEL-ALL_CH_DETECTIONS_ACC_WIDTH)) 
+                                    & slv_ch_detections_shreg(ALL_CH_DETECTIONS_ACC_WIDTH-1 downto 0);
+
+                            slv_wr_data_stream_32b(3 downto 0) <= x"7"; -- Encoded command for the RX counterpart
+
+                            sl_request_read_ch_detections_shift_enable <= '1'; -- Keep Pipe On
+
+                        end if;
+
+                    when SEND_PHOTON_LOSSES =>
+
+                        -- Send periodic report in a way it has a higher priority over the 'sl_readout_request_gflow' but does not interfere with it
+                        if int_readout_counter = INT_QUBITS_CNT-1 then
+                            int_readout_counter <= 0;
+
+                            -- Send enter
+                            sl_wr_en_flag_pulsed <= '1'; -- Writing to FIFO shut down
+                            slv_wr_data_stream_32b(31 downto 4) <= (others => '0');
+                            slv_wr_data_stream_32b(3 downto 0) <= x"F";
+
+                            sl_readout_request_periodic_2 <= '0';      -- Job Done
+
+                            state_fifo_readout <= SCAN_READOUT_REQUESTS; -- Coordinate the readout logic
+                            -- No shift request to next FSM state
+                        else
+                            int_readout_counter <= int_readout_counter + 1;
+                            sl_wr_en_flag_pulsed <= '1';
+
+                            slv_wr_data_stream_32b(31 downto 4) -- Define All bits!
+                                <= std_logic_vector(to_unsigned(0, INT_DATA_SPACE_IN_CHANNEL-ALL_PHOTON_LOSSES_ACC_WIDTH)) 
+                                    & slv_photon_losses_shreg(ALL_PHOTON_LOSSES_ACC_WIDTH-1 downto 0);
+
+                            slv_wr_data_stream_32b(3 downto 0) <= x"8"; -- Encoded command for the RX counterpart
+
+                            sl_request_read_photon_losses_shift_enable <= '1'; -- Keep Pipe On
+
+                        end if;
+
 
 
                     when SEND_GFLOW_PHOTONS => 

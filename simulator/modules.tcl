@@ -34,6 +34,8 @@
 ./modules/qubit_deskew/hdl/qubit_deskew.vhd
 ./modules/nff_cdcc_flag/sim/nff_cdcc_flag_tb.vhd
 ./modules/nff_cdcc_flag/hdl/nff_cdcc_flag.vhd
+./modules/nff_cdcc_cntr/sim/nff_cdcc_cntr_tb.vhd
+./modules/nff_cdcc_cntr/hdl/nff_cdcc_cntr.vhd
 ./packages/global_sim/signals_pack_tb.vhd
 ./packages/global_sim/types_pack_tb.vhd
 ./packages/global_sim/const_pack_tb.vhd

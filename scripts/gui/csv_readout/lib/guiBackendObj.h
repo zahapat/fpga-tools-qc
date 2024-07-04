@@ -46,6 +46,7 @@ class guiBackendObj {
 
     std::ofstream outFile1;
     std::ofstream outFile2;
+    std::ofstream outFile3;
 
 public:
 
@@ -77,6 +78,10 @@ public:
         outFile2.open("outputFile2.csv", std::ofstream::out | std::ofstream::trunc);
         outFile2 << "combinations 1-to-QUBITS**2-1," << std::endl;
         outFile2.close();
+
+        outFile3.open("outputFile3.csv", std::ofstream::out | std::ofstream::trunc);
+        outFile3 << "channel_detections H/V 1-to-X,,qubit_losses 1-to-X," << std::endl;
+        outFile3.close();
     }
 
     // Destructor

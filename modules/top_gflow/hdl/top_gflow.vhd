@@ -211,7 +211,6 @@
         signal slv_cdcc_rd_valid_to_fsm : std_logic_vector(INT_QUBITS_CNT-1 downto 0) := (others => '0');
         signal slv_cdcc_rd_qubits_to_fsm : std_logic_vector(CHANNELS_CNT-1 downto 0) := (others => '0');
 
-        signal slv_unsuccessful_qubits     : std_logic_vector(INT_QUBITS_CNT-1 downto 1) := (others => '0');
         signal sl_gflow_success_flag       : std_logic := '0';
         signal sl_gflow_success_done       : std_logic := '0';
         signal slv_alpha_to_math           : std_logic_vector(1 downto 0) := (others => '0');
@@ -220,25 +219,29 @@
         signal slv_actual_qubit            : std_logic_vector(1 downto 0) := (others => '0');
         signal slv_actual_qubit_time_stamp : std_logic_vector(st_transaction_data_max_width) := (others => '0');
         signal state_gflow                 : natural range 0 to INT_QUBITS_CNT-1 := 0;
-
+        
         signal sl_pseudorandom_to_math  : std_logic := '0';
         signal slv_math_data_modulo     : std_logic_vector(1 downto 0) := (others => '0');
         signal sl_math_data_valid       : std_logic := '0';
-
+        
         signal slv_modulo_bit_pulse         : std_logic_vector(0 downto 0) := (others => '0');       
         signal slv_modulo_bit_pulse_delayed : std_logic_vector(0 downto 0) := (others => '0');
         signal pcd_ctrl_pulse_ready         : std_logic_vector(0 downto 0) := (others => '0');
         signal pcd_ctrl_pulse_ready_delayed : std_logic_vector(0 downto 0) := (others => '0');
         signal pcd_ctrl_pulse_busy          : std_logic_vector(0 downto 0) := (others => '0');
         signal pcd_ctrl_pulse_busy_delayed  : std_logic_vector(0 downto 0) := (others => '0');
-
+        
         -- Data buffers from G-Flow protocol module
         signal slv_qubit_buffer_2d      : t_qubit_buffer_2d := (others => (others => '0'));
         signal slv_time_stamp_buffer_2d : t_time_stamp_buffer_2d := (others => (others => '0'));
         signal slv_alpha_buffer_2d      : t_alpha_buffer_2d := (others => (others => '0'));
         signal slv_modulo_buffer_2d     : t_modulo_buffer_2d := (others => (others => '0'));
         signal slv_random_buffer_2d     : t_random_buffer_2d := (others => (others => '0'));
-        signal slv_unsuccessful_cntr_2d : t_unsuccessful_cntr_2d := (others => (others => '0'));
+        
+        -- Pulses used for measurements
+        signal slv_photon_losses_to_cdcc : std_logic_vector(INT_QUBITS_CNT-1 downto 1) := (others => '0');
+        signal slv_photon_losses         : std_logic_vector(INT_QUBITS_CNT-1 downto 1) := (others => '0');
+        signal slv_channels_detections_cntr : t_photon_counter_2d := (others => (others => '0'));
 
         -- CDCC Sampl clk to Readout clk transfer
         signal slv_qubit_buffer_transferred_2d      : t_qubit_buffer_2d := (others => (others => '0'));
@@ -381,7 +384,8 @@
             INT_CHANNEL_WIDTH => 32,
             INT_QUBITS_CNT => INT_QUBITS_CNT,
             CLK_HZ => REAL_CLK_SYS_HZ,
-            REGULAR_SAMPLER_SECONDS => 5.0e-6 -- Change this value to alter the frequency of regular reporting
+            REGULAR_SAMPLER_SECONDS => 5.0e-6,  -- Change this value to alter the frequency of regular reporting
+            REGULAR_SAMPLER_SECONDS_2 => 6.0e-6 -- Change this value to alter the frequency of regular reporting
         )
         port map (
             -- Reset
@@ -390,7 +394,8 @@
             -- Write endpoint signals
             wr_sys_clk => sys_clk,
 
-            wr_unsuccessful_cnt => slv_unsuccessful_cntr_2d,
+            wr_photon_losses => slv_photon_losses,
+            wr_channels_detections => slv_channels_detections_cntr,
             wr_valid_gflow_success_done => sl_gflow_success_done_transferred,
             wr_data_qubit_buffer => slv_qubit_buffer_transferred_2d,
             wr_data_time_stamp_buffer => slv_time_stamp_buffer_transferred_2d,
@@ -558,7 +563,6 @@
         inst_fsm_gflow : entity lib_src.fsm_gflow(rtl)
         generic map (
             RST_VAL                 => RST_VAL,
-            -- SAMPL_CLK_HZ            => REAL_CLK_SAMPL_HZ,
             CLK_HZ                  => REAL_CLK_SAMPL_HZ,
             CTRL_PULSE_DUR_WITH_DEADTIME_NS => CTRL_PULSE_DUR_WITH_DEADTIME_NS,
             QUBITS_CNT              => INT_QUBITS_CNT,
@@ -586,7 +590,7 @@
             feedback_mod_valid        => sl_math_data_valid,
             feedback_mod              => slv_math_data_modulo,
 
-            o_unsuccessful_qubits     => slv_unsuccessful_qubits,
+            o_unsuccessful_qubits     => slv_photon_losses_to_cdcc,
 
             gflow_success_flag        => sl_gflow_success_flag,
             gflow_success_done        => sl_gflow_success_done,
@@ -654,39 +658,60 @@
             WR_READY_DEASSERTED_CYCLES => 2
         )
         port map (
-            -- sampl_clk
+            -- Write ports
             clk_write => sampl_clk,
             wr_en     => sl_gflow_success_done,
             wr_data   => (others => '0'),
             wr_ready  => open,
 
-            -- sys_clk
+            -- Read ports
             clk_read => sys_clk,
             rd_valid => sl_gflow_success_done_transferred,
             rd_data  => open
         );
 
-        -- -- Count unsuccessful qubits per channel and transfer the value to the readout domain
-        -- gen_cdcc_count_unsuccessful_detections : for i in INT_QUBITS_CNT-1 downto 1 generate
-        --     inst_nff_cdcc_unsuccessful_cntr : entity lib_src.nff_cdcc_cntr(rtl)
-        --         generic map (
-        --             ASYNC_FLOPS_CNT => 2,
-        --             CNTR_WIDTH => 8,
-        --             FLOPS_BEFORE_CROSSING_CNT => 1,
-        --             WR_READY_DEASSERTED_CYCLES => 2
-        --         )
-        --         port map (
-        --             -- Write ports
-        --             clk_write => sampl_clk,
-        --             wr_en     => slv_unsuccessful_qubits(i),
-        --             wr_ready  => open,
+        -- Count unsuccessful qubits per channel and transfer the value to the readout domain
+        gen_cdcc_photon_losses_flags : for i in INT_QUBITS_CNT-1 downto 1 generate
+            inst_nff_cdcc_photon_loss_event : entity lib_src.nff_cdcc_flag(rtl)
+                generic map (
+                    BYPASS => false,
+                    ASYNC_FLOPS_CNT => 2,
+                    FLOPS_BEFORE_CROSSING_CNT => 1,
+                    WR_READY_DEASSERTED_CYCLES => 4
+                )
+                port map (
+                    -- Write ports
+                    clk_write => sampl_clk,
+                    wr_en => slv_photon_losses_to_cdcc(i),
+                    wr_ready  => open,
 
-        --             -- Read ports
-        --             clk_read  => sys_clk,
-        --             rd_valid  => open,
-        --             rd_data   => slv_unsuccessful_cntr_2d(i)
-        --         );
-        -- end generate;
+                    -- Read ports
+                    clk_read => sys_clk,
+                    rd_valid => slv_photon_losses(i)
+                );
+        end generate;
+
+        -- Count all photons on FPGA's inputs to verify
+        gen_cdcc_cntr_ch_photons : for i in INT_QUBITS_CNT*2-1 downto 0 generate
+            inst_nff_cdcc_cntr_ch_photons : entity lib_src.nff_cdcc_cntr(rtl)
+                generic map (
+                    ASYNC_FLOPS_CNT => 2,
+                    CNTR_WIDTH => 8,
+                    FLOPS_BEFORE_CROSSING_CNT => 1,
+                    WR_READY_DEASSERTED_CYCLES => 3 -- Optional handshake
+                )
+                port map (
+                    -- Write ports
+                    clk_write => sampl_clk,
+                    wr_en => slv_cdcc_rd_qubits_to_fsm(i),
+                    wr_ready => open,
+
+                    -- Read ports
+                    clk_read => sys_clk,
+                    rd_valid => open,
+                    rd_data => slv_channels_detections_cntr(i)
+                );
+        end generate;
 
         gen_cdcc_transfer_data : for i in 0 to INT_QUBITS_CNT-1 generate
             -- CDCC Qubit Buffer
@@ -699,13 +724,13 @@
                     WR_READY_DEASSERTED_CYCLES => 2
                 )
                 port map (
-                    -- sampl_clk
+                    -- Write ports
                     clk_write => sampl_clk,
                     wr_en     => sl_gflow_success_done,
                     wr_data   => slv_qubit_buffer_2d(i),
                     wr_ready  => open,
 
-                    -- sys_clk
+                    -- Read ports
                     clk_read => sys_clk,
                     rd_valid => open,
                     rd_data  => slv_qubit_buffer_transferred_2d(i)
@@ -721,13 +746,13 @@
                     WR_READY_DEASSERTED_CYCLES => 2
                 )
                 port map (
-                    -- sampl_clk
+                    -- Write ports
                     clk_write => sampl_clk,
                     wr_en     => sl_gflow_success_done,
                     wr_data   => slv_time_stamp_buffer_2d(i),
                     wr_ready  => open,
 
-                    -- sys_clk
+                    -- Read ports
                     clk_read => sys_clk,
                     rd_valid => open,
                     rd_data  => slv_time_stamp_buffer_transferred_2d(i)
@@ -743,13 +768,13 @@
                     WR_READY_DEASSERTED_CYCLES => 2
                 )
                 port map (
-                    -- sampl_clk
+                    -- Write ports
                     clk_write => sampl_clk,
                     wr_en     => sl_gflow_success_done,
                     wr_data   => slv_alpha_buffer_2d(i),
                     wr_ready  => open,
 
-                    -- sys_clk
+                    -- Read ports
                     clk_read => sys_clk,
                     rd_valid => open,
                     rd_data  => slv_alpha_buffer_transferred_2d(i)
@@ -765,13 +790,13 @@
                     WR_READY_DEASSERTED_CYCLES => 2
                 )
                 port map (
-                    -- sampl_clk
+                    -- Write ports
                     clk_write => sampl_clk,
                     wr_en     => sl_gflow_success_done,
                     wr_data   => slv_modulo_buffer_2d(i),
                     wr_ready  => open,
 
-                    -- sys_clk
+                    -- Read ports
                     clk_read => sys_clk,
                     rd_valid => open,
                     rd_data  => slv_modulo_buffer_transferred_2d(i)
@@ -787,13 +812,13 @@
                     WR_READY_DEASSERTED_CYCLES => 2
                 )
                 port map (
-                    -- sampl_clk
+                    -- Write ports
                     clk_write => sampl_clk,
                     wr_en     => sl_gflow_success_done,
                     wr_data   => slv_random_buffer_2d(i),
                     wr_ready  => open,
 
-                    -- sys_clk
+                    -- Read ports
                     clk_read => sys_clk,
                     rd_valid => open,
                     rd_data  => slv_random_buffer_transferred_2d(i)

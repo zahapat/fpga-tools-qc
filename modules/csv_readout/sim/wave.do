@@ -79,8 +79,11 @@ add wave -noupdate /csv_readout_tb/dut_csv_readout/sl_request_read_modulo_shift_
 add wave -noupdate /csv_readout_tb/dut_csv_readout/sl_request_read_random_shift_enable
 add wave -noupdate /csv_readout_tb/dut_csv_readout/sl_request_read_timestamp_shift_enable
 add wave -noupdate /csv_readout_tb/dut_csv_readout/state_fifo_readout
+add wave -noupdate -childformat {{/csv_readout_tb/dut_csv_readout/slv_all_channels_detections_2d(0) -radix unsigned}} -subitemconfig {/csv_readout_tb/dut_csv_readout/slv_all_channels_detections_2d(0) {-height 15 -radix unsigned}} /csv_readout_tb/dut_csv_readout/slv_all_channels_detections_2d
+add wave -noupdate /csv_readout_tb/dut_csv_readout/slv_all_unsuccessful_coincidences_2d
+add wave -noupdate /csv_readout_tb/dut_csv_readout/slv_last_bit_p1
 TreeUpdate [SetDefaultTree]
-WaveRestoreCursors {{Cursor 1} {3482050 ps} 0}
+WaveRestoreCursors {{Cursor 1} {7695000 ps} 0}
 quietly wave cursor active 1
 configure wave -namecolwidth 468
 configure wave -valuecolwidth 204

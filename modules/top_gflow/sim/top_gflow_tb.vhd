@@ -32,6 +32,7 @@
         -- File I/O: Write to ONE file at a time
         constant CSV1_PATH : string := PROJ_DIR & "modules/top_gflow/sim/sim_reports/all_flows_details.csv";
         constant CSV2_PATH : string := PROJ_DIR & "modules/top_gflow/sim/sim_reports/all_coincidences.csv";
+        constant CSV3_PATH : string := PROJ_DIR & "modules/top_gflow/sim/sim_reports/all_counters.csv";
         file actual_csv : text;
         signal files_recreated : bit := '0';
 
@@ -417,6 +418,8 @@
         type t_INT_QUBITS_CNT_x_8b_2d is array(INT_QUBITS_CNT-1 downto 1) of std_logic_vector(8-1 downto 0); -- unsuccessful counter
         type t_INT_QUBITS_CNT_x_28b_2d is array(INT_QUBITS_CNT-1 downto 0) of std_logic_vector(32-4-1 downto 0); -- time stamps
         type t_INT_QUBITS_CNTpw2_x_16_2d is array(INT_QUBITS_CNT**2-1 downto 0) of std_logic_vector(16-1 downto 0); -- coincidence patterns
+        type t_INT_QUBITS_CNT2_x_16_2d is array (INT_QUBITS_CNT*2-1 downto 0) of std_logic_vector(16-1 downto 0); -- photon detections counting
+        type t_INT_QUBITS_CNT_x_16_2d is array (INT_QUBITS_CNT-1 downto 0) of std_logic_vector(16-1 downto 0); -- lost photons
 
         -- CSV file 1
         signal readout_photons : t_INT_QUBITS_CNT_x_2b_2d := (others => (others => '0'));
@@ -429,6 +432,11 @@
         -- CSV file 2
         signal readout_coincidences : t_INT_QUBITS_CNTpw2_x_16_2d := (others => (others => '0'));
         signal readout_csv2_line_done_event : bit := '0';
+
+        -- CSV file 3
+        signal readout_photon_counter : t_INT_QUBITS_CNT2_x_16_2d := (others => (others => '0'));
+        signal readout_photon_losses : t_INT_QUBITS_CNT_x_16_2d := (others => (others => '0'));
+        signal readout_csv3_line_done_event : bit := '0';
 
         -- Checkers
         type t_INT_QUBITS_CNT_x_int_2d is array(INT_QUBITS_CNT-1 downto 0) of integer;
@@ -1045,11 +1053,11 @@
         --                                     if x"6" in last 4 bits => output file is csv2
         proc_readout_and_csv_printer : process
             variable v_line_buffer : line;    -- Line buffer
-            variable v_file_number : integer; -- Target file pointer
             variable v_line_being_created : bit := '0';
 
             variable v_cntr_csv1_column : natural := 0;
             variable v_cntr_csv2_column : natural := 0;
+            variable v_cntr_csv3_column : natural := 0;
         begin
 
             -- Recreate output csv files
@@ -1089,6 +1097,19 @@
             writeline(actual_csv, v_line_buffer);
             file_close(actual_csv);
 
+            -- Open and Initialize Headers in output report files (all counters)
+            file_open(actual_csv, CSV3_PATH, write_mode);
+            for i in 1 to INT_QUBITS_CNT*2 loop
+                write(v_line_buffer, string'("chann_q" & integer'image(i) & ","));
+            end loop;
+            write(v_line_buffer, string'(","));
+
+            for i in 2 to INT_QUBITS_CNT loop
+                write(v_line_buffer, string'("loss_q" & integer'image(i) & ","));
+            end loop;
+            writeline(actual_csv, v_line_buffer);
+            file_close(actual_csv);
+
             report "CSV files have been re-created successfully.";
             files_recreated <= '1';
 
@@ -1107,6 +1128,9 @@
                         elsif readout_data_32b(4-1 downto 0) = x"6" then
                             file_open(actual_csv, CSV2_PATH, append_mode);
                             v_line_being_created := '1'; -- Job Started
+                        elsif readout_data_32b(4-1 downto 0) = x"7" then
+                            file_open(actual_csv, CSV3_PATH, append_mode);
+                            v_line_being_created := '1'; -- Job Started
                         end if;
                     end if;
 
@@ -1115,21 +1139,25 @@
                         -- writeline(output, v_line_buffer);     -- To the console (but this deletes the v_line_buffer content)
                         writeline(actual_csv, v_line_buffer); -- To the CSV file
                         file_close(actual_csv);
-                        v_line_being_created := '0';          -- Job Done
+                        v_line_being_created := '0';          -- Job Done (for all readout groups)
 
                         if v_cntr_csv1_column /= 0 then
                             readout_csv1_line_done_event <= not readout_csv1_line_done_event;
                         elsif v_cntr_csv2_column /= 0 then
                             readout_csv2_line_done_event <= not readout_csv2_line_done_event;
+                        elsif v_cntr_csv3_column /= 0 then
+                            readout_csv3_line_done_event <= not readout_csv3_line_done_event;
                         end if;
                         v_cntr_csv1_column := 0;
                         v_cntr_csv2_column := 0;
+                        v_cntr_csv3_column := 0;
 
 
                     elsif readout_data_32b(4-1 downto 0) = x"E" then -- Extra Comma Delimiter
                         write(v_line_buffer, string'(",") );
                         v_cntr_csv1_column := 0;
                         v_cntr_csv2_column := 0;
+                        v_cntr_csv3_column := 0;
 
                     elsif readout_data_32b(4-1 downto 0) = x"1" then -- Event-based data group 1
                         write(v_line_buffer, string'(
@@ -1185,19 +1213,31 @@
                         readout_coincidences(v_cntr_csv2_column) <= readout_data_32b(16-1+4 downto 4); -- Record Data (4 is offset, bits occupied by the csv commands)
                         v_cntr_csv2_column := v_cntr_csv2_column + 1;
 
-                    elsif readout_data_32b(4-1 downto 0) = x"7" then -- Regular reporting 2
+                    elsif readout_data_32b(4-1 downto 0) = x"7" then -- Regular multi-transactional reporting 1
+                        write(v_line_buffer, string'(
+                            to_string(to_integer(unsigned(readout_data_32b(32-1 downto 4))) ) ));
+                        write(v_line_buffer, string'(",") );
+
+                        readout_photon_counter(v_cntr_csv3_column) <= readout_data_32b(16-1+4 downto 4);
+                        v_cntr_csv3_column := v_cntr_csv3_column + 1;
+
+                    elsif readout_data_32b(4-1 downto 0) = x"8" then -- Regular multi-transactional reporting 2
+                        write(v_line_buffer, string'(
+                            to_string(to_integer(unsigned(readout_data_32b(32-1 downto 4))) ) ));
+                        write(v_line_buffer, string'(",") );
+
+                        readout_photon_losses(v_cntr_csv3_column) <= readout_data_32b(16-1+4 downto 4);
+                        v_cntr_csv3_column := v_cntr_csv3_column + 1;
+
+                    elsif readout_data_32b(4-1 downto 0) = x"9" then -- Regular reporting
                         null;
-                    elsif readout_data_32b(4-1 downto 0) = x"8" then -- Regular reporting 3
+                    elsif readout_data_32b(4-1 downto 0) = x"A" then -- Regular reporting
                         null;
-                    elsif readout_data_32b(4-1 downto 0) = x"9" then -- Regular reporting 4
+                    elsif readout_data_32b(4-1 downto 0) = x"B" then -- Regular reporting
                         null;
-                    elsif readout_data_32b(4-1 downto 0) = x"A" then -- Regular reporting 5
+                    elsif readout_data_32b(4-1 downto 0) = x"C" then -- Regular reporting
                         null;
-                    elsif readout_data_32b(4-1 downto 0) = x"B" then -- Regular reporting 6
-                        null;
-                    elsif readout_data_32b(4-1 downto 0) = x"C" then -- Regular reporting 7
-                        null;
-                    elsif readout_data_32b(4-1 downto 0) = x"D" then -- Regular reporting 8
+                    elsif readout_data_32b(4-1 downto 0) = x"D" then -- Regular reporting
                         null;
 
                     else
