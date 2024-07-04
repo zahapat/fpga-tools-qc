@@ -23,7 +23,7 @@
 
             -- Data Signals
             wr_channels_detections : t_photon_counter_2d;
-            wr_photon_losses : in std_logic_vector(INT_QUBITS_CNT-1 downto 1);
+            wr_photon_losses : in std_logic_vector(INT_QUBITS_CNT-2 downto 0);
             wr_valid_gflow_success_done : in std_logic;
             wr_data_qubit_buffer : in t_qubit_buffer_2d;
             wr_data_time_stamp_buffer : in t_time_stamp_buffer_2d;
@@ -140,7 +140,7 @@
 
         -- Photon Miss / Photon Loss accumulator
         constant ALL_PHOTON_LOSSES_ACC_WIDTH : positive := 16; -- 65536 counts max
-        type t_all_unsuccessful_coincidences_2d is array(INT_QUBITS_CNT-1 downto 1) of std_logic_vector(ALL_PHOTON_LOSSES_ACC_WIDTH-1 downto 0);
+        type t_all_unsuccessful_coincidences_2d is array(INT_QUBITS_CNT-2 downto 0) of std_logic_vector(ALL_PHOTON_LOSSES_ACC_WIDTH-1 downto 0);
         signal slv_all_unsuccessful_coincidences_2d : t_all_unsuccessful_coincidences_2d := (others => (others => '0'));
 
         -- Readout counter
@@ -149,7 +149,7 @@
         -- Samplers before transmission # TODO?
         signal slv_combinations_counters_sampled : std_logic_vector(COINCIDENCE_PATTERN_ACC_WIDTH*(INT_QUBITS_CNT**2)-1 downto 0) := (others => '0');
         signal slv_ch_detections_sampled : std_logic_vector(ALL_CH_DETECTIONS_ACC_WIDTH*(INT_QUBITS_CNT*2)-1 downto 0) := (others => '0');
-        signal slv_photon_losses_sampled : std_logic_vector(ALL_PHOTON_LOSSES_ACC_WIDTH*(INT_QUBITS_CNT)-1 downto 0) := (others => '0');
+        signal slv_photon_losses_sampled : std_logic_vector(ALL_PHOTON_LOSSES_ACC_WIDTH*(INT_QUBITS_CNT-1)-1 downto 0) := (others => '0');
         signal slv_flow_photons_buffer_sampled : std_logic_vector(2*INT_QUBITS_CNT-1 downto 0) := (others => '0');
         signal slv_flow_alpha_buffer_sampled : std_logic_vector(2*INT_QUBITS_CNT-1 downto 0) := (others => '0');
         signal slv_flow_modulo_buffer_sampled : std_logic_vector(2*INT_QUBITS_CNT-1 downto 0) := (others => '0');
@@ -159,7 +159,7 @@
         -- Shifters for data outflow
         signal slv_combinations_counters_shreg : std_logic_vector(COINCIDENCE_PATTERN_ACC_WIDTH*(INT_QUBITS_CNT**2)-1 downto 0) := (others => '0');
         signal slv_ch_detections_shreg : std_logic_vector(ALL_CH_DETECTIONS_ACC_WIDTH*(INT_QUBITS_CNT*2)-1 downto 0) := (others => '0');
-        signal slv_photon_losses_shreg : std_logic_vector(ALL_PHOTON_LOSSES_ACC_WIDTH*(INT_QUBITS_CNT)-1 downto 0) := (others => '0');
+        signal slv_photon_losses_shreg : std_logic_vector(ALL_PHOTON_LOSSES_ACC_WIDTH*(INT_QUBITS_CNT-1)-1 downto 0) := (others => '0');
         signal slv_flow_photons_buffer_shreg : std_logic_vector(slv_flow_photons_buffer_sampled'range) := (others => '0');
         signal slv_flow_alpha_buffer_shreg : std_logic_vector(slv_flow_alpha_buffer_sampled'range) := (others => '0');
         signal slv_flow_modulo_buffer_shreg : std_logic_vector(slv_flow_modulo_buffer_sampled'range) := (others => '0');
@@ -324,7 +324,7 @@
         -------------------------------------
         -- PHOTON MISS / LOSS ACCUMULATION --
         -------------------------------------
-        gen_photon_loss_accumulator : for i in 1 to INT_QUBITS_CNT-1 generate
+        gen_photon_loss_accumulator : for i in 0 to INT_QUBITS_CNT-2 generate
             proc_photon_loss_accumulator : process (wr_sys_clk)
             begin
                 if rising_edge(wr_sys_clk) then
@@ -489,9 +489,9 @@
             if rising_edge(wr_sys_clk) then
 
                 -- Sample on sample request
-                for i in 1 to INT_QUBITS_CNT-1 loop
+                for i in 0 to INT_QUBITS_CNT-2 loop
                     if sl_periodic_report_sample_request_2(i) = '1' then -- Sample request signal
-                            slv_photon_losses_shreg(((i-1)+1)*ALL_PHOTON_LOSSES_ACC_WIDTH-1 downto (i-1)*ALL_PHOTON_LOSSES_ACC_WIDTH) 
+                            slv_photon_losses_shreg((i+1)*ALL_PHOTON_LOSSES_ACC_WIDTH-1 downto i*ALL_PHOTON_LOSSES_ACC_WIDTH) 
                                 <= slv_all_unsuccessful_coincidences_2d(i);
                     end if;
                 end loop;

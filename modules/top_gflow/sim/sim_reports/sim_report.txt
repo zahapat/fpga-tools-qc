@@ -1,12 +1,12 @@
 
-SIMULATION REPORT          Generated on Thu Jul 04 19:10:37 2024
+SIMULATION REPORT          Generated on Thu Jul 04 23:21:10 2024
 
 
 Design simulated: C:/Git/zahapat/fpga-tools-qc/simulator/vivado_precompiled_ver/unisim.glbl_vhd(glbl_vhd_v) C:/Git/zahapat/fpga-tools-qc/simulator/xil_iplib_verilog.glbl C:/Git/zahapat/fpga-tools-qc/simulator/lib_sim.top_gflow_tb(sim)
-Number of signals/nets in design: 6370928
+Number of signals/nets in design: 6370896
 Number of processes in design: 4931
 Number of instances from user libraries in design: 369
-Number of executable statements in design: 121156
+Number of executable statements in design: 121162
 
 Simulator Parameters:
 

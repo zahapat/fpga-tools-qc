@@ -1061,7 +1061,7 @@
         begin
 
             -- Recreate output csv files
-            -- Open and Initialize Headers in output report files (all flows details)
+            -- CSV1: Open and Initialize Headers in output report files (all flows details)
             file_open(actual_csv, CSV1_PATH, write_mode);
             for i in 1 to INT_QUBITS_CNT loop
                 write(v_line_buffer, string'("photon_q" & integer'image(i) & ","));
@@ -1077,7 +1077,7 @@
                 write(v_line_buffer, string'("rand_q" & integer'image(i) & ","));
             end loop;
             write(v_line_buffer, string'(","));
-            
+
             for i in 1 to INT_QUBITS_CNT loop
                 write(v_line_buffer, string'("mod_q" & integer'image(i) & ","));
             end loop;
@@ -1086,18 +1086,26 @@
             for i in 1 to INT_QUBITS_CNT loop
                 write(v_line_buffer, string'("timestamp_q" & integer'image(i) & ","));
             end loop;
+
+            write(v_line_buffer, string'(","));
+            write(v_line_buffer, string'("@time"));
             writeline(actual_csv, v_line_buffer);
             file_close(actual_csv);
 
-            -- Open and Initialize Headers in output report files (accumulated coincidences)
+
+            -- CSV2: Open and Initialize Headers in output report files (accumulated coincidences)
             file_open(actual_csv, CSV2_PATH, write_mode);
             for i in 0 to INT_QUBITS_CNT**2-1 loop
                 write(v_line_buffer, string'(to_string(to_unsigned(i, INT_QUBITS_CNT)) & ","));
             end loop;
+
+            write(v_line_buffer, string'(","));
+            write(v_line_buffer, string'("@time"));
             writeline(actual_csv, v_line_buffer);
             file_close(actual_csv);
 
-            -- Open and Initialize Headers in output report files (all counters)
+
+            -- CSV3: Open and Initialize Headers in output report files (all counters)
             file_open(actual_csv, CSV3_PATH, write_mode);
             for i in 1 to INT_QUBITS_CNT*2 loop
                 write(v_line_buffer, string'("chann_q" & integer'image(i) & ","));
@@ -1107,6 +1115,9 @@
             for i in 2 to INT_QUBITS_CNT loop
                 write(v_line_buffer, string'("loss_q" & integer'image(i) & ","));
             end loop;
+
+            write(v_line_buffer, string'(","));
+            write(v_line_buffer, string'("@time"));
             writeline(actual_csv, v_line_buffer);
             file_close(actual_csv);
 

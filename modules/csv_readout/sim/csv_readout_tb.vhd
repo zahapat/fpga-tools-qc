@@ -42,7 +42,7 @@
 
         -- Data Signals
         signal wr_channels_detections : t_photon_counter_2d := (others => (others => '0'));
-        signal wr_photon_losses : std_logic_vector(INT_QUBITS_CNT-1 downto 1) := (others => '0');
+        signal wr_photon_losses : std_logic_vector(INT_QUBITS_CNT-2 downto 0) := (others => '0');
         signal wr_valid_gflow_success_done : std_logic := '0';
         signal wr_data_qubit_buffer : t_qubit_buffer_2d := (others => (others => '0'));
         signal wr_data_time_stamp_buffer : t_time_stamp_buffer_2d := (others => (others => '0'));

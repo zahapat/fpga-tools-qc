@@ -239,8 +239,8 @@
         signal slv_random_buffer_2d     : t_random_buffer_2d := (others => (others => '0'));
         
         -- Pulses used for measurements
-        signal slv_photon_losses_to_cdcc : std_logic_vector(INT_QUBITS_CNT-1 downto 1) := (others => '0');
-        signal slv_photon_losses         : std_logic_vector(INT_QUBITS_CNT-1 downto 1) := (others => '0');
+        signal slv_photon_losses_to_cdcc : std_logic_vector(INT_QUBITS_CNT-2 downto 0) := (others => '0');
+        signal slv_photon_losses         : std_logic_vector(INT_QUBITS_CNT-2 downto 0) := (others => '0');
         signal slv_channels_detections_cntr : t_photon_counter_2d := (others => (others => '0'));
 
         -- CDCC Sampl clk to Readout clk transfer
@@ -589,7 +589,7 @@
             feedback_mod_valid        => sl_math_data_valid,
             feedback_mod              => slv_math_data_modulo,
 
-            o_unsuccessful_qubits     => slv_photon_losses_to_cdcc,
+            o_unsuccessful_qubits     => slv_photon_losses_to_cdcc(INT_QUBITS_CNT-2 downto 0),
 
             gflow_success_flag        => sl_gflow_success_flag,
             gflow_success_done        => sl_gflow_success_done,
@@ -670,7 +670,7 @@
         );
 
         -- Count unsuccessful qubits per channel and transfer the value to the readout domain
-        gen_cdcc_photon_losses_flags : for i in INT_QUBITS_CNT-1 downto 1 generate
+        gen_cdcc_photon_losses_flags : for i in INT_QUBITS_CNT-2 downto 0 generate
             inst_nff_cdcc_photon_loss_event : entity lib_src.nff_cdcc_flag(rtl)
                 generic map (
                     BYPASS => false,
