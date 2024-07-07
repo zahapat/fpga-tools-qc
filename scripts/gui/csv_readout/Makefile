@@ -15,6 +15,15 @@ WINPATH_TO_RELEASE = .\build\Release
 PATH_TO_RELEASE = ./build/Release
 EXEFILE_PATH_RELEASE = $(PATH_TO_RELEASE)/$(PROJ_NAME).exe
 
+QUBITS_CNT = 4
+RUN_TIME_SECONDS = 2.0
+BITFILE_NAME = bit_file.bit
+PROGRAM_ONLY = true
+EXE_FILE_CALL = csv_readout.exe \
+				--qubits_count $(QUBITS_CNT) \
+				--float_run_time_seconds $(RUN_TIME_SECONDS) \
+				--bitfile_name $(BITFILE_NAME) \
+				--program_only $(PROGRAM_ONLY)
 
 # Set subshell environment (If needed)
 # SUBSHELL_ENV = sed -i 's/\r//g' subshell_env.sh; . ./subshell_env.sh
@@ -40,7 +49,9 @@ clean:
 	rm -r ./build/
 
 # cp ./lib/okFrontPanel.dll ./build/Release/okFrontPanel.dll
-copy_okFrontPaneldll:
+copy_okFrontPaneldll_Debug:
+	cp ./lib/okFrontPanel.dll $(WINPATH_TO_DEBUG)\okFrontPanel.dll
+copy_okFrontPaneldll_Release:
 	cp ./lib/okFrontPanel.dll $(WINPATH_TO_RELEASE)\okFrontPanel.dll
 
 # cmake -DCMAKE_SYSTEM_VERSION=10.0.17763.0
@@ -51,27 +62,26 @@ rescan:
 		  -B "build"
 	cmake --build build \
 	      --config Release
-	make copy_okFrontPaneldll
 	make build
+	make copy_okFrontPaneldll_Debug
+	make copy_okFrontPaneldll_Release
 
 build:
 	$(WINPATH_TO_MSBUILD)\MSBuild.exe ./build/$(PROJ_NAME).sln
 
 run: $(EXEFILE_PATH_DEBUG)
-	$(shell $(WINPATH_TO_DEBUG)\$(PROJ_NAME).exe)
-	echo Run Done
+	$(WINPATH_TO_DEBUG)\$(EXE_FILE_CALL)
 
 run_release: $(EXEFILE_PATH_RELEASE)
-	$(shell $(WINPATH_TO_RELEASE)\$(PROJ_NAME).exe)
-	echo Run Release Done
+	$(WINPATH_TO_RELEASE)\$(EXE_FILE_CALL)
 
 
 
 
-redis_start:
-	wsl sudo service redis-server start
-	wsl echo "Attempting Redis Server Start"
+# redis_start:
+# 	wsl sudo service redis-server start
+# 	wsl echo "Attempting Redis Server Start"
 
-redis_stop:
-	wsl sudo service redis-server stop
-	wsl echo "Attempting Redis Server Stop"
+# redis_stop:
+# 	wsl sudo service redis-server stop
+# 	wsl echo "Attempting Redis Server Stop"

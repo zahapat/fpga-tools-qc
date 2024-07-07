@@ -9,11 +9,7 @@
 typedef unsigned int UINT32;
 
 class guiBackendObj {
-    // Stop data transfer if...
-    int data_transmissions_cnt_max; // 1 window of data in python gui is 100 (with time_step_ns = 5)
-
     // Shared variables among threads
-    int data_transmissions_cnt;
     unsigned char* dataBufferRead;
     bool fpga_error;
 
@@ -39,29 +35,46 @@ class guiBackendObj {
 
     // Board ID and initialization
     const char* okBoardOnSerial;
-    char* bitfile;
+
+    // Command Line Arguments (initialized in constructor)
+    bool program_only;
+    int qubits_count;
+    double float_run_time_seconds;
+    char* bitfile_name;
 
     OpalKelly::FrontPanelDevices allOkDevices;
     OpalKelly::FrontPanelPtr okDevicePtr;
 
+    // Output CSV Files
     std::ofstream outFile1;
     std::ofstream outFile2;
     std::ofstream outFile3;
 
+private:
+
 public:
 
     // Constructor
-    guiBackendObj() : data_transmissions_cnt{0}, ready_new_value{false} 
-    {
-        printf("guiBackendObj: Constructing\n");
+    guiBackendObj(
+        bool program_only=false,
+        int qubits_count=4, 
+        double float_run_time_seconds=5, 
+        char* bitfile_name="bitfile.bit"
+    ) : ready_new_value{false} {
+
+        std::cout << "guiBackendObj: Constructor started" << std::endl;
+
+        // Command Line Arguments
+        this->program_only = program_only;
+        this->qubits_count = qubits_count;
+        this->float_run_time_seconds = float_run_time_seconds;
+        this->bitfile_name = bitfile_name;
 
         // Open the device, optionally selecting the one with the specified okBoardOnSerial.
+        // "" = do not check for serial port. Pick the one device connected to the PC.
         okBoardOnSerial = "";
-        bitfile = (char*)"bitfile.bit";
 
-        // Declare default sizes for data transmission (Read)
-        data_transmissions_cnt_max = 10000;
-
+        // Define transfer size
         // (1048576 BytesTotal / 4 BytesPerTransaction = 262144 TransactionsTotal)
         //  1048576 = 1 * 1024 * 1024 = 1x TransferSize
         m_u32BlockSize = 16;
@@ -71,25 +84,69 @@ public:
         m_u32TransferSizeCount = 1; // DO NOT CHANGE
 
         // Clear content of the output files and add headers
+        // Header CSV file 1
         outFile1.open("outputFile1.csv", std::ofstream::out | std::ofstream::trunc);
-        outFile1 << "photons H/V 1-to-X,,alpha 1-to-X,,modulo 1-to-X,,random 1-to-X,,timestamp 1-to-X,,sampled@time" << std::endl;
+        for (int i = 1; i <= qubits_count; i++){
+            outFile1 << "photon_q" << i << ",";
+        }
+        outFile1 << ",";
+
+        for (int i = 1; i <= qubits_count; i++){
+            outFile1 << "alpha_q" << i << ",";
+        }
+        outFile1 << ",";
+
+        for (int i = 1; i <= qubits_count; i++){
+            outFile1 << "mod_q" << i << ",";
+        }
+        outFile1 << ",";
+
+        for (int i = 1; i <= qubits_count; i++){
+            outFile1 << "rand_q" << i << ",";
+        }
+        outFile1 << ",";
+
+        for (int i = 1; i <= qubits_count; i++){
+            outFile1 << "timestamp_q" << i << ",";
+        }
+        outFile1 << ",@time" << std::endl;
         outFile1.close();
 
+        // Header CSV file 2
         outFile2.open("outputFile2.csv", std::ofstream::out | std::ofstream::trunc);
-        outFile2 << "combinations 1-to-QUBITS**2-1,,sampled@time" << std::endl;
+        for (int i = 0; i < pow(2, qubits_count); i++){
+            // Bitset width must be known at compile time
+            if (qubits_count == 1) {outFile2 << std::bitset<1>(i) << ",";}
+            else if (qubits_count == 2) {outFile2 << std::bitset<2>(i) << ",";}
+            else if (qubits_count == 3) {outFile2 << std::bitset<3>(i) << ",";}
+            else if (qubits_count == 4) {outFile2 << std::bitset<4>(i) << ",";}
+            else if (qubits_count == 5) {outFile2 << std::bitset<5>(i) << ",";}
+            else if (qubits_count == 6) {outFile2 << std::bitset<6>(i) << ",";}
+        }
+        outFile2 << ",@time" << std::endl;
         outFile2.close();
 
+        // Header CSV file 3
         outFile3.open("outputFile3.csv", std::ofstream::out | std::ofstream::trunc);
-        outFile3 << "channel_detections H/V 1-to-X,,qubit_losses 1-to-X,,sampled@time" << std::endl;
+        for (int i = 1; i <= qubits_count*2; i++){
+            outFile3 << "chann_q" << i << ",";
+        }
+        outFile3 << ",";
+
+        for (int i = 2; i <= qubits_count; i++){
+            outFile3 << "loss_q" << i << ",";
+        }
+        outFile3 << ",@time" << std::endl;
         outFile3.close();
     }
 
     // Destructor
-    virtual ~guiBackendObj() 
+    virtual ~guiBackendObj()
     {
         outFile1.close();
         outFile2.close();
-        printf("guiBackendObj: Destructing\n");
+        outFile3.close();
+        std::cout << "guiBackendObj: Destructing" << std::endl;
     }
 
     // Configure the FPGA with the given configuration bitfile.

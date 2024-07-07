@@ -1074,12 +1074,12 @@
             write(v_line_buffer, string'(","));
 
             for i in 1 to INT_QUBITS_CNT loop
-                write(v_line_buffer, string'("rand_q" & integer'image(i) & ","));
+                write(v_line_buffer, string'("mod_q" & integer'image(i) & ","));
             end loop;
             write(v_line_buffer, string'(","));
 
             for i in 1 to INT_QUBITS_CNT loop
-                write(v_line_buffer, string'("mod_q" & integer'image(i) & ","));
+                write(v_line_buffer, string'("random_q" & integer'image(i) & ","));
             end loop;
             write(v_line_buffer, string'(","));
 
