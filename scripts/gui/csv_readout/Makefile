@@ -14,7 +14,9 @@ EXEFILE_PATH_DEBUG = $(PATH_TO_DEBUG)/$(PROJ_NAME).exe
 WINPATH_TO_RELEASE = .\build\Release
 PATH_TO_RELEASE = ./build/Release
 EXEFILE_PATH_RELEASE = $(PATH_TO_RELEASE)/$(PROJ_NAME).exe
+WINPATH_TO_EXE_FILE = $(WINPATH_TO_DEBUG)
 
+# Launch csv_readout.exe with these CLI arguments
 QUBITS_CNT = 4
 RUN_TIME_SECONDS = 2.0
 BITFILE_NAME = bit_file.bit
@@ -24,9 +26,6 @@ EXE_FILE_CALL = csv_readout.exe \
 				--float_run_time_seconds $(RUN_TIME_SECONDS) \
 				--bitfile_name $(BITFILE_NAME) \
 				--program_only $(PROGRAM_ONLY)
-
-# Set subshell environment (If needed)
-# SUBSHELL_ENV = sed -i 's/\r//g' subshell_env.sh; . ./subshell_env.sh
 
 
 .ONESHELL:
@@ -48,11 +47,8 @@ compile:
 clean:
 	rm -r ./build/
 
-# cp ./lib/okFrontPanel.dll ./build/Release/okFrontPanel.dll
-copy_okFrontPaneldll_Debug:
-	cp ./lib/okFrontPanel.dll $(WINPATH_TO_DEBUG)\okFrontPanel.dll
-copy_okFrontPaneldll_Release:
-	cp ./lib/okFrontPanel.dll $(WINPATH_TO_RELEASE)\okFrontPanel.dll
+copy_okFrontPaneldll:
+	cp ./lib/okFrontPanel.dll $(WINPATH_TO_EXE_FILE)
 
 # cmake -DCMAKE_SYSTEM_VERSION=10.0.17763.0
 rescan:
@@ -63,8 +59,8 @@ rescan:
 	cmake --build build \
 	      --config Release
 	make build
-	make copy_okFrontPaneldll_Debug
-	make copy_okFrontPaneldll_Release
+	make copy_okFrontPaneldll WINPATH_TO_EXE_FILE=$(PATH_TO_DEBUG)
+	make copy_okFrontPaneldll WINPATH_TO_EXE_FILE=$(PATH_TO_RELEASE)
 
 build:
 	$(WINPATH_TO_MSBUILD)\MSBuild.exe ./build/$(PROJ_NAME).sln

@@ -72,8 +72,6 @@
 
     # 4)   * Add Xilinx IP Cores
     # 4.1) fifo_generator_0
-    # ERROR: [Common 17-69] Command failed: IP name 'fifo_generator_0' is already in use in this project.  Please choose a different name.
-    # create_ip -name fifo_generator -vendor xilinx.com -library ip -version 13.2 -module_name fifo_generator_0
     if {[catch {
         create_ip -name fifo_generator -vendor xilinx.com -library ip -version 13.2 -module_name fifo_generator_0\
     } error_msg]} {
@@ -102,7 +100,7 @@
                                 CONFIG.Empty_Threshold_Negate_Value {6}] [get_ips fifo_generator_0]
 
         set_property -dict [list CONFIG.Read_Clock_Frequency {100.80645} \
-                                CONFIG.Write_Clock_Frequency {100} \
+                                CONFIG.Write_Clock_Frequency {200} \
                                 CONFIG.Full_Threshold_Assert_Value {65536} \
                                 CONFIG.Full_Threshold_Negate_Value {65535}] [get_ips fifo_generator_0]
     }

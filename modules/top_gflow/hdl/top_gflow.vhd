@@ -166,11 +166,6 @@
         -- CDCC Logic
         constant CDCC_BYPASS : boolean := false;
 
-        -- Reset
-        -- constant RST_STROBE_CNTR_WIDTH_SYSCLK : positive := 28; -- 10*10^(-9) sec * 2^28 / 2 = 1.3 sec
-        constant RST_STROBE_CNTR_WIDTH_SYSCLK : positive := 3; -- 10*10^(-9) sec * 2^28 / 2 = 1.3 sec
-        constant RST_STROBE_CNTR_WIDTH_SAMPLCLK : positive := 2;
-
         -- Pseudorandom bit generator
         constant PRIM_POL_INT_VAL  : positive := 19;
         constant SYMBOL_WIDTH      : positive := 4;
@@ -191,14 +186,14 @@
         -- Signals --
         -------------
         -- Clock Wizard
-        signal sys_clk : std_logic := '0';
-        signal sampl_clk : std_logic := '0';
+        signal eval_clk : std_logic := '0';
+        signal dsp_clk : std_logic := '0';
         signal acq_clk : std_logic := '0';
         signal locked : std_logic := '0';
 
-        signal sl_rst : std_logic := '0';
-        signal sl_rst_sysclk : std_logic := '0'; -- Pullup
-        signal sl_rst_samplclk : std_logic := '0';
+        -- FIFO Set/Reset on device power up in both RD and WR domains
+        signal sl_rst_eval_clk : std_logic := '0';
+        signal sl_rst_readout_clk : std_logic := '0';
 
         -- Dimensioned (fixed) signals for 6 qubits max
         signal s_noisy_channels : std_logic_vector(12-1 downto 0) := (others => '0');
@@ -359,8 +354,8 @@
 
             -- Outputs
             out_clk0 => acq_clk,
-            out_clk1 => sampl_clk,
-            out_clk2 => sys_clk,
+            out_clk1 => dsp_clk,
+            out_clk2 => eval_clk,
             out_clk3 => open,
             out_clk4 => open,
             out_clk5 => open,
@@ -388,10 +383,11 @@
         )
         port map (
             -- Reset
-            rst => sl_rst_sysclk,
+            wr_rst => sl_rst_eval_clk,
+            rd_rst => sl_rst_readout_clk,
 
             -- Write endpoint signals
-            wr_sys_clk => sys_clk,
+            wr_sys_clk => eval_clk,
 
             wr_photon_losses => slv_photon_losses,
             wr_channels_detections => slv_channels_detections_cntr,
@@ -461,8 +457,8 @@
                 PULLDOWN_CYCLES       => 2 -- min 2
             )
             port map (
-                clk => sampl_clk,
-                rst => sl_rst_sysclk,
+                clk => dsp_clk,
+                rst => '0',
 
                 ready => open,
                 data_out => s_noisy_channels(12-1 downto 0),
@@ -471,19 +467,40 @@
         end generate;
 
 
-        -- Reset: sys_clk domain
-        sl_rst <= '1';
-        inst_reset_sysclk : entity lib_src.reset(rtl)
+        -- FIFO Write Reset: eval_clk domain:
+        -- RST must be held high for at least five WRCLK clock cycles, 
+        --     and WREN must be low before RST becomes active high, 
+        --     and WREN remains low during this reset cycle.
+        -- Ensure the strobe is longer than the time that takes MMCM to lock (~260.1 ns)
+        inst_reset_fifo_eval_clk : entity lib_src.reset(rtl)
         generic map (
-            RST_STROBE_COUNTER_WIDTH => RST_STROBE_CNTR_WIDTH_SYSCLK
+            -- 5*10^(-9) * 2^RST_STROBE_COUNTER_WIDTH / 2 = strobe duration (sec)
+            RST_STROBE_COUNTER_WIDTH => 7 -- 320.0 ns (min value)
         )
         port map (
-            CLK     => sys_clk,
-            IN_RST  => sl_rst,  -- Pullup
-            OUT_RST => sl_rst_sysclk
+            CLK     => eval_clk,
+            IN_RST  => '1',             -- On Power-up
+            OUT_RST => sl_rst_eval_clk
         );
 
-        -- Input metastability filter and qubit deskew
+        -- FIFO Read Reset: readout_clk_clk domain:
+        --     RST must be held high for at least five RDCLK clock cycles, 
+        --     and RDEN must be low before RST becomes active high, 
+        --     and RDEN remains low during this reset cycle.
+        -- Ensure the strobe is longer than the time that takes MMCM to lock (~260.1 ns)
+        inst_reset_fifo_readout_clk : entity lib_src.reset(rtl)
+        generic map (
+            -- 10.02*10^(-9) * 2^RST_STROBE_COUNTER_WIDTH / 2 = strobe duration (sec)
+            RST_STROBE_COUNTER_WIDTH => 6 -- = 320.64 ns (min value)
+        )
+        port map (
+            CLK     => readout_clk,
+            IN_RST  => '1',             -- On Power-up
+            OUT_RST => sl_rst_readout_clk
+        );
+
+
+        -- Input metastability filter and H/V photon delay compensation
         gen_photon_delay_compensation : for i in 0 to INT_QUBITS_CNT-1 generate
             inst_photon_delay_compensation : entity lib_src.qubit_deskew(rtl)
             generic map (
@@ -505,7 +522,7 @@
             )
             port map (
                 clk => acq_clk,
-                rst => sl_rst_samplclk,
+                rst => '0',
                 noisy_channels_in => s_noisy_channels((i+1)*2-1 downto (i*2)),
                 
                 qubit_valid_250MHz => s_valid_qubits_stable_to_cdcc(i),
@@ -528,13 +545,13 @@
                 WR_READY_DEASSERTED_CYCLES => 4
             )
             port map (
-                -- sampl_clk
+                -- acq_clk
                 clk_write => acq_clk,
                 wr_en => s_stable_channels_to_cdcc((i+1)*2-1),
                 wr_ready  => open,
 
-                -- sys_clk
-                clk_read => sampl_clk,
+                -- dsp_clk
+                clk_read => dsp_clk,
                 rd_valid => slv_cdcc_rd_qubits_to_fsm((i+1)*2-1)
             );
 
@@ -546,13 +563,13 @@
                 WR_READY_DEASSERTED_CYCLES => 4
             )
             port map (
-                -- sampl_clk
+                -- acq_clk
                 clk_write => acq_clk,
                 wr_en => s_stable_channels_to_cdcc(i*2),
                 wr_ready  => open,
 
-                -- sys_clk
-                clk_read => sampl_clk,
+                -- dsp_clk
+                clk_read => dsp_clk,
                 rd_valid => slv_cdcc_rd_qubits_to_fsm(i*2)
             );
         end generate;
@@ -580,8 +597,8 @@
             DISCARD_QUBITS_TIME_NS  => INT_DISCARD_QUBITS_TIME_NS
         )
         port map (
-            clk                       => sampl_clk,
-            rst                       => sl_rst_sysclk,
+            clk                       => dsp_clk,
+            rst                       => '0',
 
             qubits_sampled_valid      => slv_cdcc_rd_valid_to_fsm,
             qubits_sampled            => slv_cdcc_rd_qubits_to_fsm,
@@ -596,7 +613,6 @@
             qubit_buffer              => slv_qubit_buffer_2d,
             time_stamp_buffer         => slv_time_stamp_buffer_2d,
             alpha_buffer              => slv_alpha_buffer_2d,
-
 
             to_math_alpha             => slv_alpha_to_math,
             to_math_sx_xz             => slv_sx_sz_to_math,
@@ -618,8 +634,8 @@
             GF_SEED          => GF_SEED
         )
         port map (
-            CLK      => sampl_clk,
-            RST      => sl_rst_sysclk,
+            CLK      => dsp_clk,
+            RST      => '0',
             RAND_BIT => sl_pseudorandom_to_math
         );
 
@@ -632,8 +648,8 @@
             SYNCH_FACTORS_CALCULATION => true  -- +1 delay if true
         )
         port map (
-            CLK             => sampl_clk,
-            RST             => sl_rst_sysclk,
+            CLK             => dsp_clk,
+            RST             => '0',
             QUBIT_VALID     => sl_actual_qubit_valid,
             STATE_QUBIT     => state_gflow,
             S_X             => slv_sx_sz_to_math(0),
@@ -658,13 +674,13 @@
         )
         port map (
             -- Write ports
-            clk_write => sampl_clk,
+            clk_write => dsp_clk,
             wr_en     => sl_gflow_success_done,
             wr_data   => (others => '0'),
             wr_ready  => open,
 
             -- Read ports
-            clk_read => sys_clk,
+            clk_read => eval_clk,
             rd_valid => sl_gflow_success_done_transferred,
             rd_data  => open
         );
@@ -680,12 +696,12 @@
                 )
                 port map (
                     -- Write ports
-                    clk_write => sampl_clk,
+                    clk_write => dsp_clk,
                     wr_en => slv_photon_losses_to_cdcc(i),
                     wr_ready  => open,
 
                     -- Read ports
-                    clk_read => sys_clk,
+                    clk_read => eval_clk,
                     rd_valid => slv_photon_losses(i)
                 );
         end generate;
@@ -701,12 +717,12 @@
                 )
                 port map (
                     -- Write ports
-                    clk_write => sampl_clk,
+                    clk_write => dsp_clk,
                     wr_en => slv_cdcc_rd_qubits_to_fsm(i),
                     wr_ready => open,
 
                     -- Read ports
-                    clk_read => sys_clk,
+                    clk_read => eval_clk,
                     rd_valid => open,
                     rd_data => slv_channels_detections_cntr(i)
                 );
@@ -724,13 +740,13 @@
                 )
                 port map (
                     -- Write ports
-                    clk_write => sampl_clk,
+                    clk_write => dsp_clk,
                     wr_en     => sl_gflow_success_done,
                     wr_data   => slv_qubit_buffer_2d(i),
                     wr_ready  => open,
 
                     -- Read ports
-                    clk_read => sys_clk,
+                    clk_read => eval_clk,
                     rd_valid => open,
                     rd_data  => slv_qubit_buffer_transferred_2d(i)
                 );
@@ -746,13 +762,13 @@
                 )
                 port map (
                     -- Write ports
-                    clk_write => sampl_clk,
+                    clk_write => dsp_clk,
                     wr_en     => sl_gflow_success_done,
                     wr_data   => slv_time_stamp_buffer_2d(i),
                     wr_ready  => open,
 
                     -- Read ports
-                    clk_read => sys_clk,
+                    clk_read => eval_clk,
                     rd_valid => open,
                     rd_data  => slv_time_stamp_buffer_transferred_2d(i)
                 );
@@ -768,13 +784,13 @@
                 )
                 port map (
                     -- Write ports
-                    clk_write => sampl_clk,
+                    clk_write => dsp_clk,
                     wr_en     => sl_gflow_success_done,
                     wr_data   => slv_alpha_buffer_2d(i),
                     wr_ready  => open,
 
                     -- Read ports
-                    clk_read => sys_clk,
+                    clk_read => eval_clk,
                     rd_valid => open,
                     rd_data  => slv_alpha_buffer_transferred_2d(i)
                 );
@@ -790,13 +806,13 @@
                 )
                 port map (
                     -- Write ports
-                    clk_write => sampl_clk,
+                    clk_write => dsp_clk,
                     wr_en     => sl_gflow_success_done,
                     wr_data   => slv_modulo_buffer_2d(i),
                     wr_ready  => open,
 
                     -- Read ports
-                    clk_read => sys_clk,
+                    clk_read => eval_clk,
                     rd_valid => open,
                     rd_data  => slv_modulo_buffer_transferred_2d(i)
                 );
@@ -812,13 +828,13 @@
                 )
                 port map (
                     -- Write ports
-                    clk_write => sampl_clk,
+                    clk_write => dsp_clk,
                     wr_en     => sl_gflow_success_done,
                     wr_data   => slv_random_buffer_2d(i),
                     wr_ready  => open,
 
                     -- Read ports
-                    clk_read => sys_clk,
+                    clk_read => eval_clk,
                     rd_valid => open,
                     rd_data  => slv_random_buffer_transferred_2d(i)
                 );
@@ -837,8 +853,8 @@
             PULSE_DURATION_LOW_NS  => INT_CTRL_PULSE_DEAD_DURATION_NS
         )
         port map (
-            CLK           => sampl_clk,
-            RST           => sl_rst_sysclk,
+            CLK           => dsp_clk,
+            RST           => '0',
             PULSE_TRIGGER => sl_math_data_valid,
             IN_DATA       => slv_math_data_modulo(1 downto 1), -- take higher modulo bit
             PULSES_OUT    => slv_modulo_bit_pulse,
@@ -857,7 +873,7 @@
             DELAY_NS => INT_CTRL_PULSE_EXTRA_DELAY_NS -- This value should be a multiple of clock period for precise results
         )
         port map (
-            clk    => sampl_clk,
+            clk    => dsp_clk,
             i_data => slv_modulo_bit_pulse,
             o_data => slv_modulo_bit_pulse_delayed
         );
@@ -872,7 +888,7 @@
             DELAY_NS => INT_CTRL_PULSE_EXTRA_DELAY_NS -- This value should be a multiple of clock period for precise results
         )
         port map (
-            clk    => sampl_clk,
+            clk    => dsp_clk,
             i_data => pcd_ctrl_pulse_ready,
             o_data => pcd_ctrl_pulse_ready_delayed
         );
@@ -885,7 +901,7 @@
             DELAY_NS => INT_CTRL_PULSE_EXTRA_DELAY_NS -- This value should be a multiple of clock period for precise results
         )
         port map (
-            clk    => sampl_clk,
+            clk    => dsp_clk,
             i_data => pcd_ctrl_pulse_busy,
             o_data => pcd_ctrl_pulse_busy_delayed
         );
@@ -899,7 +915,7 @@
             PINS_CNT => 1
         )
         port map (
-            clk      => sampl_clk,
+            clk      => dsp_clk,
             data_in  => slv_modulo_bit_pulse_delayed,
             data_out => slv_pcd_ctrl_pulse(0 downto 0)
         );
@@ -911,7 +927,7 @@
             PINS_CNT => 1
         )
         port map (
-            clk      => sampl_clk,
+            clk      => dsp_clk,
             data_in  => pcd_ctrl_pulse_busy_delayed,
             data_out => slv_photon_sampled(0 downto 0)
         );

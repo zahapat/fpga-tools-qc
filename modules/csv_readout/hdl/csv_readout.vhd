@@ -18,7 +18,9 @@
         );
         port (
             -- Reset, write clock
-            rst : in std_logic;
+            wr_rst : in std_logic;
+            rd_rst : in std_logic;
+
             wr_sys_clk : in std_logic;
 
             -- Data Signals
@@ -83,16 +85,16 @@
         signal slv_time_periodic_sample_request_2 : std_logic_vector(slv_time_now'range) := (others => '0');
 
         -- FIFO signals
-        signal sl_rst        : std_logic := '0'; -- not bound to any clk
-        signal wr_clk      : std_logic := '0';
-        signal sl_wr_en    : std_logic := '0';
-        signal slv_wr_data : std_logic_vector(31 downto 0) := (others => '0');
+        signal rst_wr_and_rd   : std_logic := '0';
+        signal wr_clk          : std_logic := '0';
+        signal sl_wr_en        : std_logic := '0';
+        signal slv_wr_data     : std_logic_vector(31 downto 0) := (others => '0');
         signal rd_clk          : std_logic := '0';
         signal sl_rd_valid     : std_logic := '0';
         signal slv_rd_data_out : std_logic_vector(31 downto 0) := (others => '0');
-        signal sl_full       : std_logic := '0';
-        signal sl_empty      : std_logic := '0';
-        signal sl_prog_empty : std_logic := '0';
+        signal sl_full         : std_logic := '0';
+        signal sl_empty        : std_logic := '0';
+        signal sl_prog_empty   : std_logic := '0';
 
 
         -- User logic endpoint write logic
@@ -251,6 +253,7 @@
         -------------------------------------
         -- Dual-port Native FIFO Generator --
         -------------------------------------
+        rst_wr_and_rd <= rd_rst or wr_rst;
         fifo_full <= sl_full;
         fifo_empty <= sl_empty;
         fifo_prog_empty <= sl_prog_empty;
@@ -258,7 +261,8 @@
 
         inst_native_fifo_generator : fifo_generator_0
         port map (
-            rst    => sl_rst,
+            -- Reset combining both write and read reset strobes
+            rst    => rst_wr_and_rd,
 
             -- Write: faster CLK, slower rate
             wr_clk => wr_sys_clk,
@@ -266,7 +270,7 @@
             din    => slv_wr_data,
 
             -- Read: slower CLK, faster rate
-            rd_clk => readout_clk, -- [Timing 38-316] Clock period '1000.000' specified during out-of-context synthesis of instance 'inst_okHost_fifo_ctrl/inst_native_fifo_generator' at clock pin 'rd_clk' is different from the actual clock period '9.920', this can lead to different synthesis results.
+            rd_clk => readout_clk,
             rd_en  => readout_enable,
             valid  => sl_rd_valid,
             dout   => slv_rd_data_out,
@@ -274,7 +278,7 @@
             -- Flags
             full   => sl_full,
             empty  => sl_empty,
-            prog_empty => sl_prog_empty -- Programmable Empty Level indicator set to 1024
+            prog_empty => sl_prog_empty -- Programmable Empty Level indicator set to 5
         );
 
 

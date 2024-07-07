@@ -30,8 +30,10 @@
         begin
             if rising_edge(CLK) then
                 if IN_RST = PULLUP_RST_PRESSED then
+                    -- IN_RST = '0'
                     cnt_reset_strobe <= (others => '0');
                 else
+                    -- IN_RST = '1': count up to 2**X, output last bit (inverted)
                     if cnt_reset_strobe(cnt_reset_strobe'high) = '0' then
                         cnt_reset_strobe <= cnt_reset_strobe + 1;
                     end if;

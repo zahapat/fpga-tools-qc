@@ -9,3 +9,16 @@ The source file, located in 'hdl' directory, is a structural hardware descriptio
 3. 200 MHz clock domain for readout using 32-bit csv_readout module, which allows to write to multiple '.csv' files and group multidimensional data together.
 
 The ./hdl folder also consists of 'top_gflow_ok_wrapper.vhd', which wraps up the 'top_gflow.vhd' module, and instantiates Opal Kelly Frontpanel Host for high-speed USB 3.0 communication with the FPGA and PC. Once all required source files are loaded in Vivado, the 'top_gflow_ok_wrapper.vhd' can be dragged-and-dropped into the schematic board designer.
+
+
+Some of the recent timing results:
+Time (s): cpu = 00:00:44 ; elapsed = 00:00:42 . Memory (MB): peak = 2246.609 ; gain = 179.996
+INFO: [Route 35-61] The design met the timing requirement.
+INFO: [Route 72-16] Aggressive Explore Summary
++------+-------+-------+-------+-------+--------+--------------+-------------------+
+| Pass |  WNS  |  TNS  |  WHS  |  THS  | Status | Elapsed Time | Solution Selected |
++------+-------+-------+-------+-------+--------+--------------+-------------------+
+|  1   | 0.006 | 0.000 | 0.066 | 0.000 |  Pass  |   00:00:26   |         x         |
++------+-------+-------+-------+-------+--------+--------------+-------------------+
+|  2   |   -   |   -   |   -   |   -   |  Fail  |   00:00:00   |                   |
++------+-------+-------+-------+-------+--------+--------------+-------------------+

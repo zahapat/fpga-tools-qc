@@ -38,7 +38,8 @@
         constant REGULAR_SAMPLER_SECONDS_2 : real := 2.0e-6;
 
         -- Ports
-        signal rst : std_logic := '0';
+        signal wr_rst : std_logic := '0'; -- Should be high on device powerup (rst logic)
+        signal rd_rst : std_logic := '0'; -- Should be high on device powerup (rst logic)
 
         -- Data Signals
         signal wr_channels_detections : t_photon_counter_2d := (others => (others => '0'));
@@ -93,7 +94,8 @@
         )
         port map (
             -- Reset, write clock
-            rst => rst,
+            wr_rst => wr_rst,
+            rd_rst => rd_rst,
             wr_sys_clk => clk_wr,
 
             -- Data Signals
@@ -125,6 +127,7 @@
         -- Emulate wr_photon_losses
         trans_wr_photon_losses : process
         begin
+            wait for 260 ns; -- MMCM locking
             loop
                 wait for 1000 ns;
 
@@ -138,6 +141,7 @@
         -- Emulate wr_channels_detections
         trans_wr_channels_detections : process
         begin
+            wait for 260 ns; -- MMCM locking
             loop
                 wait for 25 ns;
 
@@ -171,6 +175,12 @@
         proc_sequencer : process
         begin
 
+            wr_rst <= '1';
+            rd_rst <= '1';
+            wait for 260 ns;
+
+            wr_rst <= '0';
+            rd_rst <= '0';
             wait for 40 us;
             -- wait until rising_edge(fifo_full);
 

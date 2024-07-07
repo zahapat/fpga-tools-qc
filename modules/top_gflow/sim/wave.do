@@ -1,6 +1,8 @@
 onerror {resume}
 quietly WaveActivateNextPane {} 0
 add wave -noupdate -divider {TB: top_gflow_tb ALL signals}
+add wave -noupdate /top_gflow_tb/dut_top_gflow/eval_clk
+add wave -noupdate /top_gflow_tb/dut_top_gflow/dsp_clk
 add wave -noupdate /top_gflow_tb/sys_clk_p
 add wave -noupdate /top_gflow_tb/sys_clk_n
 add wave -noupdate /top_gflow_tb/led
@@ -31,10 +33,10 @@ add wave -noupdate /top_gflow_tb/dut_top_gflow/sl_gflow_success_done_transferred
 add wave -noupdate -expand /top_gflow_tb/dut_top_gflow/pcd_ctrl_pulse_ready
 add wave -noupdate /top_gflow_tb/dut_top_gflow/inst_fsm_gflow/pcd_ctrl_pulse_ready_p1
 add wave -noupdate /top_gflow_tb/dut_top_gflow/inst_fsm_gflow/pcd_ctrl_pulse_fedge_latched
+add wave -noupdate /top_gflow_tb/dut_top_gflow/sl_rst_eval_clk
+add wave -noupdate /top_gflow_tb/dut_top_gflow/sl_rst_readout_clk
 add wave -noupdate -divider {TB: top_gflow INTERNAL signals}
 add wave -noupdate /top_gflow_tb/dut_top_gflow/inst_fsm_gflow/PHOTON_HV_SYNCHRONIZATION_DELAY
-add wave -noupdate /top_gflow_tb/dut_top_gflow/sys_clk
-add wave -noupdate /top_gflow_tb/dut_top_gflow/sampl_clk
 add wave -noupdate /top_gflow_tb/dut_top_gflow/acq_clk
 add wave -noupdate /top_gflow_tb/dut_top_gflow/sl_gflow_success_flag
 add wave -noupdate -color Gold /top_gflow_tb/dut_top_gflow/inst_fsm_gflow/int_state_gflow
@@ -54,8 +56,6 @@ add wave -noupdate /top_gflow_tb/dut_top_gflow/sl_usb_fifo_empty
 add wave -noupdate /top_gflow_tb/dut_top_gflow/sl_usb_fifo_full
 add wave -noupdate /top_gflow_tb/dut_top_gflow/sl_usb_fifo_prog_empty
 add wave -noupdate /top_gflow_tb/dut_top_gflow/locked
-add wave -noupdate /top_gflow_tb/dut_top_gflow/sl_rst
-add wave -noupdate /top_gflow_tb/dut_top_gflow/sl_rst_samplclk
 add wave -noupdate /top_gflow_tb/dut_top_gflow/s_noisy_channels
 add wave -noupdate /top_gflow_tb/dut_top_gflow/s_stable_channels_to_cdcc
 add wave -noupdate /top_gflow_tb/dut_top_gflow/sl_inemul_valid
@@ -108,7 +108,7 @@ add wave -noupdate /top_gflow_tb/readout_csv1_line_done_event
 add wave -noupdate -childformat {{/top_gflow_tb/readout_coincidences(15) -radix unsigned} {/top_gflow_tb/readout_coincidences(14) -radix unsigned} {/top_gflow_tb/readout_coincidences(13) -radix unsigned} {/top_gflow_tb/readout_coincidences(12) -radix unsigned} {/top_gflow_tb/readout_coincidences(11) -radix unsigned} {/top_gflow_tb/readout_coincidences(10) -radix unsigned} {/top_gflow_tb/readout_coincidences(9) -radix unsigned} {/top_gflow_tb/readout_coincidences(8) -radix unsigned} {/top_gflow_tb/readout_coincidences(7) -radix unsigned} {/top_gflow_tb/readout_coincidences(6) -radix unsigned} {/top_gflow_tb/readout_coincidences(5) -radix unsigned} {/top_gflow_tb/readout_coincidences(4) -radix unsigned} {/top_gflow_tb/readout_coincidences(3) -radix unsigned} {/top_gflow_tb/readout_coincidences(2) -radix unsigned} {/top_gflow_tb/readout_coincidences(1) -radix unsigned} {/top_gflow_tb/readout_coincidences(0) -radix unsigned}} -subitemconfig {/top_gflow_tb/readout_coincidences(15) {-height 15 -radix unsigned} /top_gflow_tb/readout_coincidences(14) {-height 15 -radix unsigned} /top_gflow_tb/readout_coincidences(13) {-height 15 -radix unsigned} /top_gflow_tb/readout_coincidences(12) {-height 15 -radix unsigned} /top_gflow_tb/readout_coincidences(11) {-height 15 -radix unsigned} /top_gflow_tb/readout_coincidences(10) {-height 15 -radix unsigned} /top_gflow_tb/readout_coincidences(9) {-height 15 -radix unsigned} /top_gflow_tb/readout_coincidences(8) {-height 15 -radix unsigned} /top_gflow_tb/readout_coincidences(7) {-height 15 -radix unsigned} /top_gflow_tb/readout_coincidences(6) {-height 15 -radix unsigned} /top_gflow_tb/readout_coincidences(5) {-height 15 -radix unsigned} /top_gflow_tb/readout_coincidences(4) {-height 15 -radix unsigned} /top_gflow_tb/readout_coincidences(3) {-height 15 -radix unsigned} /top_gflow_tb/readout_coincidences(2) {-height 15 -radix unsigned} /top_gflow_tb/readout_coincidences(1) {-height 15 -radix unsigned} /top_gflow_tb/readout_coincidences(0) {-height 15 -radix unsigned}} /top_gflow_tb/readout_coincidences
 add wave -noupdate /top_gflow_tb/readout_csv2_line_done_event
 TreeUpdate [SetDefaultTree]
-WaveRestoreCursors {{Cursor 1} {3333019 ps} 0}
+WaveRestoreCursors {{Cursor 1} {190517 ps} 0}
 quietly wave cursor active 1
 configure wave -namecolwidth 546
 configure wave -valuecolwidth 213
