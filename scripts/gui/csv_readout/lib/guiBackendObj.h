@@ -106,6 +106,7 @@ public:
         }
         outFile1 << ",";
 
+        outFile1 << "timestamp_q1_ovflw" << i << ","; // This is to correct time on overflow detection
         for (int i = 1; i <= qubits_count; i++){
             outFile1 << "timestamp_q" << i << ",";
         }

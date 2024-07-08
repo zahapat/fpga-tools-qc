@@ -1,12 +1,12 @@
 
-SIMULATION REPORT          Generated on Sun Jul 07 14:11:32 2024
+SIMULATION REPORT          Generated on Mon Jul 08 23:54:51 2024
 
 
 Design simulated: C:/Git/zahapat/fpga-tools-qc/simulator/vivado_precompiled_ver/unisim.glbl_vhd(glbl_vhd_v) C:/Git/zahapat/fpga-tools-qc/simulator/xil_iplib_verilog.glbl C:/Git/zahapat/fpga-tools-qc/simulator/lib_sim.top_gflow_tb(sim)
-Number of signals/nets in design: 6370915
-Number of processes in design: 4933
-Number of instances from user libraries in design: 370
-Number of executable statements in design: 121214
+Number of signals/nets in design: 6371383
+Number of processes in design: 4937
+Number of instances from user libraries in design: 371
+Number of executable statements in design: 121289
 
 Simulator Parameters:
 
@@ -415,7 +415,7 @@ List of Design units used:
     Architecture: rtl
     Library: C:/Git/zahapat/fpga-tools-qc/simulator/lib_src
     Source File: C:/Git/zahapat/fpga-tools-qc/modules/nff_cdcc/hdl/nff_cdcc.vhd
-    Occurrences: 21
+    Occurrences: 22
 
     Entity: nff_cdcc_cntr , acc : <novopt>
     Architecture: rtl

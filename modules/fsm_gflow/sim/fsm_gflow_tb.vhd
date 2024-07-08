@@ -67,7 +67,6 @@
         signal to_math_sx_xz : std_logic_vector(1 downto 0) := (others => '0');
         signal actual_qubit_valid : std_logic := '0';
         signal actual_qubit : std_logic_vector(1 downto 0) := (others => '0');
-        signal actual_qubit_time_stamp : std_logic_vector(st_transaction_data_max_width);
         signal time_stamp_counter_overflow : std_logic := '0';
         signal state_gflow : natural range 0 to QUBITS_CNT-1;
         signal pcd_ctrl_pulse_ready : std_logic := '1';
@@ -166,7 +165,6 @@
             to_math_sx_xz => to_math_sx_xz,
             actual_qubit_valid => actual_qubit_valid,
             actual_qubit => actual_qubit,
-            actual_qubit_time_stamp => actual_qubit_time_stamp,
             state_gflow => state_gflow,
 
             time_stamp_counter_overflow => time_stamp_counter_overflow,

@@ -113,7 +113,7 @@ def generate_hardware():
 
 # Run C++ Script using coommand line to start writing to the stream
 def run_stream_write():
-    subprocess.Popen("make run_release", cwd="./scripts/gui/redis")
+    subprocess.Popen("make run_release", cwd="./scripts/gui/csv_readout")
     return True
 
 
@@ -124,7 +124,7 @@ def start_redis_wait_until_valid_data(sleep_timeout_sec, sleep_timeout_counter_m
     # Return where the stream ended
     # os.system('wsl.exe sudo service redis-server start')
     # os.system('wsl.exe sudo service redis-server stop')
-    subprocess.Popen("make redis_start", cwd="./scripts/gui/redis")
+    subprocess.Popen("make redis_start", cwd="./scripts/gui/csv_readout")
     try:
         redis_db = Database(host='localhost', port=6379, db=0)
         # redis_db = Database()

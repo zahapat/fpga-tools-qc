@@ -162,12 +162,6 @@ set_min_delay $min_delay2 -from [get_cells inst_gflow/${inst_name}/gen_if_clocks
 set_max_delay $max_delay2 -from [get_cells inst_gflow/${inst_name}/gen_if_clocks_different.slv_data_to_cross_2d_reg[1][*]] -to [get_cells inst_gflow/${inst_name}/gen_if_clocks_different.slv_data_asyncff_2d_reg[0][*]];
 set_min_delay $min_delay2 -from [get_cells inst_gflow/${inst_name}/gen_if_clocks_different.slv_data_to_cross_2d_reg[1][*]] -to [get_cells inst_gflow/${inst_name}/gen_if_clocks_different.slv_data_asyncff_2d_reg[0][*]];
 
-set inst_name "inst_nff_cdcc_timestamp_buffer"
-set_max_delay $max_delay2 -from [get_cells inst_gflow/gen_cdcc_transfer_data[*].${inst_name}/gen_if_clocks_different.slv_wr_en_event_to_cross_reg[1]] -to [get_cells inst_gflow/gen_cdcc_transfer_data[*].${inst_name}/gen_if_clocks_different.slv_wr_en_event_asyncff_reg[0]];
-set_min_delay $min_delay2 -from [get_cells inst_gflow/gen_cdcc_transfer_data[*].${inst_name}/gen_if_clocks_different.slv_wr_en_event_to_cross_reg[1]] -to [get_cells inst_gflow/gen_cdcc_transfer_data[*].${inst_name}/gen_if_clocks_different.slv_wr_en_event_asyncff_reg[0]];
-set_max_delay $max_delay2 -from [get_cells inst_gflow/gen_cdcc_transfer_data[*].${inst_name}/gen_if_clocks_different.slv_data_to_cross_2d_reg[1][*]] -to [get_cells inst_gflow/gen_cdcc_transfer_data[*].${inst_name}/gen_if_clocks_different.slv_data_asyncff_2d_reg[0][*]];
-set_min_delay $min_delay2 -from [get_cells inst_gflow/gen_cdcc_transfer_data[*].${inst_name}/gen_if_clocks_different.slv_data_to_cross_2d_reg[1][*]] -to [get_cells inst_gflow/gen_cdcc_transfer_data[*].${inst_name}/gen_if_clocks_different.slv_data_asyncff_2d_reg[0][*]];
-
 set inst_name "inst_nff_cdcc_qubit_buffer"
 set_max_delay $max_delay2 -from [get_cells inst_gflow/gen_cdcc_transfer_data[*].${inst_name}/gen_if_clocks_different.slv_wr_en_event_to_cross_reg[1]] -to [get_cells inst_gflow/gen_cdcc_transfer_data[*].${inst_name}/gen_if_clocks_different.slv_wr_en_event_asyncff_reg[0]];
 set_min_delay $min_delay2 -from [get_cells inst_gflow/gen_cdcc_transfer_data[*].${inst_name}/gen_if_clocks_different.slv_wr_en_event_to_cross_reg[1]] -to [get_cells inst_gflow/gen_cdcc_transfer_data[*].${inst_name}/gen_if_clocks_different.slv_wr_en_event_asyncff_reg[0]];
@@ -191,6 +185,12 @@ set_max_delay $max_delay2 -from [get_cells inst_gflow/gen_cdcc_transfer_data[*].
 set_min_delay $min_delay2 -from [get_cells inst_gflow/gen_cdcc_transfer_data[*].${inst_name}/gen_if_clocks_different.slv_wr_en_event_to_cross_reg[1]] -to [get_cells inst_gflow/gen_cdcc_transfer_data[*].${inst_name}/gen_if_clocks_different.slv_wr_en_event_asyncff_reg[0]];
 set_max_delay $max_delay2 -from [get_cells inst_gflow/gen_cdcc_transfer_data[*].${inst_name}/gen_if_clocks_different.slv_data_to_cross_2d_reg[1][*]] -to [get_cells inst_gflow/gen_cdcc_transfer_data[*].${inst_name}/gen_if_clocks_different.slv_data_asyncff_2d_reg[0][*]];
 set_min_delay $min_delay2 -from [get_cells inst_gflow/gen_cdcc_transfer_data[*].${inst_name}/gen_if_clocks_different.slv_data_to_cross_2d_reg[1][*]] -to [get_cells inst_gflow/gen_cdcc_transfer_data[*].${inst_name}/gen_if_clocks_different.slv_data_asyncff_2d_reg[0][*]];
+
+set inst_name "inst_nff_cdcc_timestamp_buffer"
+set_max_delay $max_delay2 -from [get_cells inst_gflow/gen_cdcc_transfer_gflow_timestamps[*].${inst_name}/gen_if_clocks_different.slv_wr_en_event_to_cross_reg[1]] -to [get_cells inst_gflow/gen_cdcc_transfer_gflow_timestamps[*].${inst_name}/gen_if_clocks_different.slv_wr_en_event_asyncff_reg[0]];
+set_min_delay $min_delay2 -from [get_cells inst_gflow/gen_cdcc_transfer_gflow_timestamps[*].${inst_name}/gen_if_clocks_different.slv_wr_en_event_to_cross_reg[1]] -to [get_cells inst_gflow/gen_cdcc_transfer_gflow_timestamps[*].${inst_name}/gen_if_clocks_different.slv_wr_en_event_asyncff_reg[0]];
+set_max_delay $max_delay2 -from [get_cells inst_gflow/gen_cdcc_transfer_gflow_timestamps[*].${inst_name}/gen_if_clocks_different.slv_data_to_cross_2d_reg[1][*]] -to [get_cells inst_gflow/gen_cdcc_transfer_gflow_timestamps[*].${inst_name}/gen_if_clocks_different.slv_data_asyncff_2d_reg[0][*]];
+set_min_delay $min_delay2 -from [get_cells inst_gflow/gen_cdcc_transfer_gflow_timestamps[*].${inst_name}/gen_if_clocks_different.slv_data_to_cross_2d_reg[1][*]] -to [get_cells inst_gflow/gen_cdcc_transfer_gflow_timestamps[*].${inst_name}/gen_if_clocks_different.slv_data_asyncff_2d_reg[0][*]];
 
 set inst_name "inst_nff_cdcc_cntr_ch_photons"
 set_max_delay $max_delay2 -from [get_cells inst_gflow/gen_cdcc_cntr_ch_photons[*].${inst_name}/slv_data_to_cross_2d_reg[1][*]] -to [get_cells inst_gflow/gen_cdcc_cntr_ch_photons[*].${inst_name}/slv_data_asyncff_2d_reg[0][*]];

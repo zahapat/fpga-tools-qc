@@ -317,9 +317,9 @@ bool guiBackendObj::Read(unsigned char* dataBufferRead_thread1, okCFrontPanel* o
 
             // Perform Reading from Pipe Out at address 0xA0
             if (0 == m_u32BlockSize) {
-                value_tx_or_rx = okDevice->ReadFromPipeOut(0xA0, u32SegmentSize, dataBufferRead_thread1);
+                value_tx_or_rx = okDevice->ReadFromPipeOut(epAddr=0xA0, length=u32SegmentSize, data=dataBufferRead_thread1);
             } else {
-                value_tx_or_rx = okDevice->ReadFromBlockPipeOut(0xA0, m_u32BlockSize, u32SegmentSize, dataBufferRead_thread1);
+                value_tx_or_rx = okDevice->ReadFromBlockPipeOut(epAddr=0xA0, blockSize=m_u32BlockSize, length=u32SegmentSize, data=dataBufferRead_thread1);
             }
 
             // Check for invalid values
@@ -338,7 +338,9 @@ bool guiBackendObj::Read(unsigned char* dataBufferRead_thread1, okCFrontPanel* o
 
                 if (okDevice->IsOpen() == false) {
                     std::cout << "Device disconnected" << std::endl;
-                    exit(-1);
+
+                    // Largest possible exit code as "unknown error" or "abort" (it's unlikely to ever conflict with a meaningful status value)
+                    // exit(-1);
                 }
 
                 // Unsuccessful data transfer
@@ -347,8 +349,6 @@ bool guiBackendObj::Read(unsigned char* dataBufferRead_thread1, okCFrontPanel* o
         }
     }
 
-    // Successful data transfer, append NULL as without error
-    // std::cout << "dataBufferRead_thread1 Returned Correctly" << std::endl;
     return false;
 }
 

@@ -619,7 +619,6 @@
 
             actual_qubit_valid        => sl_actual_qubit_valid,
             actual_qubit              => slv_actual_qubit,
-            actual_qubit_time_stamp   => slv_actual_qubit_time_stamp,
             state_gflow               => state_gflow,
             pcd_ctrl_pulse_ready      => pcd_ctrl_pulse_ready_delayed(0)
         );
@@ -751,28 +750,6 @@
                     rd_data  => slv_qubit_buffer_transferred_2d(i)
                 );
 
-                -- CDCC Timestamp Buffer
-                inst_nff_cdcc_timestamp_buffer : entity lib_src.nff_cdcc(rtl)
-                generic map (
-                    BYPASS => false,
-                    ASYNC_FLOPS_CNT => 2,
-                    DATA_WIDTH => 32-4,
-                    FLOPS_BEFORE_CROSSING_CNT => 1,
-                    WR_READY_DEASSERTED_CYCLES => 2
-                )
-                port map (
-                    -- Write ports
-                    clk_write => dsp_clk,
-                    wr_en     => sl_gflow_success_done,
-                    wr_data   => slv_time_stamp_buffer_2d(i),
-                    wr_ready  => open,
-
-                    -- Read ports
-                    clk_read => eval_clk,
-                    rd_valid => open,
-                    rd_data  => slv_time_stamp_buffer_transferred_2d(i)
-                );
-
                 -- CDCC Alpha Buffer
                 inst_nff_cdcc_alpha_buffer : entity lib_src.nff_cdcc(rtl)
                 generic map (
@@ -838,6 +815,31 @@
                     rd_valid => open,
                     rd_data  => slv_random_buffer_transferred_2d(i)
                 );
+        end generate;
+
+
+        -- CDCC Timestamp Buffer
+        gen_cdcc_transfer_gflow_timestamps : for i in 0 to INT_QUBITS_CNT generate
+            inst_nff_cdcc_timestamp_buffer : entity lib_src.nff_cdcc(rtl)
+            generic map (
+                BYPASS => false,
+                ASYNC_FLOPS_CNT => 2,
+                DATA_WIDTH => 32-4,
+                FLOPS_BEFORE_CROSSING_CNT => 1,
+                WR_READY_DEASSERTED_CYCLES => 2
+            )
+            port map (
+                -- Write ports
+                clk_write => dsp_clk,
+                wr_en     => sl_gflow_success_done,
+                wr_data   => slv_time_stamp_buffer_2d(i),
+                wr_ready  => open,
+
+                -- Read ports
+                clk_read => eval_clk,
+                rd_valid => open,
+                rd_data  => slv_time_stamp_buffer_transferred_2d(i)
+            );
         end generate;
 
 

@@ -161,10 +161,13 @@
             wr_valid_gflow_success_done <= '1';
             for i in 0 to INT_QUBITS_CNT-1 loop
                 wr_data_qubit_buffer(i) <= std_logic_vector(unsigned(wr_data_qubit_buffer(i)) + "1");
-                wr_data_time_stamp_buffer(i) <= std_logic_vector(unsigned(wr_data_time_stamp_buffer(i)) + "1");
                 wr_data_alpha_buffer(i) <= std_logic_vector(to_unsigned(i mod 4, 2));
                 wr_data_modulo_buffer(i) <= std_logic_vector(unsigned(wr_data_modulo_buffer(i)) + "1");
                 wr_data_random_buffer(i) <= std_logic_vector(unsigned(wr_data_random_buffer(i)) + "1");
+            end loop;
+
+            for i in 0 to INT_QUBITS_CNT loop
+                wr_data_time_stamp_buffer(i) <= std_logic_vector(unsigned(wr_data_time_stamp_buffer(i)) + "1");
             end loop;
 
             wait until rising_edge(clk_wr);

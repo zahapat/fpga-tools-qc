@@ -65,7 +65,6 @@
             state_gflow : out natural range 0 to QUBITS_CNT-1;
             actual_qubit_valid : out std_logic;
             actual_qubit : out std_logic_vector(1 downto 0);
-            actual_qubit_time_stamp : out std_logic_vector(st_transaction_data_max_width);
 
             time_stamp_counter_overflow : out std_logic;
 
@@ -187,7 +186,7 @@
         signal slv_to_math_sx_sz : std_logic_vector(1 downto 0) := (others => '0');
 
         -- Time Stamp
-        signal uns_actual_time_stamp_counter : unsigned(st_transaction_data_max_width) := (others => '0');
+        signal uns_actual_time_stamp_counter : unsigned(28*2-1 downto 0) := (others => '0');
 
         -- Data buffers for verification in PC
         signal slv_qubit_buffer_2d      : t_qubit_buffer_2d := (others => (others => '0'));
@@ -329,7 +328,6 @@
         gflow_success_flag <= sl_gflow_success_flag;
         gflow_success_done <= sl_gflow_success_done;
         to_math_sx_xz <= slv_to_math_sx_sz;
-        actual_qubit_time_stamp <= std_logic_vector(uns_actual_time_stamp_counter(st_transaction_data_max_width));
         qubit_buffer <= slv_qubit_buffer_2d;
         time_stamp_buffer <= slv_time_stamp_buffer_2d;
         alpha_buffer <= slv_alpha_buffer_2d;
@@ -350,7 +348,7 @@
                     pcd_ctrl_pulse_ready_p1 <= pcd_ctrl_pulse_ready;
 
                     -- Time Stamp counter always inscrements each clock cycle and overflows
-                    -- If 1 cycle = 10 ns: 10*10^(-9) sec * 2^32 cycles = overflow after every 42.949673 sec
+                    -- If 1 cycle = 5 ns: 5*10^(-9) sec * 2^(28*2) cycles = overflow after every 42.949673 sec
                     uns_actual_time_stamp_counter <= uns_actual_time_stamp_counter + 1;
 
                     -- Sample and latch feedback from MODULO, Override if feedback_mod_valid
@@ -408,7 +406,10 @@
                             -- if qubits_sampled_valid(QUBITS_CNT-1) = '1' then
                             if qubits_sampled_valid(0) = '1' then
                                 actual_qubit_valid <= '1';
-                                slv_time_stamp_buffer_2d(0) <= std_logic_vector(uns_actual_time_stamp_counter);
+                                slv_time_stamp_buffer_2d(0) -- Higher bits of the counter (to count beyond ~0.8s)
+                                    <= std_logic_vector(uns_actual_time_stamp_counter(uns_actual_time_stamp_counter'high downto 28));
+                                slv_time_stamp_buffer_2d(1) 
+                                    <= std_logic_vector(uns_actual_time_stamp_counter(st_transaction_data_max_width));
                                 -- Next state
                                 int_state_gflow <= int_state_gflow + 1;
                             end if;
@@ -441,7 +442,8 @@
                                     -- if qubits_sampled_valid(QUBITS_CNT-1-QUBIT_ID(i)) = '1' then
                                     if qubits_sampled_valid(QUBIT_ID(i)) = '1' then
                                         actual_qubit_valid <= '1';
-                                        slv_time_stamp_buffer_2d(QUBIT_ID(i)) <= std_logic_vector(uns_actual_time_stamp_counter);
+                                        slv_time_stamp_buffer_2d(QUBIT_ID(i)+1) 
+                                            <= std_logic_vector(uns_actual_time_stamp_counter(st_transaction_data_max_width));
                                         int_state_gflow <= int_state_gflow + 1;
                                     else
                                         int_state_gflow <= 0;
@@ -459,7 +461,8 @@
                                         if qubits_sampled_valid(QUBIT_ID(i)) = '1' then
                                             -- Leave the state early, reset counter, sample time stamp
                                             actual_qubit_valid <= '1';
-                                            slv_time_stamp_buffer_2d(QUBIT_ID(i)) <= std_logic_vector(uns_actual_time_stamp_counter);
+                                            slv_time_stamp_buffer_2d(QUBIT_ID(i)+1) 
+                                                <= std_logic_vector(uns_actual_time_stamp_counter(st_transaction_data_max_width));
                                             int_state_gflow <= int_state_gflow + 1;
                                         end if;
 
@@ -491,7 +494,8 @@
                             -- if qubits_sampled_valid(0) = '1' then
                             if qubits_sampled_valid(QUBITS_CNT-1) = '1' then
                                 actual_qubit_valid <= '1';
-                                slv_time_stamp_buffer_2d(QUBITS_CNT-1) <= std_logic_vector(uns_actual_time_stamp_counter);
+                                slv_time_stamp_buffer_2d(QUBITS_CNT) 
+                                    <= std_logic_vector(uns_actual_time_stamp_counter(st_transaction_data_max_width));
                                 int_state_gflow <= 0;
                                 sl_gflow_success_flag <= '1';
                             else
@@ -510,7 +514,8 @@
                                 if qubits_sampled_valid(QUBITS_CNT-1) = '1' then
                                     -- Leave the state early, reset counter, sample time stamp
                                     actual_qubit_valid <= '1';
-                                    slv_time_stamp_buffer_2d(QUBITS_CNT-1) <= std_logic_vector(uns_actual_time_stamp_counter);
+                                    slv_time_stamp_buffer_2d(QUBITS_CNT) 
+                                        <= std_logic_vector(uns_actual_time_stamp_counter(st_transaction_data_max_width));
                                     int_state_gflow <= 0;
                                     sl_gflow_success_flag <= '1';
                                 end if;
@@ -593,8 +598,6 @@
                         if sl_gflow_success_flag = '0' then
 
                             -- After waiting, only then continue the control operation, otherwise qubit 1 will interfere with yet uprocessed data from qubit 4
-                            -- slv_actual_qubit <= slv_qubits_sampled(QUBITS_CNT*2-1 - 0*2 downto QUBITS_CNT*2-1 - 0*2-1);
-                            -- slv_qubit_buffer_2d(0) <= slv_qubits_sampled(QUBITS_CNT*2-1 - 0*2 downto QUBITS_CNT*2-1 - 0*2-1);
                             slv_actual_qubit <= slv_qubits_sampled(1 downto 0);
                             slv_qubit_buffer_2d(0) <= slv_qubits_sampled(1 downto 0);
 
@@ -604,10 +607,12 @@
                             slv_to_math_sx_sz <= "00";
 
                             -- Detect Qubit 1 and proceed to Qubit 2
-                            -- if qubits_sampled_valid(QUBITS_CNT-1) = '1' then
                             if qubits_sampled_valid(0) = '1' then
                                 actual_qubit_valid <= '1';
-                                slv_time_stamp_buffer_2d(0) <= std_logic_vector(uns_actual_time_stamp_counter);
+                                slv_time_stamp_buffer_2d(0) -- Higher bits of the counter (to count beyond ~0.8s)
+                                    <= std_logic_vector(uns_actual_time_stamp_counter(uns_actual_time_stamp_counter'high downto 28));
+                                slv_time_stamp_buffer_2d(1) 
+                                    <= std_logic_vector(uns_actual_time_stamp_counter(st_transaction_data_max_width));
                                 -- Next state
                                 int_state_gflow_two_qubits <= int_state_gflow_two_qubits + 1;
                             end if;
@@ -635,7 +640,8 @@
                             -- if qubits_sampled_valid(0) = '1' then
                             if qubits_sampled_valid(QUBITS_CNT-1) = '1' then
                                 actual_qubit_valid <= '1';
-                                slv_time_stamp_buffer_2d(QUBITS_CNT-1) <= std_logic_vector(uns_actual_time_stamp_counter);
+                                slv_time_stamp_buffer_2d(QUBITS_CNT) 
+                                    <= std_logic_vector(uns_actual_time_stamp_counter(st_transaction_data_max_width));
                                 int_state_gflow_two_qubits <= 0;
                                 sl_gflow_success_flag <= '1';
                             else
@@ -645,14 +651,13 @@
                         end if;
 
                         -- Look for detection before the last counter iteration (counter the data skew)
-                        -- if int_main_counter = MAX_PERIODS_CORR(QUBITS_CNT-1) -2 then
                         if int_main_counter_two_qubits = MAX_PERIODS(QUBITS_CNT-1) -2 then
-                            -- Detect Qubit 4 earlier and proceed to Qubit 1
-                            -- if qubits_sampled_valid(0) = '1' then
+                            -- Detect Last Qubit earlier and proceed to Qubit 1
                             if qubits_sampled_valid(QUBITS_CNT-1) = '1' then
                                 -- Leave the state early, reset counter, sample time stamp
                                 actual_qubit_valid <= '1';
-                                slv_time_stamp_buffer_2d(QUBITS_CNT-1) <= std_logic_vector(uns_actual_time_stamp_counter);
+                                slv_time_stamp_buffer_2d(QUBITS_CNT) 
+                                    <= std_logic_vector(uns_actual_time_stamp_counter(st_transaction_data_max_width));
                                 int_state_gflow_two_qubits <= 0;
                                 sl_gflow_success_flag <= '1';
                             end if;

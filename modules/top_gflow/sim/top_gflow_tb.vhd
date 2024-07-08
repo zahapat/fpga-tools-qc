@@ -416,7 +416,7 @@
         type t_INT_QUBITS_CNT_x_1b_2d is array(INT_QUBITS_CNT-1 downto 0) of std_logic_vector(0 downto 0);   -- random
         type t_INT_QUBITS_CNT_x_2b_2d is array(INT_QUBITS_CNT-1 downto 0) of std_logic_vector(2-1 downto 0); -- photons, alpha, modulo
         type t_INT_QUBITS_CNT_x_8b_2d is array(INT_QUBITS_CNT-1 downto 1) of std_logic_vector(8-1 downto 0); -- unsuccessful counter
-        type t_INT_QUBITS_CNT_x_28b_2d is array(INT_QUBITS_CNT-1 downto 0) of std_logic_vector(32-4-1 downto 0); -- time stamps
+        type t_INT_QUBITS_CNTp1_x_28b_2d is array(INT_QUBITS_CNT downto 0) of std_logic_vector(32-4-1 downto 0); -- time stamps
         type t_INT_QUBITS_CNTpw2_x_16_2d is array(INT_QUBITS_CNT**2-1 downto 0) of std_logic_vector(16-1 downto 0); -- coincidence patterns
         type t_INT_QUBITS_CNT2_x_16_2d is array (INT_QUBITS_CNT*2-1 downto 0) of std_logic_vector(16-1 downto 0); -- photon detections counting
         type t_INT_QUBITS_CNT_x_16_2d is array (INT_QUBITS_CNT-1 downto 0) of std_logic_vector(16-1 downto 0); -- lost photons
@@ -426,7 +426,7 @@
         signal readout_alpha : t_INT_QUBITS_CNT_x_2b_2d := (others => (others => '0'));
         signal readout_random : t_INT_QUBITS_CNT_x_1b_2d := (others => (others => '0'));
         signal readout_modulo : t_INT_QUBITS_CNT_x_2b_2d := (others => (others => '0'));
-        signal readout_timestamps : t_INT_QUBITS_CNT_x_28b_2d := (others => (others => '0'));
+        signal readout_timestamps : t_INT_QUBITS_CNTp1_x_28b_2d := (others => (others => '0'));
         signal readout_csv1_line_done_event : bit := '0';
 
         -- CSV file 2
@@ -1083,6 +1083,7 @@
             end loop;
             write(v_line_buffer, string'(","));
 
+            write(v_line_buffer, string'("timestamp_q1_ovflw" & ","));
             for i in 1 to INT_QUBITS_CNT loop
                 write(v_line_buffer, string'("timestamp_q" & integer'image(i) & ","));
             end loop;

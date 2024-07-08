@@ -156,7 +156,7 @@
         signal slv_flow_alpha_buffer_sampled : std_logic_vector(2*INT_QUBITS_CNT-1 downto 0) := (others => '0');
         signal slv_flow_modulo_buffer_sampled : std_logic_vector(2*INT_QUBITS_CNT-1 downto 0) := (others => '0');
         signal slv_flow_random_buffer_sampled : std_logic_vector(1*INT_QUBITS_CNT-1 downto 0) := (others => '0');
-        signal slv_flow_timestamp_buffer_sampled : std_logic_vector(28*INT_QUBITS_CNT-1 downto 0) := (others => '0');
+        signal slv_flow_timestamp_buffer_sampled : std_logic_vector(28*(INT_QUBITS_CNT+1)-1 downto 0) := (others => '0');
 
         -- Shifters for data outflow
         signal slv_combinations_counters_shreg : std_logic_vector(COINCIDENCE_PATTERN_ACC_WIDTH*(INT_QUBITS_CNT**2)-1 downto 0) := (others => '0');
@@ -430,7 +430,7 @@
 
                 -- Sample on sample request
                 if wr_valid_gflow_success_done = '1' then -- Sample request signal
-                    for i in 0 to INT_QUBITS_CNT-1 loop
+                    for i in 0 to INT_QUBITS_CNT loop
                         slv_flow_timestamp_buffer_shreg((i+1)*28-1 downto i*28)
                             <= wr_data_time_stamp_buffer(i);
                     end loop;
@@ -794,7 +794,7 @@
                     when SEND_GFLOW_TIMESTAMP =>
 
                         -- Send periodic report in a way it has a higher priority over the 'sl_readout_request_gflow' but does not interfere with it
-                        if int_readout_counter = INT_QUBITS_CNT then
+                        if int_readout_counter = INT_QUBITS_CNT+1 then
                             int_readout_counter <= 0;
 
                             -- Send enter
