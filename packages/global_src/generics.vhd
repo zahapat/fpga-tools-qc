@@ -2,7 +2,7 @@
 -- after running 'make generics' command.
 package generics is
 
-    constant INT_EMULATE_INPUTS : integer := 0;
+    constant INT_EMULATE_INPUTS : integer := 1;
     constant INT_QUBITS_CNT : integer := 4;
     constant INT_WHOLE_PHOTON_1H_DELAY_NS : integer := 75;
     constant INT_DECIM_PHOTON_1H_DELAY_NS : integer := 65;

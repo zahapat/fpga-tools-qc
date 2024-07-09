@@ -996,8 +996,8 @@
         proc_sequencer : process
         begin
 
-            -- Wait until MMCM is locked, then trigger input emulation
-            wait until rising_edge(<< signal.top_gflow_tb.dut_top_gflow.locked : std_logic >>);
+            -- Wait until MMCM1 is locked, then trigger input emulation
+            wait until rising_edge(<< signal.top_gflow_tb.dut_top_gflow.locked_mmcm1 : std_logic >>);
 
             ctrl_input_emulation_mode <= SEND_CLUSTER_THEN_WAIT;
             ctrl_sim_start <= '1';

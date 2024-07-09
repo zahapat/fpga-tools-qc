@@ -144,6 +144,32 @@ set min_delay2 [expr - ${clk_uncertainty2}]
 # |  2   |   -   |   -   |   -   |   -   |  Fail  |   00:00:00   |                   |
 # +------+-------+-------+-------+-------+--------+--------------+-------------------+
 
+# TODO: Pay attention to these warnings
+# 24 net(s) have no routable loads. 
+# The problem bus(es) and/or net(s) are 
+# inst_ok_host_interf/core0/core0/a0/cb0/U0/inst_fifo_gen/gconvfifo.rf/grf.rf/gntv_or_sync_fifo.gl0.wr/gwss.wsts/ram_afull_fb, 
+# inst_ok_host_interf/core0/core0/a0/cb0/U0/inst_fifo_gen/gconvfifo.rf/grf.rf/gntv_or_sync_fifo.gl0.wr/gwss.wsts/ram_afull_i, 
+# inst_gflow/inst_nff_cdcc_success_done/slv_data_asyncff_2d[2]_25, 
+# inst_gflow/gen_cdcc_transfer_data[2].inst_nff_cdcc_modulo_buffer/slv_wr_en_event_asyncff[2], 
+# inst_gflow/gen_cdcc_transfer_gflow_timestamps[1].inst_nff_cdcc_timestamp_buffer/slv_wr_en_event_asyncff[2], 
+# inst_gflow/gen_cdcc_transfer_data[2].inst_nff_cdcc_random_buffer/slv_wr_en_event_asyncff[2], 
+# inst_gflow/gen_cdcc_transfer_data[0].inst_nff_cdcc_modulo_buffer/slv_wr_en_event_asyncff[2], 
+# inst_gflow/gen_cdcc_transfer_data[3].inst_nff_cdcc_qubit_buffer/slv_wr_en_event_asyncff[2], 
+# inst_gflow/gen_cdcc_transfer_gflow_timestamps[4].inst_nff_cdcc_timestamp_buffer/slv_wr_en_event_asyncff[2], 
+# inst_gflow/gen_cdcc_transfer_data[1].inst_nff_cdcc_random_buffer/slv_wr_en_event_asyncff[2], 
+# inst_gflow/gen_cdcc_transfer_gflow_timestamps[2].inst_nff_cdcc_timestamp_buffer/slv_wr_en_event_asyncff[2], 
+# inst_gflow/gen_cdcc_transfer_data[2].inst_nff_cdcc_alpha_buffer/slv_wr_en_event_asyncff[2], 
+# inst_gflow/gen_cdcc_transfer_data[1].inst_nff_cdcc_modulo_buffer/slv_wr_en_event_asyncff[2], 
+# inst_gflow/gen_cdcc_transfer_data[0].inst_nff_cdcc_qubit_buffer/slv_wr_en_event_asyncff[2], 
+# inst_gflow/gen_cdcc_transfer_data[1].inst_nff_cdcc_alpha_buffer/slv_wr_en_event_asyncff[2]... and (the first 15 of 24 listed).
+
+
+# set_false_path to exclude the following paths from timing analysis 
+#     - This is to emulate analog pulses from single photon detectors, which are naturally not synchronized with FPGA's clock
+set inst_source "inst_lfsr_inemul"
+set inst_destination "inst_photon_delay_compensation"
+set_false_path -from [get_cells inst_gflow/gen_emul_true.${inst_source}/data_out_reg[*]] -to [get_cells inst_gflow/gen_photon_delay_compensation[*].${inst_destination}/all_channels_databuff[*].s_flops_databuff_1_reg[*]];
+
 
 # max_delay constraint: to cover/override setup checks
 # min_delay constraint: to cover/override hold checks

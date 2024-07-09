@@ -545,6 +545,7 @@ def print_mmcm_parameters (
 # ----- Min and Max VCO Values -----
 # 1) Set the VCO operating range
 # f_vco_min_MHz = 600
+# f_vco_min_MHz = 1200
 # f_vco_max_MHz = 1200
 f_vco_min_MHz = 1000
 f_vco_max_MHz = 1200
@@ -560,9 +561,9 @@ f_clkin1_MHz = 200.000
 
 # Tolerance for output clocks +/- (MHz)
 list_clkoutx_abs_tolerance_MHz = [
-    1.000,
     0.000,
-    0.000,
+    0.100,
+    0.100,
     0.100,
     0.100,
     0.100,
@@ -572,9 +573,9 @@ list_clkoutx_abs_tolerance_MHz = [
 # Output clock (MHz)
 # Try 250 MHz
 list_clkoutx_MHz = [
-    600.000,    # + Shift by 90 Degrees = 0.9 + 500 ps; 50% Duty Cycle = 0.5
-    300.000,    # + Shift by 90 Degrees = 0.9; 50% Duty Cycle = 0.5
-    100.000,
+    239.999808,    # + Shift by 90 Degrees = 0.9 + 500 ps; 50% Duty Cycle = 0.5
+    0.000,    # + Shift by 90 Degrees = 0.9; 50% Duty Cycle = 0.5
+    0.000,
     0.000,
     0.000,
     0.000,

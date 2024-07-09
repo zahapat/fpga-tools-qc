@@ -93,7 +93,9 @@
         ----------------
         -- Components --
         ----------------
-        -- SystemVerilog File (must be compiled to the same lib as glbl)
+        -- SystemVerilog File: 
+        --     - must be compiled to the same lib as glbl in ModelSim
+        --     - must be instantiated outside of VHDL generate statements - ModelSim compiles, Vivado does not
         component clock_synthesizer
         generic (
             IF_CLKIN1_DIFF : integer;
@@ -143,8 +145,9 @@
 
         -- Clocks
         constant REAL_BOARD_OSC_FREQ_MHZ : real := 200.0;
-        constant REAL_CLK_SYS_HZ : real := 200.0e6;
-        constant REAL_CLK_SAMPL_HZ : real := 300.0e6;
+        constant REAL_CLK_EVAL_MHZ : real := 200.0;
+        constant REAL_CLK_EVAL_HZ : real := 200.0e6;
+        constant REAL_CLK_DSP_HZ : real := 300.0e6;
         constant REAL_CLK_ACQ_HZ : real := 600.0e6;
 
         ---------------
@@ -185,11 +188,17 @@
         -------------
         -- Signals --
         -------------
-        -- Clock Wizard
+        -- MMCM 1
         signal eval_clk : std_logic := '0';
         signal dsp_clk : std_logic := '0';
         signal acq_clk : std_logic := '0';
-        signal locked : std_logic := '0';
+        signal locked_mmcm1 : std_logic := '0';
+
+        -- MMCM 2
+        signal inemul_clk : std_logic := '0';
+        signal locked_mmcm2 : std_logic := '0';
+        signal out_fineps_dready_mmcm2 : std_logic := '0';
+
 
         -- FIFO Set/Reset on device power up in both RD and WR domains
         signal sl_rst_eval_clk : std_logic := '0';
@@ -301,9 +310,6 @@
     begin
 
 
-        ----------------------
-        -- Xilinx IP Blocks --
-        ----------------------
         -- Instance Clock Synthesizer (Verilog)
         inst_clock_synthesizer : clock_synthesizer
         generic map (
@@ -360,7 +366,67 @@
             out_clk4 => open,
             out_clk5 => open,
             out_clk6 => open,
-            locked => locked
+            locked => locked_mmcm1
+        );
+
+        -- MMCM2: Clock synthesizer for input emulation with dynamical phase shifting with respect to MMCM1
+        -- (12.5 ns / 3 periods) = 4.1666667 ns long pulses = 240.0 MHz @ 1200 MHz f_VCO
+        inst_clock_synthesizer_inemul : clock_synthesizer
+        generic map (
+            -- If input clk is differential, set to 1
+            IF_CLKIN1_DIFF => 0,
+
+            -- Set input clk parameters
+            REAL_CLKIN1_MHZ => REAL_CLK_EVAL_MHZ,
+
+            -- Setup the VCO frequency for input emulation
+            INT_VCO_DIVIDE => 1,
+            REAL_VCO_MULTIPLY => 6.0,
+
+            REAL_DIVIDE_OUT0 => 5.0,
+            INT_DIVIDE_OUT1 => 0,
+            INT_DIVIDE_OUT2 => 0,
+            INT_DIVIDE_OUT3 => 0,
+            INT_DIVIDE_OUT4 => 0,
+            INT_DIVIDE_OUT5 => 0,
+            INT_DIVIDE_OUT6 => 0,
+
+            REAL_DUTY_OUT0 => 0.5,
+            REAL_DUTY_OUT1 => 0.5,
+            REAL_DUTY_OUT2 => 0.5,
+            REAL_DUTY_OUT3 => 0.5,
+            REAL_DUTY_OUT4 => 0.5,
+            REAL_DUTY_OUT5 => 0.5,
+            REAL_DUTY_OUT6 => 0.5,
+
+            REAL_PHASE_OUT0 => 0.0,
+            REAL_PHASE_OUT1 => 0.0,
+            REAL_PHASE_OUT2 => 0.0,
+            REAL_PHASE_OUT3 => 0.0,
+            REAL_PHASE_OUT4 => 0.0,
+            REAL_PHASE_OUT5 => 0.0,
+            REAL_PHASE_OUT6 => 0.0
+        ) port map (
+            -- Inputs
+            in_clk0_p => eval_clk,
+            in_clk0_n => '0',
+
+            -- Fine Phase Shift: simulate continuous phase shift
+            in_fineps_clk     => eval_clk,
+            in_fineps_incr    => '1',
+            in_fineps_decr    => '0',
+            in_fineps_valid   => out_fineps_dready_mmcm2,
+            out_fineps_dready => out_fineps_dready_mmcm2,
+
+            -- Outputs
+            out_clk0 => inemul_clk,
+            out_clk1 => open,
+            out_clk2 => open,
+            out_clk3 => open,
+            out_clk4 => open,
+            out_clk5 => open,
+            out_clk6 => open,
+            locked => locked_mmcm2
         );
 
 
@@ -377,7 +443,7 @@
         inst_csv_readout : entity lib_src.csv_readout(rtl)
         generic map (
             INT_QUBITS_CNT => INT_QUBITS_CNT,
-            CLK_HZ => REAL_CLK_SYS_HZ,
+            CLK_HZ => REAL_CLK_EVAL_HZ,
             REGULAR_SAMPLER_SECONDS => 5.0e-6,  -- Change this value to alter the frequency of regular reporting
             REGULAR_SAMPLER_SECONDS_2 => 6.0e-6 -- Change this value to alter the frequency of regular reporting
         )
@@ -446,6 +512,7 @@
 
 
         -- If Necessary, uncomment this input emulator for evaluation
+        -- Instance Clock Synthesizer (Verilog) - simulate non-phase-locked pulse detection
         gen_emul_true : if INT_EMULATE_INPUTS /= 0 generate 
             inst_lfsr_inemul : entity lib_src.lfsr_inemul(rtl)
             generic map (
@@ -457,7 +524,7 @@
                 PULLDOWN_CYCLES       => 2 -- min 2
             )
             port map (
-                clk => dsp_clk,
+                clk => inemul_clk,
                 rst => '0',
 
                 ready => open,
@@ -579,7 +646,7 @@
         inst_fsm_gflow : entity lib_src.fsm_gflow(rtl)
         generic map (
             RST_VAL                 => RST_VAL,
-            CLK_HZ                  => REAL_CLK_SAMPL_HZ,
+            CLK_HZ                  => REAL_CLK_DSP_HZ,
             CTRL_PULSE_DUR_WITH_DEADTIME_NS => CTRL_PULSE_DUR_WITH_DEADTIME_NS,
             QUBITS_CNT              => INT_QUBITS_CNT,
             PHOTON_1H_DELAY_NS      => PHOTON_1H_DELAY_NS,
@@ -850,7 +917,7 @@
         generic map (
             RST_VAL                => RST_VAL,
             DATA_WIDTH             => 1,
-            REAL_CLK_HZ            => REAL_CLK_SYS_HZ,
+            REAL_CLK_HZ            => REAL_CLK_EVAL_HZ,
             PULSE_DURATION_HIGH_NS => INT_CTRL_PULSE_HIGH_DURATION_NS,
             PULSE_DURATION_LOW_NS  => INT_CTRL_PULSE_DEAD_DURATION_NS
         )

@@ -49,7 +49,7 @@ TOP ?= top_gflow
 
 # [make generics] Set names and values for generic variables
 GEN1_NAME ?= INT_EMULATE_INPUTS
-GEN1_VAL ?= 0
+GEN1_VAL ?= 1
 
 GEN2_NAME ?= INT_QUBITS_CNT
 GEN2_VAL ?= 4
