@@ -18,32 +18,33 @@
             RST_VAL : std_logic := '1';
 
             -- Integer parameters from Makefile
-            INT_QUBITS_CNT                  : integer := INT_QUBITS_CNT;
-            INT_EMULATE_INPUTS              : integer := INT_EMULATE_INPUTS;
-            INT_WHOLE_PHOTON_1H_DELAY_NS    : integer := INT_WHOLE_PHOTON_1H_DELAY_NS;
-            INT_DECIM_PHOTON_1H_DELAY_NS    : integer := INT_DECIM_PHOTON_1H_DELAY_NS;
-            INT_WHOLE_PHOTON_1V_DELAY_NS    : integer := INT_WHOLE_PHOTON_1V_DELAY_NS;
-            INT_DECIM_PHOTON_1V_DELAY_NS    : integer := INT_DECIM_PHOTON_1V_DELAY_NS;
-            INT_WHOLE_PHOTON_2H_DELAY_NS    : integer := INT_WHOLE_PHOTON_2H_DELAY_NS;
-            INT_DECIM_PHOTON_2H_DELAY_NS    : integer := INT_DECIM_PHOTON_2H_DELAY_NS;
-            INT_WHOLE_PHOTON_2V_DELAY_NS    : integer := INT_WHOLE_PHOTON_2V_DELAY_NS;
-            INT_DECIM_PHOTON_2V_DELAY_NS    : integer := INT_DECIM_PHOTON_2V_DELAY_NS;
-            INT_WHOLE_PHOTON_3H_DELAY_NS    : integer := INT_WHOLE_PHOTON_3H_DELAY_NS;
-            INT_DECIM_PHOTON_3H_DELAY_NS    : integer := INT_DECIM_PHOTON_3H_DELAY_NS;
-            INT_WHOLE_PHOTON_3V_DELAY_NS    : integer := INT_WHOLE_PHOTON_3V_DELAY_NS;
-            INT_DECIM_PHOTON_3V_DELAY_NS    : integer := INT_DECIM_PHOTON_3V_DELAY_NS;
-            INT_WHOLE_PHOTON_4H_DELAY_NS    : integer := INT_WHOLE_PHOTON_4H_DELAY_NS;
-            INT_DECIM_PHOTON_4H_DELAY_NS    : integer := INT_DECIM_PHOTON_4H_DELAY_NS;
-            INT_WHOLE_PHOTON_4V_DELAY_NS    : integer := INT_WHOLE_PHOTON_4V_DELAY_NS;
-            INT_DECIM_PHOTON_4V_DELAY_NS    : integer := INT_DECIM_PHOTON_4V_DELAY_NS;
-            INT_WHOLE_PHOTON_5H_DELAY_NS    : integer := INT_WHOLE_PHOTON_5H_DELAY_NS;
-            INT_DECIM_PHOTON_5H_DELAY_NS    : integer := INT_DECIM_PHOTON_5H_DELAY_NS;
-            INT_WHOLE_PHOTON_5V_DELAY_NS    : integer := INT_WHOLE_PHOTON_5V_DELAY_NS;
-            INT_DECIM_PHOTON_5V_DELAY_NS    : integer := INT_DECIM_PHOTON_5V_DELAY_NS;
-            INT_WHOLE_PHOTON_6H_DELAY_NS    : integer := INT_WHOLE_PHOTON_6H_DELAY_NS;
-            INT_DECIM_PHOTON_6H_DELAY_NS    : integer := INT_DECIM_PHOTON_6H_DELAY_NS;
-            INT_WHOLE_PHOTON_6V_DELAY_NS    : integer := INT_WHOLE_PHOTON_6V_DELAY_NS;
-            INT_DECIM_PHOTON_6V_DELAY_NS    : integer := INT_DECIM_PHOTON_6V_DELAY_NS;
+            INT_QUBITS_CNT     : integer := INT_QUBITS_CNT;
+            INT_EMULATE_INPUTS : integer := INT_EMULATE_INPUTS;
+            INT_ALL_DIGITS_PHOTON_1H_DELAY_NS    : integer := INT_ALL_DIGITS_PHOTON_1H_DELAY_NS;
+            INT_ALL_DIGITS_PHOTON_1V_DELAY_NS    : integer := INT_ALL_DIGITS_PHOTON_1V_DELAY_NS;
+            INT_WHOLE_DIGITS_CNT_PHOTON_1H_DELAY : integer := INT_WHOLE_DIGITS_CNT_PHOTON_1H_DELAY;
+            INT_WHOLE_DIGITS_CNT_PHOTON_1V_DELAY : integer := INT_WHOLE_DIGITS_CNT_PHOTON_1V_DELAY;
+            INT_ALL_DIGITS_PHOTON_2H_DELAY_NS    : integer := INT_ALL_DIGITS_PHOTON_2H_DELAY_NS;
+            INT_ALL_DIGITS_PHOTON_2V_DELAY_NS    : integer := INT_ALL_DIGITS_PHOTON_2V_DELAY_NS;
+            INT_WHOLE_DIGITS_CNT_PHOTON_2H_DELAY : integer := INT_WHOLE_DIGITS_CNT_PHOTON_2H_DELAY;
+            INT_WHOLE_DIGITS_CNT_PHOTON_2V_DELAY : integer := INT_WHOLE_DIGITS_CNT_PHOTON_2V_DELAY;
+            INT_ALL_DIGITS_PHOTON_3H_DELAY_NS    : integer := INT_ALL_DIGITS_PHOTON_3H_DELAY_NS;
+            INT_ALL_DIGITS_PHOTON_3V_DELAY_NS    : integer := INT_ALL_DIGITS_PHOTON_3V_DELAY_NS;
+            INT_WHOLE_DIGITS_CNT_PHOTON_3H_DELAY : integer := INT_WHOLE_DIGITS_CNT_PHOTON_3H_DELAY;
+            INT_WHOLE_DIGITS_CNT_PHOTON_3V_DELAY : integer := INT_WHOLE_DIGITS_CNT_PHOTON_3V_DELAY;
+            INT_ALL_DIGITS_PHOTON_4H_DELAY_NS    : integer := INT_ALL_DIGITS_PHOTON_4H_DELAY_NS;
+            INT_ALL_DIGITS_PHOTON_4V_DELAY_NS    : integer := INT_ALL_DIGITS_PHOTON_4V_DELAY_NS;
+            INT_WHOLE_DIGITS_CNT_PHOTON_4H_DELAY : integer := INT_WHOLE_DIGITS_CNT_PHOTON_4H_DELAY;
+            INT_WHOLE_DIGITS_CNT_PHOTON_4V_DELAY : integer := INT_WHOLE_DIGITS_CNT_PHOTON_4V_DELAY;
+            INT_ALL_DIGITS_PHOTON_5H_DELAY_NS    : integer := INT_ALL_DIGITS_PHOTON_5H_DELAY_NS;
+            INT_ALL_DIGITS_PHOTON_5V_DELAY_NS    : integer := INT_ALL_DIGITS_PHOTON_5V_DELAY_NS;
+            INT_WHOLE_DIGITS_CNT_PHOTON_5H_DELAY : integer := INT_WHOLE_DIGITS_CNT_PHOTON_5H_DELAY;
+            INT_WHOLE_DIGITS_CNT_PHOTON_5V_DELAY : integer := INT_WHOLE_DIGITS_CNT_PHOTON_5V_DELAY;
+            INT_ALL_DIGITS_PHOTON_6H_DELAY_NS    : integer := INT_ALL_DIGITS_PHOTON_6H_DELAY_NS;
+            INT_ALL_DIGITS_PHOTON_6V_DELAY_NS    : integer := INT_ALL_DIGITS_PHOTON_6V_DELAY_NS;
+            INT_WHOLE_DIGITS_CNT_PHOTON_6H_DELAY : integer := INT_WHOLE_DIGITS_CNT_PHOTON_6H_DELAY;
+            INT_WHOLE_DIGITS_CNT_PHOTON_6V_DELAY : integer := INT_WHOLE_DIGITS_CNT_PHOTON_6V_DELAY;
+
             INT_DISCARD_QUBITS_TIME_NS      : integer := INT_DISCARD_QUBITS_TIME_NS;           -- Stop feedforward for a given time
             INT_CTRL_PULSE_HIGH_DURATION_NS : integer := INT_CTRL_PULSE_HIGH_DURATION_NS; -- PCD Control Pulse Design & Delay
             INT_CTRL_PULSE_DEAD_DURATION_NS : integer := INT_CTRL_PULSE_DEAD_DURATION_NS; -- PCD Control Pulse Design & Delay
@@ -265,29 +266,27 @@
 
 
         -- Convert Integer generic values to real numbers
-        -- Prevent dividing by zero
-        impure function get_divisor (
-            constant DIVISOR : integer
-        ) return integer is
+        impure function int_to_real (
+            constant INT_ALL_DIGITS : integer;        -- Contains whole and decimal digits (e.g. 4541710)
+            constant INT_WHOLE_DIGITS_COUNT : integer -- Positive int specifies the number of whole digits in 'INT_ALL_DIGITS' (e.g. 2 to be converted to 45.41710)
+                                                      -- Negative int adds leading zeros to 'INT_ALL_DIGITS' (e.g. -2 to be converted to 0.004541710)
+                                                      -- Zero will create a decimal number: 0.'INT_ALL_DIGITS' (to be converted to 0.4541710)
+        ) return real is
         begin
-            if DIVISOR = 0 then
-                return 1;
-            else
-                return integer(10.0**(floor(log10(real(DIVISOR))) + 1.0));
-            end if;
+            return (real(INT_ALL_DIGITS) / (10.0**(floor(log10(abs(real(INT_ALL_DIGITS))))+1.0))) * (0.1**(-1.0*real(INT_WHOLE_DIGITS_COUNT)));
         end function;
-        constant PHOTON_1H_DELAY_NS : real := real(INT_WHOLE_PHOTON_1H_DELAY_NS) + real(INT_DECIM_PHOTON_1H_DELAY_NS) / real(get_divisor(INT_DECIM_PHOTON_1H_DELAY_NS));
-        constant PHOTON_1V_DELAY_NS : real := real(INT_WHOLE_PHOTON_1V_DELAY_NS) + real(INT_DECIM_PHOTON_1V_DELAY_NS) / real(get_divisor(INT_DECIM_PHOTON_1V_DELAY_NS));
-        constant PHOTON_2H_DELAY_NS : real := real(INT_WHOLE_PHOTON_2H_DELAY_NS) + real(INT_DECIM_PHOTON_2H_DELAY_NS) / real(get_divisor(INT_DECIM_PHOTON_2H_DELAY_NS));
-        constant PHOTON_2V_DELAY_NS : real := real(INT_WHOLE_PHOTON_2V_DELAY_NS) + real(INT_DECIM_PHOTON_2V_DELAY_NS) / real(get_divisor(INT_DECIM_PHOTON_2V_DELAY_NS));
-        constant PHOTON_3H_DELAY_NS : real := real(INT_WHOLE_PHOTON_3H_DELAY_NS) + real(INT_DECIM_PHOTON_3H_DELAY_NS) / real(get_divisor(INT_DECIM_PHOTON_3H_DELAY_NS));
-        constant PHOTON_3V_DELAY_NS : real := real(INT_WHOLE_PHOTON_3V_DELAY_NS) + real(INT_DECIM_PHOTON_3V_DELAY_NS) / real(get_divisor(INT_DECIM_PHOTON_3V_DELAY_NS));
-        constant PHOTON_4H_DELAY_NS : real := real(INT_WHOLE_PHOTON_4H_DELAY_NS) + real(INT_DECIM_PHOTON_4H_DELAY_NS) / real(get_divisor(INT_DECIM_PHOTON_4H_DELAY_NS));
-        constant PHOTON_4V_DELAY_NS : real := real(INT_WHOLE_PHOTON_4V_DELAY_NS) + real(INT_DECIM_PHOTON_4V_DELAY_NS) / real(get_divisor(INT_DECIM_PHOTON_4V_DELAY_NS));
-        constant PHOTON_5H_DELAY_NS : real := real(INT_WHOLE_PHOTON_5H_DELAY_NS) + real(INT_DECIM_PHOTON_5H_DELAY_NS) / real(get_divisor(INT_DECIM_PHOTON_5H_DELAY_NS));
-        constant PHOTON_5V_DELAY_NS : real := real(INT_WHOLE_PHOTON_5V_DELAY_NS) + real(INT_DECIM_PHOTON_5V_DELAY_NS) / real(get_divisor(INT_DECIM_PHOTON_5V_DELAY_NS));
-        constant PHOTON_6H_DELAY_NS : real := real(INT_WHOLE_PHOTON_6H_DELAY_NS) + real(INT_DECIM_PHOTON_6H_DELAY_NS) / real(get_divisor(INT_DECIM_PHOTON_6H_DELAY_NS));
-        constant PHOTON_6V_DELAY_NS : real := real(INT_WHOLE_PHOTON_6V_DELAY_NS) + real(INT_DECIM_PHOTON_6V_DELAY_NS) / real(get_divisor(INT_DECIM_PHOTON_6V_DELAY_NS));
+        constant PHOTON_1H_DELAY_NS : real := abs(int_to_real(INT_ALL_DIGITS_PHOTON_1H_DELAY_NS, INT_WHOLE_DIGITS_CNT_PHOTON_1H_DELAY));
+        constant PHOTON_1V_DELAY_NS : real := abs(int_to_real(INT_ALL_DIGITS_PHOTON_1V_DELAY_NS, INT_WHOLE_DIGITS_CNT_PHOTON_1V_DELAY));
+        constant PHOTON_2H_DELAY_NS : real := abs(int_to_real(INT_ALL_DIGITS_PHOTON_2H_DELAY_NS, INT_WHOLE_DIGITS_CNT_PHOTON_2H_DELAY));
+        constant PHOTON_2V_DELAY_NS : real := abs(int_to_real(INT_ALL_DIGITS_PHOTON_2V_DELAY_NS, INT_WHOLE_DIGITS_CNT_PHOTON_2V_DELAY));
+        constant PHOTON_3H_DELAY_NS : real := abs(int_to_real(INT_ALL_DIGITS_PHOTON_3H_DELAY_NS, INT_WHOLE_DIGITS_CNT_PHOTON_3H_DELAY));
+        constant PHOTON_3V_DELAY_NS : real := abs(int_to_real(INT_ALL_DIGITS_PHOTON_3V_DELAY_NS, INT_WHOLE_DIGITS_CNT_PHOTON_3V_DELAY));
+        constant PHOTON_4H_DELAY_NS : real := abs(int_to_real(INT_ALL_DIGITS_PHOTON_4H_DELAY_NS, INT_WHOLE_DIGITS_CNT_PHOTON_4H_DELAY));
+        constant PHOTON_4V_DELAY_NS : real := abs(int_to_real(INT_ALL_DIGITS_PHOTON_4V_DELAY_NS, INT_WHOLE_DIGITS_CNT_PHOTON_4V_DELAY));
+        constant PHOTON_5H_DELAY_NS : real := abs(int_to_real(INT_ALL_DIGITS_PHOTON_5H_DELAY_NS, INT_WHOLE_DIGITS_CNT_PHOTON_5H_DELAY));
+        constant PHOTON_5V_DELAY_NS : real := abs(int_to_real(INT_ALL_DIGITS_PHOTON_5V_DELAY_NS, INT_WHOLE_DIGITS_CNT_PHOTON_5V_DELAY));
+        constant PHOTON_6H_DELAY_NS : real := abs(int_to_real(INT_ALL_DIGITS_PHOTON_6H_DELAY_NS, INT_WHOLE_DIGITS_CNT_PHOTON_6H_DELAY));
+        constant PHOTON_6V_DELAY_NS : real := abs(int_to_real(INT_ALL_DIGITS_PHOTON_6V_DELAY_NS, INT_WHOLE_DIGITS_CNT_PHOTON_6V_DELAY));
 
         type t_periods_q_2d is array (6-1 downto 0) of real; 
         constant PHOTON_XH_DELAY_NS : t_periods_q_2d := (

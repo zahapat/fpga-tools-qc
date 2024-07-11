@@ -1,12 +1,12 @@
 
-SIMULATION REPORT          Generated on Mon Jul 08 23:54:51 2024
+SIMULATION REPORT          Generated on Thu Jul 11 01:16:23 2024
 
 
 Design simulated: C:/Git/zahapat/fpga-tools-qc/simulator/vivado_precompiled_ver/unisim.glbl_vhd(glbl_vhd_v) C:/Git/zahapat/fpga-tools-qc/simulator/xil_iplib_verilog.glbl C:/Git/zahapat/fpga-tools-qc/simulator/lib_sim.top_gflow_tb(sim)
-Number of signals/nets in design: 6371383
-Number of processes in design: 4937
+Number of signals/nets in design: 6371459
+Number of processes in design: 5163
 Number of instances from user libraries in design: 371
-Number of executable statements in design: 121289
+Number of executable statements in design: 121303
 
 Simulator Parameters:
 
@@ -58,19 +58,19 @@ List of Design units used:
     Library: C:/Git/zahapat/fpga-tools-qc/simulator/vivado_precompiled_ver/unisims_ver
     Source File: C:/Xilinx/Vivado/2020.2/data/verilog/src/unisims/MMCME2_ADV.v
     Timescale: 1ps / 1ps
-    Occurrences: 1
+    Occurrences: 2
 
     Module: BUFG , acc : <novopt>
     Library: C:/Git/zahapat/fpga-tools-qc/simulator/vivado_precompiled_ver/unisims_ver
     Source File: C:/Xilinx/Vivado/2020.2/data/verilog/src/unisims/BUFG.v
     Timescale: 1ps / 1ps
-    Occurrences: 4
+    Occurrences: 6
 
     Module: clock_synthesizer , acc : <novopt>
     Library: C:/Git/zahapat/fpga-tools-qc/simulator/xil_iplib_verilog
     Source File: C:/Git/zahapat/fpga-tools-qc/modules/clock_synthesizer/hdl/clock_synthesizer.sv
     Timescale: 1ns / 1ps
-    Occurrences: 1
+    Occurrences: 2
 
     Module: std , acc : <novopt>
     Library: C:/intelFPGA/20.1/modelsim_ase/sv_std

@@ -55,7 +55,6 @@ add wave -noupdate /top_gflow_tb/dut_top_gflow/slv_fifo_wr_valid_qubit_flags
 add wave -noupdate /top_gflow_tb/dut_top_gflow/sl_usb_fifo_empty
 add wave -noupdate /top_gflow_tb/dut_top_gflow/sl_usb_fifo_full
 add wave -noupdate /top_gflow_tb/dut_top_gflow/sl_usb_fifo_prog_empty
-add wave -noupdate /top_gflow_tb/dut_top_gflow/locked
 add wave -noupdate /top_gflow_tb/dut_top_gflow/s_noisy_channels
 add wave -noupdate /top_gflow_tb/dut_top_gflow/s_stable_channels_to_cdcc
 add wave -noupdate /top_gflow_tb/dut_top_gflow/sl_inemul_valid
@@ -108,7 +107,7 @@ add wave -noupdate /top_gflow_tb/readout_csv1_line_done_event
 add wave -noupdate -childformat {{/top_gflow_tb/readout_coincidences(15) -radix unsigned} {/top_gflow_tb/readout_coincidences(14) -radix unsigned} {/top_gflow_tb/readout_coincidences(13) -radix unsigned} {/top_gflow_tb/readout_coincidences(12) -radix unsigned} {/top_gflow_tb/readout_coincidences(11) -radix unsigned} {/top_gflow_tb/readout_coincidences(10) -radix unsigned} {/top_gflow_tb/readout_coincidences(9) -radix unsigned} {/top_gflow_tb/readout_coincidences(8) -radix unsigned} {/top_gflow_tb/readout_coincidences(7) -radix unsigned} {/top_gflow_tb/readout_coincidences(6) -radix unsigned} {/top_gflow_tb/readout_coincidences(5) -radix unsigned} {/top_gflow_tb/readout_coincidences(4) -radix unsigned} {/top_gflow_tb/readout_coincidences(3) -radix unsigned} {/top_gflow_tb/readout_coincidences(2) -radix unsigned} {/top_gflow_tb/readout_coincidences(1) -radix unsigned} {/top_gflow_tb/readout_coincidences(0) -radix unsigned}} -subitemconfig {/top_gflow_tb/readout_coincidences(15) {-height 15 -radix unsigned} /top_gflow_tb/readout_coincidences(14) {-height 15 -radix unsigned} /top_gflow_tb/readout_coincidences(13) {-height 15 -radix unsigned} /top_gflow_tb/readout_coincidences(12) {-height 15 -radix unsigned} /top_gflow_tb/readout_coincidences(11) {-height 15 -radix unsigned} /top_gflow_tb/readout_coincidences(10) {-height 15 -radix unsigned} /top_gflow_tb/readout_coincidences(9) {-height 15 -radix unsigned} /top_gflow_tb/readout_coincidences(8) {-height 15 -radix unsigned} /top_gflow_tb/readout_coincidences(7) {-height 15 -radix unsigned} /top_gflow_tb/readout_coincidences(6) {-height 15 -radix unsigned} /top_gflow_tb/readout_coincidences(5) {-height 15 -radix unsigned} /top_gflow_tb/readout_coincidences(4) {-height 15 -radix unsigned} /top_gflow_tb/readout_coincidences(3) {-height 15 -radix unsigned} /top_gflow_tb/readout_coincidences(2) {-height 15 -radix unsigned} /top_gflow_tb/readout_coincidences(1) {-height 15 -radix unsigned} /top_gflow_tb/readout_coincidences(0) {-height 15 -radix unsigned}} /top_gflow_tb/readout_coincidences
 add wave -noupdate /top_gflow_tb/readout_csv2_line_done_event
 TreeUpdate [SetDefaultTree]
-WaveRestoreCursors {{Cursor 1} {190517 ps} 0}
+WaveRestoreCursors {{Cursor 1} {27223333 ps} 0}
 quietly wave cursor active 1
 configure wave -namecolwidth 546
 configure wave -valuecolwidth 213
