@@ -54,13 +54,14 @@ GEN1_VAL ?= 0
 GEN2_NAME ?= INT_QUBITS_CNT
 GEN2_VAL ?= 4
 
-# Photon Delays:
-# INT_ALL_DIGITS_PHOTON_X_DELAY_NS:
+# Photon Delays: 
+# TLDR: Enter a real number without a decimal separator. Then specify the number of whole digits in INT_WHOLE_DIGITS_CNT_PHOTON_XY_DELAY to reconstruct the real number in the design.
+# INT_ALL_DIGITS_PHOTON_XY_DELAY_NS:
 #     - Input a positive/negative integer such that it contains both the whole and decimal part of a real number:
-#       (e.g. 440.800 -> 440800 or 4408 (preferably without trailing/leading zeros))
-#       (e.g. -0.0044 -> -00044 or -44 (preferably without trailing/leading zeros))
+#       (e.g. 440.800 -> 440800 (or 4408, preferably without trailing/leading zeros))
+#       (e.g. -0.0044 -> -00044 (or -44, preferably without trailing/leading zeros))
 
-# INT_WHOLE_DIGITS_CNT_PHOTON_X_DELAY:
+# INT_WHOLE_DIGITS_CNT_PHOTON_XY_DELAY:
 #     - Positive number specifies the number of whole digits in 'INT_ALL_DIGITS'
 #       (e.g. INT_ALL_DIGITS=4408 & INT_WHOLE_DIGITS_CNT=3 -> 440.8)
 #       (e.g. INT_ALL_DIGITS=-44  & INT_WHOLE_DIGITS_CNT=1 -> -4.4)
@@ -155,6 +156,10 @@ GEN30_NAME ?= INT_DISCARD_QUBITS_TIME_NS
 GEN30_VAL ?= 0
 
 
+# Directory for storing output build files ('make reset' will not affect them)
+TARGET_NAME_GENERICS := $(GEN1_VAL)_$(GEN2_VAL)_$(GEN3_VAL)_$(GEN5_VAL)_$(GEN7_VAL)_$(GEN9_VAL)_$(GEN11_VAL)_$(GEN13_VAL)_$(GEN15_VAL)_$(GEN17_VAL)_$(GEN19_VAL)_$(GEN21_VAL)_$(GEN23_VAL)_$(GEN25_VAL)_$(GEN27_VAL)_$(GEN28_VAL)_$(GEN30_VAL)
+TARGET_NAME_MD5_HASH := build_$(shell echo $(TARGET_NAME_GENERICS) | md5sum | awk '{print $$1}')
+TARGET_OUTPUT_DIR := $(PROJ_DIR)outputs/$(basename $(TOP))/$(TARGET_NAME_GENERICS)# or C:\fpga\outputs
 
 # -------------------------------------------------------------
 #                     MAKEFILE TARGETS
@@ -166,18 +171,43 @@ GEN30_VAL ?= 0
 # -------------------------------------------------------------
 #  Default target
 # -------------------------------------------------------------
-default_target:
-	@make py_gui
+# Default Target: Reset -> Create Pre-build files -> Add SRCs -> Compile -> Generate Bitstream -> Save Outputs -> Distribute Bitfiles
+$(TARGET_OUTPUT_DIR)/$(TARGET_NAME).bit:
+	@make reset essentials generics src all get_outputs timer
 
 
 
 # -------------------------------------------------------------
 #  Auxiliary targets
 # -------------------------------------------------------------
+# Put this at the end of yout make command sequence to measure execution time
+# Example: make reset essentials generics src sim timer
 timer:
 	@echo "-------------------------------------------"
 	@echo "make timer: Build Duration: $(TIMER_FORMAT)"
 	@echo "-------------------------------------------"
+
+# Get Vivado output files with *.rpt and the output .bit file, copy them to the output directory (defined by TARGET_OUTPUT_DIR variable)
+get_outputs: ./vivado/3_bitstream_$(PROJ_NAME).bit
+	@mkdir -p $(TARGET_OUTPUT_DIR)
+	@cp -r $(PROJ_DIR)vivado/3_bitstream_$(PROJ_NAME).bit $(TARGET_OUTPUT_DIR)/$(TARGET_NAME).bit
+	@cp -r $(PROJ_DIR)vivado/*.rpt $(TARGET_OUTPUT_DIR)
+
+# Building over Loop: Assign the loop variable 'i' to a desired generic parameter to build different hardware
+# Example: make bloop BLOOP_VALS="50 75 100" GEN_NUM=28 (GEN28_NAME is INT_CTRL_PULSE_DEAD_DURATION_NS)
+bloop:
+	@for i in $(BLOOP_VALS); do \
+		make GEN${GEN_NUM}_VAL=$$i; \
+	done
+
+# Building hardware in an enumerated manner
+# The below is an example and needs to be modified
+benum:
+	make
+	make GEN28_VAL=50
+	make GEN28_VAL=75 GEN1_VAL=1
+	make GEN28_VAL=100 GEN1_VAL=0
+
 
 
 # -------------------------------------------------------------
@@ -197,47 +227,47 @@ cmd_timeout:
 # -------------------------------------------------------------
 #  "vivado.mk" targets
 # -------------------------------------------------------------
-reset :
+reset:
 	@$(MAKE) -f $(VIVADO_MAKEFILE) $@
-new :
+new:
 	@$(MAKE) -f $(VIVADO_MAKEFILE) $@
-new_module :
+new_module:
 	@$(MAKE) -f $(VIVADO_MAKEFILE) $@
-src :
+src:
 	@$(MAKE) -f $(VIVADO_MAKEFILE) $@ TOP=$(TOP)
-board :
+board:
 	@$(MAKE) -f $(VIVADO_MAKEFILE) $@
-declare :
+declare:
 	@$(MAKE) -f $(VIVADO_MAKEFILE) $@
-ooc :
+ooc:
 	@$(MAKE) -f $(VIVADO_MAKEFILE) $@
-synth :
+synth:
 	@$(MAKE) -f $(VIVADO_MAKEFILE) $@
-impl :
+impl:
 	@$(MAKE) -f $(VIVADO_MAKEFILE) $@
-outd :
+outd:
 	@$(MAKE) -f $(VIVADO_MAKEFILE) $@
-bit :
+bit:
 	@$(MAKE) -f $(VIVADO_MAKEFILE) $@
-xsa :
+xsa:
 	@$(MAKE) -f $(VIVADO_MAKEFILE) $@
-prog :
+prog:
 	@$(MAKE) -f $(VIVADO_MAKEFILE) $@
-probes :
+probes:
 	@$(MAKE) -f $(VIVADO_MAKEFILE) $@
-ila :
+ila:
 	@$(MAKE) -f $(VIVADO_MAKEFILE) $@
-all :
+all:
 	@$(MAKE) -f $(VIVADO_MAKEFILE) $@
-old :
+old:
 	@$(MAKE) -f $(VIVADO_MAKEFILE) $@
-clean :
+clean:
 	@$(MAKE) -f $(VIVADO_MAKEFILE) $@
-gui :
+gui:
 	@$(MAKE) -f $(VIVADO_MAKEFILE) $@
-core :
+core:
 	@$(MAKE) -f $(VIVADO_MAKEFILE) $@
-ip :
+ip:
 	@$(MAKE) -f $(VIVADO_MAKEFILE) $@
 
 
@@ -245,7 +275,7 @@ ip :
 # -------------------------------------------------------------
 #  "sim.mk" targets
 # -------------------------------------------------------------
-sim_init :
+sim_init:
 	@$(MAKE) -f $(SIM_MAKEFILE) $@
 sim_reset:
 	@$(MAKE) -f $(SIM_MAKEFILE) $@ LIB_SRC=$(LIB_SRC) LIB_SIM=$(LIB_SIM)
@@ -257,27 +287,28 @@ compile:
 	@$(MAKE) -f $(SIM_MAKEFILE) $@ LIB_SRC=$(LIB_SRC) LIB_SIM=$(LIB_SIM)
 
 
+
 # -------------------------------------------------------------
 #  "vitis.mk" targets
 # -------------------------------------------------------------
 # Generic Vitis Targets
-remove_vitis :
+remove_vitis:
 	@$(MAKE) -f $(VITIS_MAKEFILE) $@
-remove_ws_vitis :
+remove_ws_vitis:
 	@$(MAKE) -f $(VITIS_MAKEFILE) $@
-new_vitis :
+new_vitis:
 	@$(MAKE) -f $(VITIS_MAKEFILE) $@
-new_app_vitis :
+new_app_vitis:
 	@$(MAKE) -f $(VITIS_MAKEFILE) $@
-add_sources_vitis :
+add_sources_vitis:
 	@$(MAKE) -f $(VITIS_MAKEFILE) $@
-gui_vitis :
+gui_vitis:
 	@$(MAKE) -f $(VITIS_MAKEFILE) $@
-bsp_regen_vitis :
+bsp_regen_vitis:
 	@$(MAKE) -f $(VITIS_MAKEFILE) $@
-reset_vitis :
+reset_vitis:
 	@$(MAKE) -f $(VITIS_MAKEFILE) $@
-all_vitis :
+all_vitis:
 	@$(MAKE) -f $(VITIS_MAKEFILE) $@
 
 
@@ -285,7 +316,7 @@ all_vitis :
 # -------------------------------------------------------------
 #  "generic.mk" targets
 # -------------------------------------------------------------
-generics :
+generics:
 	@$(MAKE) -f $(GENERIC_MAKEFILE) $@ \
 		GEN1_NAME=$(GEN1_NAME)   GEN1_VAL=$(GEN1_VAL) \
 		GEN2_NAME=$(GEN2_NAME)   GEN2_VAL=$(GEN2_VAL) \
@@ -322,13 +353,13 @@ generics :
 		GEN33_NAME=$(GEN33_NAME) GEN33_VAL=$(GEN33_VAL) \
 		GEN34_NAME=$(GEN34_NAME) GEN34_VAL=$(GEN34_VAL) \
 		OUTPUT_DIR=$(PROJ_DIR)packages/global_src
-essentials :
+essentials:
 	@$(MAKE) -f $(GENERIC_MAKEFILE) $@ OUTPUT_DIR=$(PROJ_DIR)packages/global_sim
 redis_start:
 	@$(MAKE) -f $(GENERIC_MAKEFILE) $@
 redis_stop:
 	@$(MAKE) -f $(GENERIC_MAKEFILE) $@
-vvc_gen :
+vvc_gen:
 	@$(MAKE) -f $(GENERIC_MAKEFILE) $@
 py_gui_regen:
 	@$(MAKE) -f $(GENERIC_MAKEFILE) $@
@@ -469,6 +500,7 @@ git_update_changes_thisbranch_projrepo:
 	@$(MAKE) -f $(GIT_MAKEFILE) $@
 git_update_changes_mainbranch_templrepo:
 	@$(MAKE) -f $(GIT_MAKEFILE) $@
+
 
 
 # -------------------------------------------------------------

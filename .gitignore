@@ -1,3 +1,4 @@
+outputs/*
 vivado/*
 vitis/*
 .vscode
