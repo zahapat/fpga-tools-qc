@@ -25,6 +25,7 @@ VIVADO_MAKEFILE = vivado.mk
 SIM_MAKEFILE = sim.mk
 VITIS_MAKEFILE = vitis.mk
 GIT_MAKEFILE = git.mk
+OPALKELLY_MAKEFILE = opalkelly.mk
 PACKAGES_MAKEFILE = packages.mk
 
 
@@ -45,6 +46,10 @@ EXTRA ?= none
 
 # [make src] Actual top module you are working with
 TOP ?= top_gflow
+
+
+# Readout parameters
+RUN_READOUT_SECONDS = 10.1
 
 
 # [make generics] Set names and values for generic variables
@@ -74,7 +79,7 @@ GEN2_VAL ?= 4
 
 # Qubit 1H
 GEN3_NAME ?= INT_ALL_DIGITS_PHOTON_1H_DELAY_NS
-GEN3_VAL ?= 7565
+GEN3_VAL ?= 756501
 GEN4_NAME ?= INT_WHOLE_DIGITS_CNT_PHOTON_1H_DELAY
 GEN4_VAL ?= 2
 # Qubit 1V
@@ -155,11 +160,17 @@ GEN29_VAL ?= 0
 GEN30_NAME ?= INT_DISCARD_QUBITS_TIME_NS
 GEN30_VAL ?= 0
 
+# Append additional generic parameters here ...
+# GEN31_NAME ?= <INT_GENERIC_NAME>
+# GEN31_VAL ?= <integer value>#Must be an integer, it is possible to perform int to real conversion (see the above method)
 
-# Directory for storing output build files ('make reset' will not affect them)
+
+# Prameters for naming output directories and .bit files ('make reset' will not affect them)
 TARGET_NAME_GENERICS := $(GEN1_VAL)_$(GEN2_VAL)_$(GEN3_VAL)_$(GEN5_VAL)_$(GEN7_VAL)_$(GEN9_VAL)_$(GEN11_VAL)_$(GEN13_VAL)_$(GEN15_VAL)_$(GEN17_VAL)_$(GEN19_VAL)_$(GEN21_VAL)_$(GEN23_VAL)_$(GEN25_VAL)_$(GEN27_VAL)_$(GEN28_VAL)_$(GEN30_VAL)
-TARGET_NAME_MD5_HASH := build_$(shell echo $(TARGET_NAME_GENERICS) | md5sum | awk '{print $$1}')
+TARGET_NAME_MD5_HASH := $(shell echo $(TARGET_NAME_GENERICS) | md5sum | awk '{print $$1}')
 TARGET_OUTPUT_DIR := $(PROJ_DIR)outputs/$(basename $(TOP))/$(TARGET_NAME_GENERICS)# or C:\fpga\outputs
+
+
 
 # -------------------------------------------------------------
 #                     MAKEFILE TARGETS
@@ -172,8 +183,8 @@ TARGET_OUTPUT_DIR := $(PROJ_DIR)outputs/$(basename $(TOP))/$(TARGET_NAME_GENERIC
 #  Default target
 # -------------------------------------------------------------
 # Default Target: Reset -> Create Pre-build files -> Add SRCs -> Compile -> Generate Bitstream -> Save Outputs -> Distribute Bitfiles
-$(TARGET_OUTPUT_DIR)/$(TARGET_NAME).bit:
-	@make reset essentials generics src all get_outputs timer
+$(TARGET_OUTPUT_DIR)/$(TARGET_NAME_MD5_HASH).bit:
+	@$(MAKE) reset essentials generics src all get_outputs timer ok_read_debug
 
 
 
@@ -190,17 +201,18 @@ timer:
 # Get Vivado output files with *.rpt and the output .bit file, copy them to the output directory (defined by TARGET_OUTPUT_DIR variable)
 get_outputs: ./vivado/3_bitstream_$(PROJ_NAME).bit
 	@mkdir -p $(TARGET_OUTPUT_DIR)
-	@cp -r $(PROJ_DIR)vivado/3_bitstream_$(PROJ_NAME).bit $(TARGET_OUTPUT_DIR)/$(TARGET_NAME).bit
+	@cp -r $(PROJ_DIR)vivado/3_bitstream_$(PROJ_NAME).bit $(TARGET_OUTPUT_DIR)/$(TARGET_NAME_MD5_HASH).bit
 	@cp -r $(PROJ_DIR)vivado/*.rpt $(TARGET_OUTPUT_DIR)
 
 # Building over Loop: Assign the loop variable 'i' to a desired generic parameter to build different hardware
-# Example: make bloop BLOOP_VALS="50 75 100" GEN_NUM=28 (GEN28_NAME is INT_CTRL_PULSE_DEAD_DURATION_NS)
+# Example: make bloop BLOOP_VALS="50 75 100" GEN_NUM=28 
+#    Note: GEN28_NAME is INT_CTRL_PULSE_DEAD_DURATION_NS
 bloop:
 	@for i in $(BLOOP_VALS); do \
 		make GEN${GEN_NUM}_VAL=$$i; \
 	done
 
-# Building hardware in an enumerated manner
+# "Build Enumerated": Building hardware in an enumerated manner
 # The below is an example and needs to be modified
 benum:
 	make
@@ -208,6 +220,14 @@ benum:
 	make GEN28_VAL=75 GEN1_VAL=1
 	make GEN28_VAL=100 GEN1_VAL=0
 
+
+# "Run Enumerated" Make a more complex set of commands, i.e. building gardware + run readout scirpt
+# The below is an example and needs to be modified
+renum:
+	make ok_read_debug
+	make ok_read_debug GEN28_VAL=50 RUN_READOUT_SECONDS=10.1
+	make ok_read_debug GEN28_VAL=75 GEN1_VAL=0 RUN_READOUT_SECONDS=20.5
+	make ok_read_debug GEN28_VAL=100 GEN1_VAL=0 RUN_READOUT_SECONDS=30.5
 
 
 # -------------------------------------------------------------
@@ -398,8 +418,7 @@ py_gui:
 		GEN31_NAME=$(GEN31_NAME) GEN31_VAL=$(GEN31_VAL) \
 		GEN32_NAME=$(GEN32_NAME) GEN32_VAL=$(GEN32_VAL) \
 		GEN33_NAME=$(GEN33_NAME) GEN33_VAL=$(GEN33_VAL) \
-		GEN34_NAME=$(GEN34_NAME) GEN34_VAL=$(GEN34_VAL) \
-
+		GEN34_NAME=$(GEN34_NAME) GEN34_VAL=$(GEN34_VAL)
 py_gui_pipinstall:
 	@$(MAKE) -f $(GENERIC_MAKEFILE) $@
 py_gui_install:
@@ -500,6 +519,24 @@ git_update_changes_thisbranch_projrepo:
 	@$(MAKE) -f $(GIT_MAKEFILE) $@
 git_update_changes_mainbranch_templrepo:
 	@$(MAKE) -f $(GIT_MAKEFILE) $@
+
+
+
+# -------------------------------------------------------------
+#  opalkelly.mk targets
+# -------------------------------------------------------------
+ok_prog: $(TARGET_OUTPUT_DIR)/$(TARGET_NAME_MD5_HASH).bit
+	@$(MAKE) -f $(OPALKELLY_MAKEFILE) $@ \
+		OUTPUT_DIR=$(TARGET_OUTPUT_DIR) RUN_TIME_SECONDS=$(RUN_READOUT_SECONDS) \
+		BITFILE_NAME=$(TARGET_NAME_MD5_HASH).bit QUBITS_CNT=$(GEN2_VAL)
+ok_read_debug: $(TARGET_OUTPUT_DIR)/$(TARGET_NAME_MD5_HASH).bit
+	@$(MAKE) -f $(OPALKELLY_MAKEFILE) $@ \
+		OUTPUT_DIR=$(TARGET_OUTPUT_DIR) RUN_TIME_SECONDS=$(RUN_READOUT_SECONDS) \
+		BITFILE_NAME=$(TARGET_NAME_MD5_HASH).bit QUBITS_CNT=$(GEN2_VAL)
+ok_read_release: $(TARGET_OUTPUT_DIR)/$(TARGET_NAME_MD5_HASH).bit
+	@$(MAKE) -f $(OPALKELLY_MAKEFILE) $@ \
+		OUTPUT_DIR=$(TARGET_OUTPUT_DIR) RUN_TIME_SECONDS=$(RUN_READOUT_SECONDS) \
+		BITFILE_NAME=$(TARGET_NAME_MD5_HASH).bit QUBITS_CNT=$(GEN2_VAL)
 
 
 

@@ -4,7 +4,7 @@ package generics is
 
     constant INT_EMULATE_INPUTS : integer := 0;
     constant INT_QUBITS_CNT : integer := 4;
-    constant INT_ALL_DIGITS_PHOTON_1H_DELAY_NS : integer := 7565;
+    constant INT_ALL_DIGITS_PHOTON_1H_DELAY_NS : integer := 756501;
     constant INT_WHOLE_DIGITS_CNT_PHOTON_1H_DELAY : integer := 2;
     constant INT_ALL_DIGITS_PHOTON_1V_DELAY_NS : integer := 7501;
     constant INT_WHOLE_DIGITS_CNT_PHOTON_1V_DELAY : integer := 2;
@@ -29,7 +29,7 @@ package generics is
     constant INT_ALL_DIGITS_PHOTON_6V_DELAY_NS : integer := -51811;
     constant INT_WHOLE_DIGITS_CNT_PHOTON_6V_DELAY : integer := 4;
     constant INT_CTRL_PULSE_HIGH_DURATION_NS : integer := 100;
-    constant INT_CTRL_PULSE_DEAD_DURATION_NS : integer := 50;
+    constant INT_CTRL_PULSE_DEAD_DURATION_NS : integer := 100;
     constant INT_CTRL_PULSE_EXTRA_DELAY_NS : integer := 0;
     constant INT_DISCARD_QUBITS_TIME_NS : integer := 0;
 
