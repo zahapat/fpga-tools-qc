@@ -60,7 +60,8 @@ GEN2_NAME ?= INT_QUBITS_CNT
 GEN2_VAL ?= 4
 
 # Photon Delays: 
-# TLDR: Enter a real number without a decimal separator. Then specify the number of whole digits in INT_WHOLE_DIGITS_CNT_PHOTON_XY_DELAY to reconstruct the real number in the design.
+# TLDR: Enter a real number without decimal separator in INT_ALL_DIGITS_PHOTON_XY_DELAY_NS. 
+#       Then specify the number of whole digits in INT_WHOLE_DIGITS_CNT_PHOTON_XY_DELAY to reconstruct the real number in the design.
 # INT_ALL_DIGITS_PHOTON_XY_DELAY_NS:
 #     - Input a positive/negative integer such that it contains both the whole and decimal part of a real number:
 #       (e.g. 440.800 -> 440800 (or 4408, preferably without trailing/leading zeros))
@@ -87,6 +88,7 @@ GEN5_NAME ?= INT_ALL_DIGITS_PHOTON_1V_DELAY_NS
 GEN5_VAL ?= 7501
 GEN6_NAME ?= INT_WHOLE_DIGITS_CNT_PHOTON_1V_DELAY
 GEN6_VAL ?= 2
+
 # Qubit 2H
 GEN7_NAME ?= INT_ALL_DIGITS_PHOTON_2H_DELAY_NS
 GEN7_VAL ?= -103095
@@ -182,7 +184,7 @@ TARGET_OUTPUT_DIR := $(PROJ_DIR)outputs/$(basename $(TOP))/$(TARGET_NAME_GENERIC
 # -------------------------------------------------------------
 #  Default target
 # -------------------------------------------------------------
-# Default Target: Reset -> Create Pre-build files -> Add SRCs -> Compile -> Generate Bitstream -> Save Outputs -> Distribute Bitfiles
+# Default Target: Reset -> Create Pre-build files -> Add SRCs -> Compile -> Generate Bitstream -> Save Outputs -> Distribute Bitfiles -> Attempt to program the FPGA
 $(TARGET_OUTPUT_DIR)/$(TARGET_NAME_MD5_HASH).bit:
 	@$(MAKE) reset essentials generics src all get_outputs timer ok_read_debug
 
@@ -191,6 +193,10 @@ $(TARGET_OUTPUT_DIR)/$(TARGET_NAME_MD5_HASH).bit:
 # -------------------------------------------------------------
 #  Auxiliary targets
 # -------------------------------------------------------------
+# Force rebuild an up-to-date design (i.e. due to timing violations)
+rebuild:
+	@$(MAKE) reset essentials generics src all get_outputs timer ok_read_debug
+
 # Put this at the end of yout make command sequence to measure execution time
 # Example: make reset essentials generics src sim timer
 timer:
@@ -216,10 +222,12 @@ bloop:
 # The below is an example and needs to be modified
 benum:
 	make
-	make GEN28_VAL=50
+	make GEN28_VAL=50 GEN1_VAL=1
+	make GEN28_VAL=50 GEN1_VAL=0
 	make GEN28_VAL=75 GEN1_VAL=1
+	make GEN28_VAL=75 GEN1_VAL=0
+	make GEN28_VAL=100 GEN1_VAL=1
 	make GEN28_VAL=100 GEN1_VAL=0
-
 
 # "Run Enumerated" Make a more complex set of commands, i.e. building gardware + run readout scirpt
 # The below is an example and needs to be modified

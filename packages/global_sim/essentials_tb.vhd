@@ -4,8 +4,8 @@ package essentials_tb is
 
     constant PROJ_NAME : string := "fpga-tools-qc";
     constant PROJ_DIR : string := "C:/Git/zahapat/fpga-tools-qc/";
-    constant RANDOM_SEED_1 : natural := 1683140279;
-    constant RANDOM_SEED_2 : natural := 168903530;
+    constant RANDOM_SEED_1 : natural := 1170203028;
+    constant RANDOM_SEED_2 : natural := 466180174;
 
 end package essentials_tb;
 

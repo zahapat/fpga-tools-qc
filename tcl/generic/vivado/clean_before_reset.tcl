@@ -1,6 +1,7 @@
-# Find files to delete
+# Find files to delete in project origin directory
 set files_to_delete [glob -type f -nocomplain -directory ${origin_dir} \
     simulator/modules.tcl \
+    tight_setup_hold_pins.txt\
     *.str \
     *.tmp \
     *.debug \
@@ -12,7 +13,6 @@ set files_to_delete [glob -type f -nocomplain -directory ${origin_dir} \
 foreach file $files_to_delete {
     file delete -force $file
 }
-
 
 # Remove directories
 file delete -force -- ${origin_dir}/.Xil

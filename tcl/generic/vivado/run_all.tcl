@@ -58,7 +58,7 @@ set_property strategy Flow_PerfOptimized_high [get_runs synth_1]
 puts "TCL: Run Synthesis. "
 source "${origin_dir}/tcl/project_specific/vivado/strategy_synth.tcl"
 reset_run synth_1
-launch_runs synth_1 -jobs 4
+launch_runs synth_1 -jobs 1
 wait_on_run synth_1
 open_run synth_1
 write_checkpoint        -force "${origin_dir}/vivado/1_checkpoint_post_synth.dcp"
@@ -77,7 +77,7 @@ write_edif -force "${origin_dir}/vivado/1_netlist_post_synth.edf"
 # Run Implementation + Generate Bitstream if out-of-date
 puts "TCL: Run Implementation and Generate Bitstream. "
 source "${origin_dir}/tcl/project_specific/vivado/strategy_impl.tcl"
-launch_runs impl_1 -to_step route_design -jobs 4
+launch_runs impl_1 -to_step route_design -jobs 1
 wait_on_run impl_1
 open_run impl_1
 write_checkpoint            -force "${origin_dir}/vivado/2_checkpoint_post_route.dcp"
@@ -87,25 +87,36 @@ report_timing_summary       -file "${origin_dir}/vivado/2_results_post_route_tim
 report_utilization          -file "${origin_dir}/vivado/2_results_post_route_util.rpt"
 report_drc                  -file "${origin_dir}/vivado/2_results_post_route_drc.rpt"
 
-# Run Generate Bitstream
-set constrs [get_files -of_objects [get_filesets constrs_1]]
-puts "TCL: constrs = $constrs"
-if {$constrs eq ""} {
-    puts "TCL: ERROR: Unable to run bitstream. There are no constraint files present in the project."
-    quit
-} else {
-    # Run Generate Bitstream
-    open_run impl_1
-    set_property BITSTREAM.GENERAL.COMPRESS TRUE [current_design]
-    write_bitstream -verbose    -force "${origin_dir}/vivado/3_bitstream_$_xil_proj_name_.bit"
+# Attempt to unplace cells that cause timing violation before bitstream generation
+source "${origin_dir}/tcl/generic/vivado/get_cells_with_wns.tcl"
+source "${origin_dir}/tcl/generic/vivado/run_incremental_impl.tcl"
 
-    if {[catch {\
-        write_hw_platform -fixed -include_bit -force -file "${origin_dir}/vivado/3_hw_platform_$_xil_proj_name_.xsa"\
-    } error_msg]} {
-        puts "TCL: Unable to generate Hardware Platform for Vitis. The project does not contain modules for Vitis project."
+# Run Generate Bitstream if timing constraints were met
+source "${origin_dir}/tcl/generic/vivado/get_cells_with_wns.tcl"
+if {[llength $cells_with_negative_slack] == 0} {
+    set constrs [get_files -of_objects [get_filesets constrs_1]]
+    puts "TCL: constrs = $constrs"
+    if {$constrs eq ""} {
+        puts "TCL: ERROR: Unable to run bitstream. There are no constraint files present in the project."
+        quit
     } else {
-        puts "TCL: Generating Hardware Platform for Vitis."
+        # Run Generate Bitstream
+        open_run impl_1
+        set_property BITSTREAM.GENERAL.COMPRESS TRUE [current_design]
+        write_bitstream -verbose -force "${origin_dir}/vivado/3_bitstream_$_xil_proj_name_.bit"
+
+        # Generate hardware platform for an SoC project (if applicable)
+        if {[catch {\
+            write_hw_platform -fixed -include_bit -force -file "${origin_dir}/vivado/3_hw_platform_$_xil_proj_name_.xsa"\
+        } error_msg]} {
+            puts "TCL: This project does not contain any Vitis modules. Skipping Hardware Platform generation for Vitis."
+        } else {
+            puts "TCL: Generating Hardware Platform for Vitis."
+        }
     }
+} else {
+    puts "TCL: CRITICAL WARNING: Bitgen skipped due to timing violations even after one attempt to unplace the problem cells."
+    puts "TCL: Try to redesign the problem part of your design, alter the timing constraints, or increase the number of unplace_cell attempts."
 }
 
 # Get verbose reports about config affecting timing analysis
