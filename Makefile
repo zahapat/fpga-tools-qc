@@ -11,7 +11,12 @@
 PROJ_NAME = $(shell basename $(CURDIR))
 PROJ_DIR = $(dir $(abspath $(firstword $(MAKEFILE_LIST))))
 
+
 # Timer
+TIMESTAMP_UTC = $$(date -u +%FT%T%Z)
+TIMESTAMP_ACT_TZONE = $$(date +%FT%T%Z)
+DATE_ACT_UTC = $$(date -u +%FT%Z)
+DATE_ACT_TZONE = $$(date +%FT%Z)
 TIMER_START  := $(shell date "+%s")
 TIMER_END     = $(shell date "+%s")
 TIMER_SECONDS = $(shell expr $(TIMER_END) - $(TIMER_START))
@@ -32,6 +37,11 @@ PACKAGES_MAKEFILE = packages.mk
 # Project author details
 ENGINEER ?= patrik_zahalka
 EMAIL ?= patrik.zahalka@univie.ac.at
+
+
+# Last git commit shortened hash and timestamp
+LAST_GIT_COMMIT_HASH = $(shell eval "git log --pretty=format:'%h' -n 1")
+LAST_GIT_COMMIT_TIMESTAMP = $(shell eval "git show --no-patch --format=%cs $(LAST_GIT_COMMIT_HASH)")
 
 
 # Libraries for HDL sources and testbenches
@@ -167,11 +177,12 @@ GEN30_VAL ?= 0
 # GEN31_VAL ?= <integer value>#Must be an integer, it is possible to perform int to real conversion (see the above method)
 
 
-# Prameters for naming output directories and .bit files ('make reset' will not affect them)
-TARGET_NAME_GENERICS := $(GEN1_VAL)_$(GEN2_VAL)_$(GEN3_VAL)_$(GEN5_VAL)_$(GEN7_VAL)_$(GEN9_VAL)_$(GEN11_VAL)_$(GEN13_VAL)_$(GEN15_VAL)_$(GEN17_VAL)_$(GEN19_VAL)_$(GEN21_VAL)_$(GEN23_VAL)_$(GEN25_VAL)_$(GEN27_VAL)_$(GEN28_VAL)_$(GEN30_VAL)
-TARGET_NAME_MD5_HASH := $(shell echo $(TARGET_NAME_GENERICS) | md5sum | awk '{print $$1}')
-TARGET_OUTPUT_DIR := $(PROJ_DIR)outputs/$(basename $(TOP))/$(TARGET_NAME_GENERICS)# or C:\fpga\outputs
-
+# Prameters for naming build directories and output .bit files ('make reset' will not affect the entire folder)
+TARGET_NAME_GENERICS := $(GEN1_VAL)_$(GEN2_VAL)_$(GEN3_VAL)_$(GEN4_VAL)_$(GEN5_VAL)_$(GEN6_VAL)_$(GEN7_VAL)_$(GEN8_VAL)_$(GEN9_VAL)_$(GEN10_VAL)_$(GEN11_VAL)_$(GEN12_VAL)_$(GEN13_VAL)_$(GEN14_VAL)_$(GEN15_VAL)_$(GEN16_VAL)_$(GEN17_VAL)_$(GEN18_VAL)_$(GEN19_VAL)_$(GEN20_VAL)_$(GEN21_VAL)_$(GEN22_VAL)_$(GEN23_VAL)_$(GEN24_VAL)_$(GEN25_VAL)_$(GEN26_VAL)_$(GEN27_VAL)_$(GEN28_VAL)_$(GEN29_VAL)_$(GEN30_VAL)
+TARGET_NAME_MD5_HASH := $(shell printf '%s' '$(TARGET_NAME_GENERICS)' | md5sum | cut -d ' ' -f 1)
+TARGET_OUTPUT_DIR := $(PROJ_DIR)outputs# or C:\fpga\outputs
+TARGET_OUTPUT_DIR_ARTIFACTS := $(TARGET_OUTPUT_DIR)/$(LAST_GIT_COMMIT_TIMESTAMP)_@$(LAST_GIT_COMMIT_HASH)/$(TOP)/$(TARGET_NAME_GENERICS)
+BITFILE_NAME := bitfile_$(TOP)
 
 
 # -------------------------------------------------------------
@@ -182,68 +193,73 @@ TARGET_OUTPUT_DIR := $(PROJ_DIR)outputs/$(basename $(TOP))/$(TARGET_NAME_GENERIC
 
 
 # -------------------------------------------------------------
-#  Default target
+#  Default target (everyone should be able to run this target)
 # -------------------------------------------------------------
 # Default Target: Reset -> Create Pre-build files -> Add SRCs -> Compile -> Generate Bitstream -> Save Outputs -> Distribute Bitfiles -> Attempt to program the FPGA
-$(TARGET_OUTPUT_DIR)/$(TARGET_NAME_MD5_HASH).bit:
-	@$(MAKE) reset essentials generics src all get_outputs timer ok_read_debug
-
+# Note: Vivado, Python, Cygwin and Makefile are required to run 'make'
+$(TARGET_OUTPUT_DIR_ARTIFACTS)/$(BITFILE_NAME).bit:
+	@$(MAKE) reset essentials generics src all get_vivado_outputs timer
 
 
 # -------------------------------------------------------------
-#  Auxiliary targets
+#  Provisional targets - changing dynamically over time
 # -------------------------------------------------------------
-# Force rebuild an up-to-date design (i.e. due to timing violations)
+# Build: recompile C++ files, build the desired design if not up-to-date + attempt to program the FPGA
+# Note: Vivado, Visual Studio, ModelSim, Cygwin and Makefile are required to run 'make build'
+build:
+	@$(MAKE) ok_rescan_csv_readout 
+	@$(MAKE) $(TARGET_OUTPUT_DIR_ARTIFACTS)/$(BITFILE_NAME).bit
+	@$(MAKE) get_ok_cpp_outputs ok_run_csv_readout_debug
+
+# Force re-build: compile C++ files, build the desired design + attempt to program the FPGA
+# Note: Vivado, Visual Studio, ModelSim, Cygwin and Makefile are required to run 'make rebuild'
 rebuild:
-	@$(MAKE) reset essentials generics src all get_outputs timer ok_read_debug
+	@$(MAKE) ok_force_rescan_csv_readout
+	@$(MAKE) reset essentials generics src all get_vivado_outputs timer
+	@$(MAKE) get_ok_cpp_outputs ok_run_csv_readout_debug
 
-# Put this at the end of yout make command sequence to measure execution time
-# Example: make reset essentials generics src sim timer
-timer:
-	@echo "-------------------------------------------"
-	@echo "make timer: Build Duration: $(TIMER_FORMAT)"
-	@echo "-------------------------------------------"
+# Get Vivado output files with *.rpt and .bit artifacts, copy them to the output directory (defined by TARGET_OUTPUT_DIR_ARTIFACTS variable)
+get_vivado_outputs: ./vivado/3_bitstream_$(PROJ_NAME).bit
+	@mkdir -p $(TARGET_OUTPUT_DIR_ARTIFACTS)
+	@cp -r $(PROJ_DIR)vivado/3_bitstream_$(PROJ_NAME).bit $(TARGET_OUTPUT_DIR_ARTIFACTS)/$(BITFILE_NAME).bit
+	@cp -r $(PROJ_DIR)vivado/*.rpt $(TARGET_OUTPUT_DIR_ARTIFACTS)
 
-# Get Vivado output files with *.rpt and the output .bit file, copy them to the output directory (defined by TARGET_OUTPUT_DIR variable)
-get_outputs: ./vivado/3_bitstream_$(PROJ_NAME).bit
-	@mkdir -p $(TARGET_OUTPUT_DIR)
-	@cp -r $(PROJ_DIR)vivado/3_bitstream_$(PROJ_NAME).bit $(TARGET_OUTPUT_DIR)/$(TARGET_NAME_MD5_HASH).bit
-	@cp -r $(PROJ_DIR)vivado/*.rpt $(TARGET_OUTPUT_DIR)
+# Get Opal Lelly latest artifacts
+CSV_READOUT_DIR = $(PROJ_DIR)scripts/gui/csv_readout
+get_ok_cpp_outputs: $(CSV_READOUT_DIR)/build/Debug/csv_readout_debug_@$(LAST_GIT_COMMIT_HASH).exe $(CSV_READOUT_DIR)/build/Release/csv_readout_release_@$(LAST_GIT_COMMIT_HASH).exe
+	@mkdir -p $(TARGET_OUTPUT_DIR_ARTIFACTS)
+	@cp -r $(CSV_READOUT_DIR)/build/Release/csv_readout_release_@$(LAST_GIT_COMMIT_HASH).exe $(TARGET_OUTPUT_DIR_ARTIFACTS)/../csv_readout_release_@$(LAST_GIT_COMMIT_HASH).exe
+	@cp -r $(CSV_READOUT_DIR)/build/Debug/csv_readout_debug_@$(LAST_GIT_COMMIT_HASH).exe $(TARGET_OUTPUT_DIR_ARTIFACTS)/../csv_readout_debug_@$(LAST_GIT_COMMIT_HASH).exe
+	@cp -r $(CSV_READOUT_DIR)/lib/okFrontPanel.dll $(TARGET_OUTPUT_DIR_ARTIFACTS)/../okFrontPanel.dll
 
-# Building over Loop: Assign the loop variable 'i' to a desired generic parameter to build different hardware
-# Example: make bloop BLOOP_VALS="50 75 100" GEN_NUM=28 
+# "Build over Loop": Building hardware using a loop by assigning a loop variable 'i' to the desired generic parameter
+# Example: make loop LOOP_VALS="50 75 100" GEN_NUM=28 
 #    Note: GEN28_NAME is INT_CTRL_PULSE_DEAD_DURATION_NS
-bloop:
-	@for i in $(BLOOP_VALS); do \
-		make GEN${GEN_NUM}_VAL=$$i; \
+loop:
+	@for i in $(LOOP_VALS); do \
+		@$(MAKE) build GEN${GEN_NUM}_VAL=$$i; \
 	done
 
-# "Build Enumerated": Building hardware in an enumerated manner
+# "Build Enumerated": Building hardware with parameters specified in an enumerated manner
 # The below is an example and needs to be modified
-benum:
-	make
-	make GEN28_VAL=50 GEN1_VAL=1
-	make GEN28_VAL=50 GEN1_VAL=0
-	make GEN28_VAL=75 GEN1_VAL=1
-	make GEN28_VAL=75 GEN1_VAL=0
-	make GEN28_VAL=100 GEN1_VAL=1
-	make GEN28_VAL=100 GEN1_VAL=0
+enum:
+	@$(MAKE) build
+	@$(MAKE) build GEN28_VAL=50 GEN1_VAL=1
+	@$(MAKE) build GEN28_VAL=50 GEN1_VAL=0
+	@$(MAKE) build GEN28_VAL=75 GEN1_VAL=1
+	@$(MAKE) build GEN28_VAL=75 GEN1_VAL=0
+	@$(MAKE) build GEN28_VAL=100 GEN1_VAL=1
+	@$(MAKE) build GEN28_VAL=100 GEN1_VAL=0
+	@$(MAKE) build GEN28_VAL=50 RUN_READOUT_SECONDS=10.1
+	@$(MAKE) build GEN28_VAL=75 GEN1_VAL=0 RUN_READOUT_SECONDS=20.5
+	@$(MAKE) build GEN28_VAL=100 GEN1_VAL=0 RUN_READOUT_SECONDS=30.5
 
-# "Run Enumerated" Make a more complex set of commands, i.e. building gardware + run readout scirpt
-# The below is an example and needs to be modified
-renum:
-	make ok_read_debug
-	make ok_read_debug GEN28_VAL=50 RUN_READOUT_SECONDS=10.1
-	make ok_read_debug GEN28_VAL=75 GEN1_VAL=0 RUN_READOUT_SECONDS=20.5
-	make ok_read_debug GEN28_VAL=100 GEN1_VAL=0 RUN_READOUT_SECONDS=30.5
 
 
 # -------------------------------------------------------------
 #  "project_specific.mk" targets
 # -------------------------------------------------------------
 init:
-	@$(MAKE) -f $(PROJECT_SPECIFIC_MAKEFILE) $@
-build:
 	@$(MAKE) -f $(PROJECT_SPECIFIC_MAKEFILE) $@
 distribute_bitfiles:
 	@$(MAKE) -f $(PROJECT_SPECIFIC_MAKEFILE) $@
@@ -533,18 +549,26 @@ git_update_changes_mainbranch_templrepo:
 # -------------------------------------------------------------
 #  opalkelly.mk targets
 # -------------------------------------------------------------
-ok_prog: $(TARGET_OUTPUT_DIR)/$(TARGET_NAME_MD5_HASH).bit
+$(CSV_READOUT_DIR)/build/Debug/csv_readout_debug_@$(LAST_GIT_COMMIT_HASH).exe:
+	@$(MAKE) -f $(OPALKELLY_MAKEFILE) $@
+$(CSV_READOUT_DIR)/build/Release/csv_readout_release_@$(LAST_GIT_COMMIT_HASH).exe:
+	@$(MAKE) -f $(OPALKELLY_MAKEFILE) $@
+ok_rescan_csv_readout:
+	@$(MAKE) -f $(OPALKELLY_MAKEFILE) $@
+ok_force_rescan_csv_readout:
+	@$(MAKE) -f $(OPALKELLY_MAKEFILE) $@
+ok_prog_csv_readout: $(TARGET_OUTPUT_DIR_ARTIFACTS)/$(BITFILE_NAME).bit
 	@$(MAKE) -f $(OPALKELLY_MAKEFILE) $@ \
-		OUTPUT_DIR=$(TARGET_OUTPUT_DIR) RUN_TIME_SECONDS=$(RUN_READOUT_SECONDS) \
-		BITFILE_NAME=$(TARGET_NAME_MD5_HASH).bit QUBITS_CNT=$(GEN2_VAL)
-ok_read_debug: $(TARGET_OUTPUT_DIR)/$(TARGET_NAME_MD5_HASH).bit
+		OUTPUT_DIR=$(TARGET_OUTPUT_DIR_ARTIFACTS) RUN_TIME_SECONDS=$(RUN_READOUT_SECONDS) \
+		BITFILE_NAME=$(BITFILE_NAME).bit QUBITS_CNT=$(GEN2_VAL)
+ok_run_csv_readout_debug: $(TARGET_OUTPUT_DIR_ARTIFACTS)/$(BITFILE_NAME).bit
 	@$(MAKE) -f $(OPALKELLY_MAKEFILE) $@ \
-		OUTPUT_DIR=$(TARGET_OUTPUT_DIR) RUN_TIME_SECONDS=$(RUN_READOUT_SECONDS) \
-		BITFILE_NAME=$(TARGET_NAME_MD5_HASH).bit QUBITS_CNT=$(GEN2_VAL)
-ok_read_release: $(TARGET_OUTPUT_DIR)/$(TARGET_NAME_MD5_HASH).bit
+		OUTPUT_DIR=$(TARGET_OUTPUT_DIR_ARTIFACTS) RUN_TIME_SECONDS=$(RUN_READOUT_SECONDS) \
+		BITFILE_NAME=$(BITFILE_NAME).bit QUBITS_CNT=$(GEN2_VAL)
+ok_run_csv_readout_release: $(TARGET_OUTPUT_DIR_ARTIFACTS)/$(BITFILE_NAME).bit
 	@$(MAKE) -f $(OPALKELLY_MAKEFILE) $@ \
-		OUTPUT_DIR=$(TARGET_OUTPUT_DIR) RUN_TIME_SECONDS=$(RUN_READOUT_SECONDS) \
-		BITFILE_NAME=$(TARGET_NAME_MD5_HASH).bit QUBITS_CNT=$(GEN2_VAL)
+		OUTPUT_DIR=$(TARGET_OUTPUT_DIR_ARTIFACTS) RUN_TIME_SECONDS=$(RUN_READOUT_SECONDS) \
+		BITFILE_NAME=$(BITFILE_NAME).bit QUBITS_CNT=$(GEN2_VAL)
 
 
 
@@ -573,3 +597,15 @@ install_all_pkg:
 	@$(MAKE) -f $(PACKAGES_MAKEFILE) $@
 upgrade_all_pkg:
 	@$(MAKE) -f $(PACKAGES_MAKEFILE) $@
+
+
+
+# -------------------------------------------------------------
+#  Auxiliary targets
+# -------------------------------------------------------------
+# Put this at the end of yout make command sequence to measure execution time
+# Example: make reset essentials generics src sim timer
+timer:
+	@echo "-------------------------------------------"
+	@echo "make timer: Build Duration: $(TIMER_FORMAT)"
+	@echo "-------------------------------------------"

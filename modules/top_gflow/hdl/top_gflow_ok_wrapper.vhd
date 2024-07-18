@@ -117,13 +117,6 @@
 
         signal slv_pattern_code : std_logic_vector(2 downto 0) := (others => '0');
 
-        -- USB FIFO Control
-        signal sl_led_fifo_full_latched : std_logic := '0';
-        signal slv_fifo_wr_valid_qubit_flags : std_logic_vector(INT_QUBITS_CNT-1 downto 0);
-        signal sl_usb_fifo_empty : std_logic := '0';
-        signal sl_usb_fifo_full : std_logic := '0';
-        signal sl_usb_fifo_prog_empty : std_logic := '0';
-
 
     begin
 
