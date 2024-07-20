@@ -217,7 +217,7 @@ else:
     PROGRAM_ONLY = True
 
     opalkelly_bitloader(
-        design_id=DESIGN_MD5_HASH,
+        design_id=DESIGN_ID,
         fullpath_to_outputs_dir=FULLPATH_TO_OUTPUTS_DIR,
         generic_parameters_values=generic_parameters_values, 
         QUBITS_COUNT=GEN2_VAL, 
