@@ -177,11 +177,13 @@ GEN30_VAL ?= 0
 # GEN31_VAL ?= <integer value>#Must be an integer, it is possible to perform int to real conversion (see the above method)
 
 
-# Prameters for naming build directories and output .bit files ('make reset' will not affect the entire folder)
-TARGET_NAME_GENERICS := $(GEN1_VAL)_$(GEN2_VAL)_$(GEN3_VAL)_$(GEN4_VAL)_$(GEN5_VAL)_$(GEN6_VAL)_$(GEN7_VAL)_$(GEN8_VAL)_$(GEN9_VAL)_$(GEN10_VAL)_$(GEN11_VAL)_$(GEN12_VAL)_$(GEN13_VAL)_$(GEN14_VAL)_$(GEN15_VAL)_$(GEN16_VAL)_$(GEN17_VAL)_$(GEN18_VAL)_$(GEN19_VAL)_$(GEN20_VAL)_$(GEN21_VAL)_$(GEN22_VAL)_$(GEN23_VAL)_$(GEN24_VAL)_$(GEN25_VAL)_$(GEN26_VAL)_$(GEN27_VAL)_$(GEN28_VAL)_$(GEN29_VAL)_$(GEN30_VAL)
-TARGET_NAME_MD5_HASH := $(shell printf '%s' '$(TARGET_NAME_GENERICS)' | md5sum | cut -d ' ' -f 1)
+# Prameters for naming output build subdirectories and .bit files ('make reset' will not affect the entire folder)
+CSV_LIST_ALL_DESIGNS := list_all_designs.csv
+TARGET_NAME_GENERIC_NAMES := $(GEN1_NAME),$(GEN2_NAME),$(GEN3_NAME),$(GEN4_NAME),$(GEN5_NAME),$(GEN6_NAME),$(GEN7_NAME),$(GEN8_NAME),$(GEN9_NAME),$(GEN10_NAME),$(GEN11_NAME),$(GEN12_NAME),$(GEN13_NAME),$(GEN14_NAME),$(GEN15_NAME),$(GEN16_NAME),$(GEN17_NAME),$(GEN18_NAME),$(GEN19_NAME),$(GEN20_NAME),$(GEN21_NAME),$(GEN22_NAME),$(GEN23_NAME),$(GEN24_NAME),$(GEN25_NAME),$(GEN26_NAME),$(GEN27_NAME),$(GEN28_NAME),$(GEN29_NAME),$(GEN30_NAME)
+TARGET_NAME_GENERIC_VALS := $(GEN1_VAL)_$(GEN2_VAL)_$(GEN3_VAL)_$(GEN4_VAL)_$(GEN5_VAL)_$(GEN6_VAL)_$(GEN7_VAL)_$(GEN8_VAL)_$(GEN9_VAL)_$(GEN10_VAL)_$(GEN11_VAL)_$(GEN12_VAL)_$(GEN13_VAL)_$(GEN14_VAL)_$(GEN15_VAL)_$(GEN16_VAL)_$(GEN17_VAL)_$(GEN18_VAL)_$(GEN19_VAL)_$(GEN20_VAL)_$(GEN21_VAL)_$(GEN22_VAL)_$(GEN23_VAL)_$(GEN24_VAL)_$(GEN25_VAL)_$(GEN26_VAL)_$(GEN27_VAL)_$(GEN28_VAL)_$(GEN29_VAL)_$(GEN30_VAL)
+TARGET_NAME_MD5_HASH := $(shell printf '%s' '$(TARGET_NAME_GENERIC_VALS)' | md5sum | cut -d ' ' -f 1)
 TARGET_OUTPUT_DIR := $(PROJ_DIR)outputs# or C:\fpga\outputs
-TARGET_OUTPUT_DIR_ARTIFACTS := $(TARGET_OUTPUT_DIR)/$(LAST_GIT_COMMIT_TIMESTAMP)_@$(LAST_GIT_COMMIT_HASH)/$(TOP)/$(TARGET_NAME_GENERICS)
+TARGET_OUTPUT_DIR_ARTIFACTS := $(TARGET_OUTPUT_DIR)/$(LAST_GIT_COMMIT_TIMESTAMP)_@$(LAST_GIT_COMMIT_HASH)/$(TOP)/$(TARGET_NAME_MD5_HASH)
 BITFILE_NAME := bitfile_$(TOP)
 
 
@@ -204,14 +206,14 @@ $(TARGET_OUTPUT_DIR_ARTIFACTS)/$(BITFILE_NAME).bit:
 # -------------------------------------------------------------
 #  Provisional targets - changing dynamically over time
 # -------------------------------------------------------------
-# Build: recompile C++ files, build the desired design if not up-to-date + attempt to program the FPGA
+# Build: compile C++ files, build FPGA design if output have not been created + attempt to program the FPGA
 # Note: Vivado, Visual Studio, ModelSim, Cygwin and Makefile are required to run 'make build'
 build:
 	@$(MAKE) ok_rescan_csv_readout 
 	@$(MAKE) $(TARGET_OUTPUT_DIR_ARTIFACTS)/$(BITFILE_NAME).bit
 	@$(MAKE) get_ok_cpp_outputs ok_run_csv_readout_debug
 
-# Force re-build: compile C++ files, build the desired design + attempt to program the FPGA
+# Force re-build: force (re-)compile C++ files, (re-)build the desired design + attempt to program the FPGA
 # Note: Vivado, Visual Studio, ModelSim, Cygwin and Makefile are required to run 'make rebuild'
 rebuild:
 	@$(MAKE) ok_force_rescan_csv_readout
@@ -221,6 +223,7 @@ rebuild:
 # Get Vivado output files with *.rpt and .bit artifacts, copy them to the output directory (defined by TARGET_OUTPUT_DIR_ARTIFACTS variable)
 get_vivado_outputs: ./vivado/3_bitstream_$(PROJ_NAME).bit
 	@mkdir -p $(TARGET_OUTPUT_DIR_ARTIFACTS)
+	@$(MAKE) params_to_csv
 	@cp -r $(PROJ_DIR)vivado/3_bitstream_$(PROJ_NAME).bit $(TARGET_OUTPUT_DIR_ARTIFACTS)/$(BITFILE_NAME).bit
 	@cp -r $(PROJ_DIR)vivado/*.rpt $(TARGET_OUTPUT_DIR_ARTIFACTS)
 
@@ -232,6 +235,34 @@ get_ok_cpp_outputs: $(CSV_READOUT_DIR)/build/Debug/csv_readout_debug_@$(LAST_GIT
 	@cp -r $(CSV_READOUT_DIR)/build/Debug/csv_readout_debug_@$(LAST_GIT_COMMIT_HASH).exe $(TARGET_OUTPUT_DIR_ARTIFACTS)/../csv_readout_debug_@$(LAST_GIT_COMMIT_HASH).exe
 	@cp -r $(CSV_READOUT_DIR)/lib/okFrontPanel.dll $(TARGET_OUTPUT_DIR_ARTIFACTS)/../okFrontPanel.dll
 
+
+print_directories_outputs:
+	@dirs=$$(cd $(TARGET_OUTPUT_DIR_ARTIFACTS)/../ && ls -d */)
+	@for d in $$dirs; do \
+		dir=$${d%/}; \
+		ndir=$$(echo $${dir} | tr _ ,); \
+		echo "$${ndr}"; \
+	done
+
+$(TARGET_OUTPUT_DIR_ARTIFACTS)/../$(CSV_LIST_ALL_DESIGNS): 
+	cd $(TARGET_OUTPUT_DIR_ARTIFACTS)/../ && touch $(CSV_LIST_ALL_DESIGNS) \
+	&& echo "MD5 Hash,$(TARGET_NAME_GENERIC_NAMES)" >> $(TARGET_OUTPUT_DIR_ARTIFACTS)/../$(CSV_LIST_ALL_DESIGNS)
+
+params_to_csv: $(TARGET_OUTPUT_DIR_ARTIFACTS)/../$(CSV_LIST_ALL_DESIGNS)
+	@params_appended=0 
+	@cd $(TARGET_OUTPUT_DIR_ARTIFACTS)/../
+	@while IFS= read -r fline; do \
+		if [[ $${fline} == $(TARGET_NAME_MD5_HASH)* ]]; then \
+			echo "INFO: Design $(TARGET_NAME_MD5_HASH) has been already generated. Do not modify $(CSV_LIST_ALL_DESIGNS)"; \
+			params_appended=1; \
+		fi; \
+	done < $(CSV_LIST_ALL_DESIGNS)
+	@if [ $${params_appended} == 0 ]; then \
+		newline=$$( echo $(TARGET_NAME_MD5_HASH)_$(TARGET_NAME_GENERIC_VALS) | tr _ , ); \
+		$$( echo $${newline} >> $(TARGET_OUTPUT_DIR_ARTIFACTS)/../$(CSV_LIST_ALL_DESIGNS) ); \
+	fi
+
+
 # "Build over Loop": Building hardware using a loop by assigning a loop variable 'i' to the desired generic parameter
 # Example: make loop LOOP_VALS="50 75 100" GEN_NUM=28 
 #    Note: GEN28_NAME is INT_CTRL_PULSE_DEAD_DURATION_NS
@@ -242,6 +273,7 @@ loop:
 
 # "Build Enumerated": Building hardware with parameters specified in an enumerated manner
 # The below is an example and needs to be modified
+# RUN AFTER EVERY git push to generate a fresh new set of bitfiles in 'outputs' directory
 enum:
 	@$(MAKE) build
 	@$(MAKE) build GEN28_VAL=50 GEN1_VAL=1

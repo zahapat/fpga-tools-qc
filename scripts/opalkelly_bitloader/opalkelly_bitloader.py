@@ -4,59 +4,66 @@ import os
 import hashlib
 
 # Locate target bitfile in the outputs directory, create command-line arguments for an csv_readout.exe script to program Opal Kelly FPGA harnessing OK Frontpanel API
-def opalkelly_bitloader(fullpath_to_outputs_dir, generic_parameters_values, QUBITS_COUNT, COMMIT_HASH_SHORT, TOP, RUN_READOUT_SECONDS, PROGRAM_ONLY):
+def opalkelly_bitloader(design_id, fullpath_to_outputs_dir, generic_parameters_values, QUBITS_COUNT, COMMIT_HASH_SHORT, TOP, RUN_READOUT_SECONDS, PROGRAM_ONLY):
 
     # Construct the bitfile name
     bitfile_name = f"bitfile_{TOP}.bit"
 
-    # Construct the build directory name
-    make_command = "make"
-    build_dir_name = ""
-    for (i, gen_val) in enumerate(generic_parameters_values):
-        if ((gen_val != "") or (gen_val != None)):
-            i+=1
-            make_command = make_command + f" GEN{i}_VAL={gen_val}"
-            build_dir_name = build_dir_name + f"_{gen_val}"
+    # Construct the build directory name if not specified in 'design_id'
+    if ((design_id != None) or (design_id != "")):
+        make_command = "make"
+        build_dir_name = ""
+        for (i, gen_val) in enumerate(generic_parameters_values):
+            if ((gen_val != "") or (gen_val != None)):
+                i+=1
+                make_command = make_command + f" GEN{i}_VAL={gen_val}"
+                build_dir_name = build_dir_name + f"_{gen_val}"
 
-    build_dir_name = str(build_dir_name).replace('_', '', 1)
-    build_dir_name_md5 = hashlib.md5(build_dir_name.encode('utf-8')).hexdigest()
+        build_dir_name = str(build_dir_name).replace('_', '', 1)
+        build_dir_name_md5 = hashlib.md5(build_dir_name.encode('utf-8')).hexdigest()
+    else:
+        build_dir_name = design_id
+        build_dir_name_md5 = design_id
 
     # Pick the right folder with the desired commit hash
-    dir_commit_id = list(filter(lambda item: item.endswith(f"_{COMMIT_HASH_SHORT}"), 
+    dir_commit_id = list(filter(lambda item: item.endswith(f"_@{COMMIT_HASH_SHORT}"), 
                                 os.listdir(fullpath_to_outputs_dir)))[0]
     print(f"dir_commit_id = {dir_commit_id}")
 
     # Construct the path to the target bitfile
-    # target_bitfile_path = os.path.normpath(f"{fullpath_to_outputs_dir}\{dir_commit_id}\{TOP}\{build_dir_name_md5}")
-    target_bitfile_path = os.path.normpath(f"{fullpath_to_outputs_dir}\{dir_commit_id}\{TOP}\{build_dir_name}")
+    design_output_dir_is_md5_hash = True
+    if design_output_dir_is_md5_hash:
+        target_bitfile_path = os.path.normpath(f"{fullpath_to_outputs_dir}\{dir_commit_id}\{TOP}\{build_dir_name_md5}")
+    else:
+        target_bitfile_path = os.path.normpath(f"{fullpath_to_outputs_dir}\{dir_commit_id}\{TOP}\{build_dir_name}")
     print(f"target_bitfile_path = {target_bitfile_path}")
 
     # Check if the bitfile exists
-    # target_bitfile_path_exists = os.path.exists(target_bitfile_path_md5)
     target_bitfile_path_exists = os.path.exists(target_bitfile_path)
     print(f"target_bitfile_path_exists = {target_bitfile_path_exists}")
 
 
     # Do not launch the .exe file if file path does not exist
     if os.path.exists(f"{target_bitfile_path}\{bitfile_name}"):
-        keep_cmd_window_open = True
+        keep_cmd_window_open = False
         keep_window_open = "/c "
         if keep_cmd_window_open:
             keep_window_open = "/k "
         command_cmd_window = "start /wait cmd " + keep_window_open
         launch_ok_csv_readout_exe = f"..\csv_readout_debug_@{COMMIT_HASH_SHORT}.exe"
         launch_ok_csv_readout_args = f"--qubits_count {QUBITS_COUNT} --float_run_time_seconds {RUN_READOUT_SECONDS} --bitfile_name {bitfile_name} --program_only {PROGRAM_ONLY}"
-        goto_directory_and_launch_cmd = f"\"cd {target_bitfile_path} && pwd && ls && {launch_ok_csv_readout_exe} {launch_ok_csv_readout_args}\""
+        goto_directory_and_launch_cmd = f"cd {target_bitfile_path} && pwd && ls && {launch_ok_csv_readout_exe} {launch_ok_csv_readout_args}"
+        timeout_before_exit = " & timeout /t 6"
         
         # Launch the .exe file
         os.system(
-            command_cmd_window + goto_directory_and_launch_cmd
+            command_cmd_window + "\"" + goto_directory_and_launch_cmd + timeout_before_exit + "\""
         )
 
     else:
         # Launch the .exe file
         emptyline = "echo("
-        error_message_line1 = f"echo ERROR: System could not find the specified file:"
+        error_message_line1 = f"echo ERROR: The specified file path does not exist:"
         error_message_line2 = f"echo {target_bitfile_path}\{bitfile_name}"
         help_message_line1 = f"echo NOTE: Run the following make command to generate the bitfile:"
         help_message_line2 = f"echo {make_command}"
@@ -64,6 +71,8 @@ def opalkelly_bitloader(fullpath_to_outputs_dir, generic_parameters_values, QUBI
         help_message_line4 = f"echo {target_bitfile_path}"
         help_message_line5 = f"echo NOTE: And is named:"
         help_message_line6 = f"echo {bitfile_name}"
+        help_message_line7 = f"echo NOTE: Open the following file to view which generic parameters can be set using this bitfile loader:"
+        help_message_line8 = f"echo {fullpath_to_outputs_dir}\\{dir_commit_id}\\{TOP}\\list_all_designs.csv"
 
         os.system(
             "start /wait cmd /k " +\
@@ -75,6 +84,8 @@ def opalkelly_bitloader(fullpath_to_outputs_dir, generic_parameters_values, QUBI
             f"{help_message_line3} & {help_message_line4}" +\
             f" & {emptyline} & " +\
             f"{help_message_line5} & {help_message_line6}" +\
+            f" & {emptyline} & " +\
+            f"{help_message_line7} & {help_message_line8}" +\
             f"\""
         )
 
@@ -91,9 +102,10 @@ FULLPATH_TO_OUTPUTS_DIR = "C:\\Git\\zahapat\\fpga-tools-qc\\outputs"
 #  Switches between different commits and 
 # ---------------------------------------------------------------------
 # Switch to bitfile sets generated at different commits
-COMMIT_HASH_SHORT = "428d99b"
+# COMMIT_HASH_SHORT = "428d99b"
+COMMIT_HASH_SHORT = "ead4671"
 
-# Switch to another project (keep "top_gflow")
+# Switch to a differet projects at a given commit
 TOP = "top_gflow"
 
 
@@ -101,9 +113,12 @@ TOP = "top_gflow"
 # ---------------------------------------------------------------------
 #  Set design parameters to select the bitfile to program the FPGA with
 # ---------------------------------------------------------------------
+# DESIGN_ID = "4dc0fe311d299c340e63f3bf4937e398" # Pick specific design's MD5 Hash listed in the file 'list_all_designs.csv'
+DESIGN_ID = None                                 # Set to: "" or None to select design based on the parameters below
+
 # Set names and values for generic variables
 GEN1_VAL = 0        # INT_EMULATE_INPUTS
-GEN2_VAL = 3        # INT_QUBITS_CNT
+GEN2_VAL = 4        # INT_QUBITS_CNT
 
 # Photon Delays:
 # TLDR: Enter a real number without decimal separator in INT_ALL_DIGITS_PHOTON_XY_DELAY_NS. 
@@ -202,6 +217,7 @@ else:
     PROGRAM_ONLY = True
 
     opalkelly_bitloader(
+        design_id=DESIGN_MD5_HASH,
         fullpath_to_outputs_dir=FULLPATH_TO_OUTPUTS_DIR,
         generic_parameters_values=generic_parameters_values, 
         QUBITS_COUNT=GEN2_VAL, 
