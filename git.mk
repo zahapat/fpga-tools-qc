@@ -26,18 +26,16 @@ GIT_BRANCH ?= main
 # WARNING: There must be NO MODIFIED files in the project directory
 gupdate_ownrepo:
 	@modified_files=$$(git diff --name-only)
-	@if_modified_files=0
-	@for dir_slash in $${modified_files}; do \
-		if_modified_files=1; \
-	done
-	@if [ $${if_modified_files} == 1 ]; then \
-		echo "WARNING: Unable to load changes from own remote repository because files:"; \
+	@if [ $${modified_files} == "" ]; then \
+		echo "INFO: No local changes have been detected. Hence, loading changes from own online repository can be performed safely."; \
+	fi
+	@if [ $${modified_files} != "" ]; then \
+		echo "WARNING: Unable to load changes from own online repository because files:"; \
 		echo $${modified_files}; \
 		echo "... were modified."; \
 		echo "INFO: Make sure the repository is in a clean state without any modifications."; \
 		echo "INFO: This will alow HEAD to be updated successfully."; \
 	fi
-# git switch $(GIT_BRANCH)
 
 # [Project repo]
 # Push changes to Github.com
