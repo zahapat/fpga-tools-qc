@@ -183,7 +183,7 @@ OUTPUTS_PATH := C:\Users\Patrik\OneDrive\Documents\Projects\gflow
 TARGET_NAME_GENERIC_NAMES := $(GEN1_NAME),$(GEN2_NAME),$(GEN3_NAME),$(GEN4_NAME),$(GEN5_NAME),$(GEN6_NAME),$(GEN7_NAME),$(GEN8_NAME),$(GEN9_NAME),$(GEN10_NAME),$(GEN11_NAME),$(GEN12_NAME),$(GEN13_NAME),$(GEN14_NAME),$(GEN15_NAME),$(GEN16_NAME),$(GEN17_NAME),$(GEN18_NAME),$(GEN19_NAME),$(GEN20_NAME),$(GEN21_NAME),$(GEN22_NAME),$(GEN23_NAME),$(GEN24_NAME),$(GEN25_NAME),$(GEN26_NAME),$(GEN27_NAME),$(GEN28_NAME),$(GEN29_NAME),$(GEN30_NAME)
 TARGET_NAME_GENERIC_VALS := $(GEN1_VAL)_$(GEN2_VAL)_$(GEN3_VAL)_$(GEN4_VAL)_$(GEN5_VAL)_$(GEN6_VAL)_$(GEN7_VAL)_$(GEN8_VAL)_$(GEN9_VAL)_$(GEN10_VAL)_$(GEN11_VAL)_$(GEN12_VAL)_$(GEN13_VAL)_$(GEN14_VAL)_$(GEN15_VAL)_$(GEN16_VAL)_$(GEN17_VAL)_$(GEN18_VAL)_$(GEN19_VAL)_$(GEN20_VAL)_$(GEN21_VAL)_$(GEN22_VAL)_$(GEN23_VAL)_$(GEN24_VAL)_$(GEN25_VAL)_$(GEN26_VAL)_$(GEN27_VAL)_$(GEN28_VAL)_$(GEN29_VAL)_$(GEN30_VAL)
 TARGET_NAME_MD5_HASH := $(shell printf '%s' '$(TARGET_NAME_GENERIC_VALS)' | md5sum | cut -d ' ' -f 1)
-ALL_DESIGNS_DIR := $(shell printf '%s' '$(OUTPUTS_PATH)' | sed -r 's"[\]"/"g' )/artifacts
+ALL_DESIGNS_DIR := $(shell printf '%s' '$(OUTPUTS_PATH)' | sed -r 's"[\]"/"g' )/outputs
 CURRENT_DESIGN_ARTIFACTS_DIR := $(ALL_DESIGNS_DIR)/$(LAST_GIT_COMMIT_TIMESTAMP)_@$(LAST_GIT_COMMIT_HASH)/$(TOP)/$(TARGET_NAME_MD5_HASH)
 CSV_LIST_ALL_DESIGNS := list_all_designs_@$(LAST_GIT_COMMIT_HASH).csv
 BITFILE_NAME := bitfile_$(TOP)
@@ -228,6 +228,7 @@ get_vivado_outputs: ./vivado/3_bitstream_$(PROJ_NAME).bit
 	@$(MAKE) params_to_csv
 	@cp -r $(PROJ_DIR)vivado/3_bitstream_$(PROJ_NAME).bit $(CURRENT_DESIGN_ARTIFACTS_DIR)/$(BITFILE_NAME).bit
 	@cp -r $(PROJ_DIR)vivado/*.rpt $(CURRENT_DESIGN_ARTIFACTS_DIR)
+	@cp -r $(PROJ_DIR)scripts/opalkelly_bitloader/opalkelly_bitloader.py $(ALL_DESIGNS_DIR)
 
 # Get Opal Lelly latest artifacts
 CSV_READOUT_DIR = $(PROJ_DIR)scripts/gui/csv_readout
