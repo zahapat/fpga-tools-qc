@@ -22,6 +22,24 @@ GIT_BRANCH ?= main
 .ONESHELL:
 
 # [Project repo]
+# Update local repo with changes made on GitHub online (own) repository
+# WARNING: There must be NO MODIFIED files in the project directory
+gupdate_ownrepo:
+	@modified_files=$$(git diff --name-only)
+	@if_modified_files=0
+	@for dir_slash in $${modified_files}; do \
+		if_modified_files=1; \
+	done
+	@if [ $${if_modified_files} == 1 ]; then \
+		echo "WARNING: Unable to load changes from own remote repository because files:"; \
+		echo $${modified_files}; \
+		echo "... were modified."; \
+		echo "INFO: Make sure the repository is in a clean state without any modifications."; \
+		echo "INFO: This will alow HEAD to be updated successfully."; \
+	fi
+# git switch $(GIT_BRANCH)
+
+# [Project repo]
 # Push changes to Github.com
 # To do only once: git push -u origin main (and then, use git push only without the further arguments)
 gp:
