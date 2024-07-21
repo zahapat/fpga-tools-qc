@@ -24,17 +24,26 @@ GIT_BRANCH ?= main
 # [Project repo]
 # Update local repo with changes made on GitHub online (own) repository
 # WARNING: There must be NO MODIFIED files in the project directory
+# What it does:
+# 	A: If there are modified files (ON CURRENTLY CHECKED OUT BRANCH) 
+# 			-> no update will performed. A Warning message will be displayed.
+# 	B: If there are no modified files (ON CURRENTLY CHECKED OUT BRANCH)
+#  			-> update will be performed.
 gupdate_ownrepo:
-	@modified_files=$$(git diff --name-only)
+	@echo "INFO: Actual checked out branch: $$(git rev-parse --abbrev-ref HEAD) ($$(git rev-parse --symbolic-full-name HEAD))"
+	@current_checked_out_branch=$$(git rev-parse --abbrev-ref HEAD)
+	@modified_files=$$(git diff --name-only $${current_checked_out_branch})
 	@if [ -z "$${modified_files}" ]; then \
-		echo "INFO: No local changes have been detected. Hence, loading changes from own online repository can be performed safely."; \
+		echo "INFO: No local changes @$${current_checked_out_branch} branch have been detected. Hence, loading changes from own online repo can be performed safely."; \
+		git pull origin $${current_checked_out_branch}; \
 	fi
 	@if [ ! -z "$${modified_files}" ]; then \
-		echo "WARNING: Unable to load changes from own online repository because files:"; \
+		echo "WARNING: Unable to load changes from own online repo @$${current_checked_out_branch} branch because files:"; \
 		echo $${modified_files}; \
 		echo "... were modified."; \
 		echo "INFO: Make sure the repository is in a clean state without any modifications."; \
-		echo "INFO: This will alow HEAD to be updated successfully."; \
+		echo "INFO: This will alow the HEAD pointer to be updated successfully."; \
+		echo "INFO: make gacp MSG="..." before git pull."; \
 	fi
 
 # [Project repo]
