@@ -26,10 +26,10 @@ GIT_BRANCH ?= main
 # WARNING: There must be NO MODIFIED files in the project directory
 gupdate_ownrepo:
 	@modified_files=$$(git diff --name-only)
-	@if [ $${modified_files} == "" ]; then \
+	@if [ -z "$${modified_files}" ]; then \
 		echo "INFO: No local changes have been detected. Hence, loading changes from own online repository can be performed safely."; \
 	fi
-	@if [ $${modified_files} != "" ]; then \
+	@if [ ! -z "$${modified_files}" ]; then \
 		echo "WARNING: Unable to load changes from own online repository because files:"; \
 		echo $${modified_files}; \
 		echo "... were modified."; \
