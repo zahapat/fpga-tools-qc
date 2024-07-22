@@ -1,5 +1,12 @@
 onerror {resume}
 quietly WaveActivateNextPane {} 0
+add wave -noupdate /top_gflow_tb/input_pads(0)
+add wave -noupdate /top_gflow_tb/o_photon_1v
+add wave -noupdate /top_gflow_tb/input_pads(1)
+add wave -noupdate /top_gflow_tb/o_photon_1h
+add wave -noupdate /top_gflow_tb/o_pcd_ctrl_pulsegen_busy
+add wave -noupdate /top_gflow_tb/o_pcd_ctrl_pulse
+add wave -noupdate -expand /top_gflow_tb/input_pads
 add wave -noupdate -divider {TB: top_gflow_tb ALL signals}
 add wave -noupdate /top_gflow_tb/dut_top_gflow/eval_clk
 add wave -noupdate /top_gflow_tb/dut_top_gflow/dsp_clk
@@ -42,7 +49,6 @@ add wave -noupdate /top_gflow_tb/dut_top_gflow/sl_gflow_success_flag
 add wave -noupdate -color Gold /top_gflow_tb/dut_top_gflow/inst_fsm_gflow/int_state_gflow
 add wave -noupdate -radix unsigned -childformat {{/top_gflow_tb/dut_top_gflow/inst_fsm_gflow/slv_counter_skip_qubits(0) -radix unsigned}} -subitemconfig {/top_gflow_tb/dut_top_gflow/inst_fsm_gflow/slv_counter_skip_qubits(0) {-height 15 -radix unsigned}} /top_gflow_tb/dut_top_gflow/inst_fsm_gflow/slv_counter_skip_qubits
 add wave -noupdate /top_gflow_tb/dut_top_gflow/inst_fsm_gflow/int_main_counter
-add wave -noupdate -expand /top_gflow_tb/input_pads
 add wave -noupdate /top_gflow_tb/dut_top_gflow/slv_cdcc_rd_qubits_to_fsm
 add wave -noupdate /top_gflow_tb/dut_top_gflow/slv_cdcc_rd_valid_to_fsm
 add wave -noupdate -color {Violet Red} -radix unsigned /top_gflow_tb/dut_top_gflow/slv_actual_qubit_time_stamp
@@ -96,6 +102,7 @@ add wave -noupdate /top_gflow_tb/s_photons_allcombinations_acc
 add wave -noupdate /top_gflow_tb/readout_clk
 add wave -noupdate /top_gflow_tb/readout_data_ready
 add wave -noupdate /top_gflow_tb/readout_data_valid
+add wave -noupdate /top_gflow_tb/readout_csv2_line_done_event
 add wave -noupdate /top_gflow_tb/readout_enable
 add wave -noupdate /top_gflow_tb/readout_data_32b
 add wave -noupdate /top_gflow_tb/readout_photons
@@ -105,12 +112,11 @@ add wave -noupdate /top_gflow_tb/readout_modulo
 add wave -noupdate /top_gflow_tb/readout_timestamps
 add wave -noupdate /top_gflow_tb/readout_csv1_line_done_event
 add wave -noupdate -childformat {{/top_gflow_tb/readout_coincidences(15) -radix unsigned} {/top_gflow_tb/readout_coincidences(14) -radix unsigned} {/top_gflow_tb/readout_coincidences(13) -radix unsigned} {/top_gflow_tb/readout_coincidences(12) -radix unsigned} {/top_gflow_tb/readout_coincidences(11) -radix unsigned} {/top_gflow_tb/readout_coincidences(10) -radix unsigned} {/top_gflow_tb/readout_coincidences(9) -radix unsigned} {/top_gflow_tb/readout_coincidences(8) -radix unsigned} {/top_gflow_tb/readout_coincidences(7) -radix unsigned} {/top_gflow_tb/readout_coincidences(6) -radix unsigned} {/top_gflow_tb/readout_coincidences(5) -radix unsigned} {/top_gflow_tb/readout_coincidences(4) -radix unsigned} {/top_gflow_tb/readout_coincidences(3) -radix unsigned} {/top_gflow_tb/readout_coincidences(2) -radix unsigned} {/top_gflow_tb/readout_coincidences(1) -radix unsigned} {/top_gflow_tb/readout_coincidences(0) -radix unsigned}} -subitemconfig {/top_gflow_tb/readout_coincidences(15) {-height 15 -radix unsigned} /top_gflow_tb/readout_coincidences(14) {-height 15 -radix unsigned} /top_gflow_tb/readout_coincidences(13) {-height 15 -radix unsigned} /top_gflow_tb/readout_coincidences(12) {-height 15 -radix unsigned} /top_gflow_tb/readout_coincidences(11) {-height 15 -radix unsigned} /top_gflow_tb/readout_coincidences(10) {-height 15 -radix unsigned} /top_gflow_tb/readout_coincidences(9) {-height 15 -radix unsigned} /top_gflow_tb/readout_coincidences(8) {-height 15 -radix unsigned} /top_gflow_tb/readout_coincidences(7) {-height 15 -radix unsigned} /top_gflow_tb/readout_coincidences(6) {-height 15 -radix unsigned} /top_gflow_tb/readout_coincidences(5) {-height 15 -radix unsigned} /top_gflow_tb/readout_coincidences(4) {-height 15 -radix unsigned} /top_gflow_tb/readout_coincidences(3) {-height 15 -radix unsigned} /top_gflow_tb/readout_coincidences(2) {-height 15 -radix unsigned} /top_gflow_tb/readout_coincidences(1) {-height 15 -radix unsigned} /top_gflow_tb/readout_coincidences(0) {-height 15 -radix unsigned}} /top_gflow_tb/readout_coincidences
-add wave -noupdate /top_gflow_tb/readout_csv2_line_done_event
 TreeUpdate [SetDefaultTree]
-WaveRestoreCursors {{Cursor 1} {27223333 ps} 0}
+WaveRestoreCursors {{Cursor 1} {10692885 ps} 0}
 quietly wave cursor active 1
-configure wave -namecolwidth 546
-configure wave -valuecolwidth 213
+configure wave -namecolwidth 246
+configure wave -valuecolwidth 40
 configure wave -justifyvalue left
 configure wave -signalnamewidth 0
 configure wave -snapdistance 10
@@ -123,4 +129,4 @@ configure wave -griddelta 40
 configure wave -timeline 0
 configure wave -timelineunits ns
 update
-WaveRestoreZoom {0 ps} {52773105 ps}
+WaveRestoreZoom {34073166 ps} {51112044 ps}

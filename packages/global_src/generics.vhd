@@ -2,9 +2,9 @@
 -- after running 'make generics' command.
 package generics is
 
-    constant INT_EMULATE_INPUTS : integer := 0;
+    constant INT_EMULATE_INPUTS : integer := 1;
     constant INT_QUBITS_CNT : integer := 4;
-    constant INT_ALL_DIGITS_PHOTON_1H_DELAY_NS : integer := 756501;
+    constant INT_ALL_DIGITS_PHOTON_1H_DELAY_NS : integer := 7565;
     constant INT_WHOLE_DIGITS_CNT_PHOTON_1H_DELAY : integer := 2;
     constant INT_ALL_DIGITS_PHOTON_1V_DELAY_NS : integer := 7501;
     constant INT_WHOLE_DIGITS_CNT_PHOTON_1V_DELAY : integer := 2;

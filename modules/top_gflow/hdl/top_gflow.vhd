@@ -74,8 +74,9 @@
 
             -- PCD Trigger + signal valid (for IO delay measuring)
             o_pcd_ctrl_pulse : out std_logic;
-            o_photon_sampled : out std_logic
-
+            o_pcd_ctrl_pulsegen_busy : out std_logic;   -- Debug port 1
+            o_photon_1h : out std_logic;         -- Debug port 2
+            o_photon_1v : out std_logic          -- Debug port 3
         );
     end top_gflow;
 
@@ -258,7 +259,9 @@
 
         -- Output Signals
         signal slv_pcd_ctrl_pulse : std_logic_vector(0 downto 0) := (others => '0');
-        signal slv_photon_sampled : std_logic_vector(0 downto 0) := (others => '0');
+        signal slv_pcd_ctrl_pulsegen_busy : std_logic_vector(0 downto 0) := (others => '0');
+        signal slv_photon_1h : std_logic_vector(0 downto 0) := (others => '0');
+        signal slv_photon_1v : std_logic_vector(0 downto 0) := (others => '0');
 
         -- Keep the input logic at all cost
         attribute DONT_TOUCH : string;
@@ -989,15 +992,39 @@
         );
 
         -- +1 clk cycle delay
-        o_photon_sampled <= slv_photon_sampled(0);
-        inst_xilinx_obuf_busy : entity lib_src.xilinx_obufs(rtl)
+        o_pcd_ctrl_pulsegen_busy <= slv_pcd_ctrl_pulsegen_busy(0);
+        inst_xilinx_obuf_debug1 : entity lib_src.xilinx_obufs(rtl)
         generic map (
             PINS_CNT => 1
         )
         port map (
             clk      => dsp_clk,
             data_in  => pcd_ctrl_pulse_busy_delayed,
-            data_out => slv_photon_sampled(0 downto 0)
+            data_out => slv_pcd_ctrl_pulsegen_busy(0 downto 0)
+        );
+
+        -- +1 clk cycle delay
+        o_photon_1v <= slv_photon_1v(0);
+        inst_xilinx_obuf_debug2 : entity lib_src.xilinx_obufs(rtl)
+        generic map (
+            PINS_CNT => 1
+        )
+        port map (
+            clk      => dsp_clk,
+            data_in  => slv_cdcc_rd_qubits_to_fsm(0 downto 0),
+            data_out => slv_photon_1v(0 downto 0)
+        );
+
+        -- +1 clk cycle delay
+        o_photon_1h <= slv_photon_1h(0);
+        inst_xilinx_obuf_debug3 : entity lib_src.xilinx_obufs(rtl)
+        generic map (
+            PINS_CNT => 1
+        )
+        port map (
+            clk      => dsp_clk,
+            data_in  => slv_cdcc_rd_qubits_to_fsm(1 downto 1),
+            data_out => slv_photon_1h(0 downto 0)
         );
 
     end architecture;

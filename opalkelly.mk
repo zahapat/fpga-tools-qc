@@ -57,7 +57,7 @@ ok_prog_csv_readout: $(CSV_READOUT_DIR)/build/Debug/csv_readout_debug_@$(LAST_GI
 		--program_only true
 
 # Execute the csv_readout.exe in debug mode
-ok_run_csv_readout_debug: $(CSV_READOUT_DIR)/build/Debug/csv_readout_debug_@$(LAST_GIT_COMMIT_HASH).exe $(OUTPUT_DIR)/$(BITFILE_NAME)
+ok_run_csv_readout_debug: $(CSV_READOUT_DIR)/build/Debug/csv_readout_debug_@$(LAST_GIT_COMMIT_HASH).exe
 	@cd $(OUTPUT_DIR)
 	pwd
 	$< --qubits_count $(QUBITS_CNT) \
@@ -66,7 +66,7 @@ ok_run_csv_readout_debug: $(CSV_READOUT_DIR)/build/Debug/csv_readout_debug_@$(LA
 		--program_only false
 
 # Execute the csv_readout.exe in release version
-ok_run_csv_readout_release: $(CSV_READOUT_DIR)/build/Release/csv_readout_release_@$(LAST_GIT_COMMIT_HASH).exe $(OUTPUT_DIR)/$(BITFILE_NAME)
+ok_run_csv_readout_release: $(CSV_READOUT_DIR)/build/Release/csv_readout_release_@$(LAST_GIT_COMMIT_HASH).exe
 	@cd $(OUTPUT_DIR)
 	pwd
 	$< --qubits_count $(QUBITS_CNT) \

@@ -107,7 +107,9 @@
         signal input_pads : std_logic_vector(INPUT_PADS_CNT-1 downto 0) := (others => '0');
         signal output_pads : std_logic_vector(1 downto 0);
         signal o_pcd_ctrl_pulse : std_logic;
-        signal o_photon_sampled : std_logic;
+        signal o_pcd_ctrl_pulsegen_busy : std_logic;   -- Debug port 1
+        signal o_photon_1h : std_logic;         -- Debug port 2
+        signal o_photon_1v : std_logic;         -- Debug port 3
 
         signal readout_clk        : std_logic := '0';
         signal readout_data_ready : std_logic := '0';
@@ -495,8 +497,10 @@
 
             led => led,                               -- Debug LEDs
             input_pads => input_pads,                 -- Inputs from SPCM
-            o_pcd_ctrl_pulse => o_pcd_ctrl_pulse, -- PCD Trigger
-            o_photon_sampled => o_photon_sampled
+            o_pcd_ctrl_pulse => o_pcd_ctrl_pulse,     -- PCD Trigger
+            o_pcd_ctrl_pulsegen_busy => o_pcd_ctrl_pulsegen_busy,     -- Debug port 1
+            o_photon_1h => o_photon_1h,                 -- Debug port 2
+            o_photon_1v => o_photon_1v                  -- Debug port 3
         );
 
         -----------------------
@@ -561,7 +565,7 @@
                     end if;
 
                     -- Wait until valid pulse being transmitted along with the pcd ctrl pulse
-                    wait until rising_edge(o_photon_sampled);
+                    wait until rising_edge(o_pcd_ctrl_pulsegen_busy);
 
                     if ctrl_input_emulation_mode = SEND_CLUSTER_THEN_WAIT then
                         v_time_delta_real := (real(now / 1 ps) / 1000.0) - v_time_start_real; -- 'now' base time unit is in ps -> convert to ns
@@ -658,7 +662,7 @@
             loop
                 v_prev_state := << signal.top_gflow_tb.dut_top_gflow.state_gflow : natural range 0 to INT_QUBITS_CNT-1 >>;
 
-                wait until rising_edge(o_photon_sampled);
+                wait until rising_edge(o_pcd_ctrl_pulsegen_busy);
                 v_curr_state := << signal.top_gflow_tb.dut_top_gflow.state_gflow : natural range 0 to INT_QUBITS_CNT-1 >>;
                 v_success_flag := << signal.top_gflow_tb.dut_top_gflow.sl_gflow_success_flag : std_logic >>;
 

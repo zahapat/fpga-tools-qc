@@ -71,7 +71,9 @@
 
             -- PCD Trigger & valid signal for IO delay measurements
             o_pcd_ctrl_pulse : out std_logic;
-            o_photon_sampled : out std_logic
+            o_pcd_ctrl_pulsegen_busy : out std_logic;
+            o_photon_1h : out std_logic;
+            o_photon_1v : out std_logic
 
         );
     end top_gflow_ok_wrapper;
@@ -323,7 +325,9 @@
 
             -- PCD Trigger
             o_pcd_ctrl_pulse => o_pcd_ctrl_pulse,
-            o_photon_sampled => o_photon_sampled
+            o_pcd_ctrl_pulsegen_busy => o_pcd_ctrl_pulsegen_busy,
+            o_photon_1h => o_photon_1h,
+            o_photon_1v => o_photon_1v
         );
 
     end architecture;

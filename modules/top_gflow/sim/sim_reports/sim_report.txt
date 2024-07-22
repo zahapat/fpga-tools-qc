@@ -1,12 +1,12 @@
 
-SIMULATION REPORT          Generated on Thu Jul 11 01:16:23 2024
+SIMULATION REPORT          Generated on Mon Jul 22 23:12:01 2024
 
 
 Design simulated: C:/Git/zahapat/fpga-tools-qc/simulator/vivado_precompiled_ver/unisim.glbl_vhd(glbl_vhd_v) C:/Git/zahapat/fpga-tools-qc/simulator/xil_iplib_verilog.glbl C:/Git/zahapat/fpga-tools-qc/simulator/lib_sim.top_gflow_tb(sim)
-Number of signals/nets in design: 6371459
-Number of processes in design: 5163
-Number of instances from user libraries in design: 371
-Number of executable statements in design: 121303
+Number of signals/nets in design: 6371483
+Number of processes in design: 5175
+Number of instances from user libraries in design: 377
+Number of executable statements in design: 121495
 
 Simulator Parameters:
 
@@ -20,7 +20,7 @@ List of Design units used:
     Architecture: obuf_v
     Library: C:/Git/zahapat/fpga-tools-qc/simulator/vivado_precompiled_ver/unisim
     Source File: C:/Xilinx/Vivado/2020.2/data/vhdl/src/unisims/primitive/OBUF.vhd
-    Occurrences: 2
+    Occurrences: 4
 
     Package Body: std_logic_misc
     Library: C:/intelFPGA/20.1/modelsim_ase/ieee
@@ -373,7 +373,7 @@ List of Design units used:
     Architecture: fdre_v
     Library: C:/Git/zahapat/fpga-tools-qc/simulator/vivado_precompiled_ver/unisim
     Source File: C:/Xilinx/Vivado/2020.2/data/vhdl/src/unisims/primitive/FDRE.vhd
-    Occurrences: 10
+    Occurrences: 12
 
     Entity: reset , acc : <novopt>
     Architecture: rtl
@@ -440,7 +440,7 @@ List of Design units used:
     Library: C:/Git/zahapat/fpga-tools-qc/simulator/lib_src
     Source File: C:/Git/zahapat/fpga-tools-qc/modules/xilinx_obufs/hdl/xilinx_obufs.vhd
     Source File: C:/Xilinx/Vivado/2020.2/data/vhdl/src/unisims/unisim_retarget_VCOMP.vhdp
-    Occurrences: 2
+    Occurrences: 4
 
     Package: vcomponents
     Library: C:/Git/zahapat/fpga-tools-qc/simulator/vivado_precompiled_ver/xpm

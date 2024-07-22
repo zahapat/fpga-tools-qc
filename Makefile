@@ -70,7 +70,7 @@ GEN2_NAME ?= INT_QUBITS_CNT
 GEN2_VAL ?= 4
 
 # Photon Delays: 
-# TLDR: Enter a real number without decimal separator in INT_ALL_DIGITS_PHOTON_XY_DELAY_NS. 
+# TL;DR: Enter a real number without decimal separator in INT_ALL_DIGITS_PHOTON_XY_DELAY_NS. 
 #       Then specify the number of whole digits in INT_WHOLE_DIGITS_CNT_PHOTON_XY_DELAY to reconstruct the real number in the design.
 # INT_ALL_DIGITS_PHOTON_XY_DELAY_NS:
 #     - Input a positive/negative integer such that it contains both the whole and decimal part of a real number:
@@ -90,7 +90,7 @@ GEN2_VAL ?= 4
 
 # Qubit 1H
 GEN3_NAME ?= INT_ALL_DIGITS_PHOTON_1H_DELAY_NS
-GEN3_VAL ?= 756501
+GEN3_VAL ?= 7565
 GEN4_NAME ?= INT_WHOLE_DIGITS_CNT_PHOTON_1H_DELAY
 GEN4_VAL ?= 2
 # Qubit 1V
@@ -178,8 +178,8 @@ GEN30_VAL ?= 0
 
 
 # Prameters for naming output build subdirectories and .bit files ('make reset' will not affect the entire folder)
-OUTPUTS_PATH := $(PROJ_DIR)# or C:\fpga
-# OUTPUTS_PATH := C:\Users\Patrik\OneDrive\Documents\Projects\gflow
+OUTPUTS_PATH := $(PROJ_DIR)# or C:\desired\path
+# 							    OUTPUTS_PATH=C:\Users\Patrik\OneDrive\Documents\Projects\gflow
 TARGET_NAME_GENERIC_NAMES := $(GEN1_NAME),$(GEN2_NAME),$(GEN3_NAME),$(GEN4_NAME),$(GEN5_NAME),$(GEN6_NAME),$(GEN7_NAME),$(GEN8_NAME),$(GEN9_NAME),$(GEN10_NAME),$(GEN11_NAME),$(GEN12_NAME),$(GEN13_NAME),$(GEN14_NAME),$(GEN15_NAME),$(GEN16_NAME),$(GEN17_NAME),$(GEN18_NAME),$(GEN19_NAME),$(GEN20_NAME),$(GEN21_NAME),$(GEN22_NAME),$(GEN23_NAME),$(GEN24_NAME),$(GEN25_NAME),$(GEN26_NAME),$(GEN27_NAME),$(GEN28_NAME),$(GEN29_NAME),$(GEN30_NAME)
 TARGET_NAME_GENERIC_VALS := $(GEN1_VAL)_$(GEN2_VAL)_$(GEN3_VAL)_$(GEN4_VAL)_$(GEN5_VAL)_$(GEN6_VAL)_$(GEN7_VAL)_$(GEN8_VAL)_$(GEN9_VAL)_$(GEN10_VAL)_$(GEN11_VAL)_$(GEN12_VAL)_$(GEN13_VAL)_$(GEN14_VAL)_$(GEN15_VAL)_$(GEN16_VAL)_$(GEN17_VAL)_$(GEN18_VAL)_$(GEN19_VAL)_$(GEN20_VAL)_$(GEN21_VAL)_$(GEN22_VAL)_$(GEN23_VAL)_$(GEN24_VAL)_$(GEN25_VAL)_$(GEN26_VAL)_$(GEN27_VAL)_$(GEN28_VAL)_$(GEN29_VAL)_$(GEN30_VAL)
 TARGET_NAME_MD5_HASH := $(shell printf '%s' '$(TARGET_NAME_GENERIC_VALS)' | md5sum | cut -d ' ' -f 1)
@@ -597,11 +597,11 @@ ok_prog_csv_readout: $(CURRENT_DESIGN_ARTIFACTS_DIR)/$(BITFILE_NAME).bit
 	@$(MAKE) -f $(OPALKELLY_MAKEFILE) $@ \
 		OUTPUT_DIR=$(CURRENT_DESIGN_ARTIFACTS_DIR) RUN_TIME_SECONDS=$(RUN_READOUT_SECONDS) \
 		BITFILE_NAME=$(BITFILE_NAME).bit QUBITS_CNT=$(GEN2_VAL)
-ok_run_csv_readout_debug: $(CURRENT_DESIGN_ARTIFACTS_DIR)/$(BITFILE_NAME).bit
+ok_run_csv_readout_debug:
 	@$(MAKE) -f $(OPALKELLY_MAKEFILE) $@ \
 		OUTPUT_DIR=$(CURRENT_DESIGN_ARTIFACTS_DIR) RUN_TIME_SECONDS=$(RUN_READOUT_SECONDS) \
 		BITFILE_NAME=$(BITFILE_NAME).bit QUBITS_CNT=$(GEN2_VAL)
-ok_run_csv_readout_release: $(CURRENT_DESIGN_ARTIFACTS_DIR)/$(BITFILE_NAME).bit
+ok_run_csv_readout_release:
 	@$(MAKE) -f $(OPALKELLY_MAKEFILE) $@ \
 		OUTPUT_DIR=$(CURRENT_DESIGN_ARTIFACTS_DIR) RUN_TIME_SECONDS=$(RUN_READOUT_SECONDS) \
 		BITFILE_NAME=$(BITFILE_NAME).bit QUBITS_CNT=$(GEN2_VAL)

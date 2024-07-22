@@ -38,18 +38,18 @@ set_input_jitter [get_clocks -of_objects [get_ports sys_clk_p]] 0.05
 # LA17_P_CC1      D20(LA)      E10       16(HR)        5(L)            : available
 # LA21_P1         H25(LA)      G15       15(HR)        6(L)            : Photon 3V
 # LA25_P1         G27(LA)      J15       15(HR)        7(L)            : Photon 3H
-# LA01_P_CC1       D8(LA)      G17       15(HR)        8(L)            : available
-# LA18P_CC1       C22(LA)      F17       15(HR)        9(L)            : available
+# LA01_P_CC1       D8(LA)      G17       15(HR)        8(L)            : o_photon_1v
+# LA18P_CC1       C22(LA)      F17       15(HR)        9(L)            : o_photon_1h
 # LA00_P_CC1       G6(LA)      H17       15(HR)       10(L)            : available
 # LA07_P1         H13(LA)      J18       15(HR)       11(L)            : Photon 4V
 # LA09_P1         D14(LA)      L19       15(HR)       12(L)            : Photon 4H
-# HA10_P1         K13(HA)     AA23       12(HR)       13(L)            : o_photon_sampled, Not on K70T
+# HA10_P1         K13(HA)     AA23       12(HR)       13(L)            : o_pcd_ctrl_pulsegen_busy, Not on K70T
 # HA17_P_CC1      K16(HA)     AC23       12(HR)       14(L)            : o_pcd_ctrl_pulse, Not on K70T
-# HA06_P1         K10(HA)     AB22       12(HR)       15(L)            : available, Not on K70T
-# HA18_P1         J18(HA)     AD21       12(HR)       16(L)            : available, Not on K70T
-# HA04_P1          F7(HA)     AF24       12(HR)       17(L)            : available, NOT on K70T
-# HA02_P1          K7(HA)     AE23       12(HR)       18(L)            : available, Not on K70T
-# HA13_P1         E12(HA)      Y25       12(HR)       19(L)            : available, Not on K70T
+# HA06_P1         K10(HA)     AB22       12(HR)       15(L)            : available, Not on K70T 
+# HA18_P1         J18(HA)     AD21       12(HR)       16(L)            : available, Not on K70T (Reserved for Photon 5V)
+# HA04_P1          F7(HA)     AF24       12(HR)       17(L)            : available, NOT on K70T (Reserved for Photon 5H)
+# HA02_P1          K7(HA)     AE23       12(HR)       18(L)            : available, Not on K70T (Reserved for Photon 6V)
+# HA13_P1         E12(HA)      Y25       12(HR)       19(L)            : available, Not on K70T (Reserved for Photon 6H)
 # HA01_P_CC1       E2(HA)      Y23       12(HR)       20(L)            : available, Not on K70T
 # HA00_P_CC1       F4(HA)      Y22       12(HR)       21(L)            : available, Not on K70T
 # HB21_P1         E36(HB)     AE18       32(HP)        1(Right Side)   : available, Not on K70T
@@ -101,15 +101,25 @@ set_property PACKAGE_PIN H9  [get_ports input_pads[0]]
 
 
 # ----- OUTPUTS -----
-# PCD Trigger
+# EOM Trigger
 set_property IOSTANDARD LVTTL [get_ports o_pcd_ctrl_pulse]
 set_property SLEW FAST [get_ports {o_pcd_ctrl_pulse}]
 set_property PACKAGE_PIN AC23 [get_ports o_pcd_ctrl_pulse]
 
-# PHOTON X SAMPLED PULSE
-set_property IOSTANDARD LVTTL [get_ports o_photon_sampled]
-set_property SLEW FAST [get_ports {o_photon_sampled}]
-set_property PACKAGE_PIN AA23 [get_ports o_photon_sampled]
+# EOM Trigger pulse generator busy
+set_property IOSTANDARD LVTTL [get_ports o_pcd_ctrl_pulsegen_busy]
+set_property SLEW FAST [get_ports {o_pcd_ctrl_pulsegen_busy}]
+set_property PACKAGE_PIN AA23 [get_ports o_pcd_ctrl_pulsegen_busy]
+
+# Probing Photon 1V after going through acquisition logic and CDCC
+set_property IOSTANDARD LVTTL [get_ports o_photon_1v]
+set_property SLEW FAST [get_ports {o_photon_1v}]
+set_property PACKAGE_PIN G17 [get_ports o_photon_1v]
+
+# Probing Photon 1H after going through acquisition logic and CDCC
+set_property IOSTANDARD LVTTL [get_ports o_photon_1h]
+set_property SLEW FAST [get_ports {o_photon_1h}]
+set_property PACKAGE_PIN F17 [get_ports o_photon_1h]
 
 
 
