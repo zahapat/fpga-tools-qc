@@ -1,6 +1,4 @@
 # Interesting_thread: https://forums.xilinx.com/t5/Vivado-TCL-Community/How-can-I-detect-if-synthesis-needs-to-be-run/td-p/848241
-# See vivado\led_on.runs\impl_1\gen_run.xml to see which operations are being performed during the Implementation
-# See vivado\led_on.runs\synth_1\gen_run.xml to see which operations are being performed during the Implementation
 
 # Set the reference directory for source file relative paths (by default the value is script directory path)
 set origin_dir "."
@@ -30,8 +28,6 @@ set orig_proj_dir "[file normalize "$origin_dir/"]"
 close_project -quiet
 open_project "${origin_dir}/vivado/${_xil_proj_name_}.xpr"
 reset_project
-
-# open_project C:/Users/Patrik/VHDL/COURSES/MAKEFILE_VIVADO/led_on/vivado/led_on.xpr
 
 # Set the directory path for the current project
 set proj_dir [get_property directory [current_project]]
@@ -74,8 +70,19 @@ report_config_timing -all -file "${origin_dir}/vivado/1_report_config_timing.rpt
 # Write netlist
 write_edif -force "${origin_dir}/vivado/1_netlist_post_synth.edf"
 
+# Write Hardware Definition (hwdef or hdf file)
+if {[catch {\
+    write_hwdef -force ${origin_dir}/vivado/3_hwdef_${_xil_proj_name_}.hdf \
+} error_msg]} {
+    puts "TCL: This project does not contain any Board files. Skipping Hardware Definition generation. Message generated: $error_msg"
+} else {
+    puts "TCL: Generating Hardware Definition file."
+}
+
+
+
 # Run Implementation + Generate Bitstream if out-of-date
-puts "TCL: Run Implementation and Generate Bitstream. "
+puts "TCL: Run Implementation and Generate Bitstream."
 source "${origin_dir}/tcl/project_specific/vivado/strategy_impl.tcl"
 launch_runs impl_1 -to_step route_design -jobs 1
 wait_on_run impl_1
@@ -103,15 +110,28 @@ if {[llength $cells_with_negative_slack] == 0} {
         # Run Generate Bitstream
         open_run impl_1
         set_property BITSTREAM.GENERAL.COMPRESS TRUE [current_design]
-        write_bitstream -verbose -force "${origin_dir}/vivado/3_bitstream_$_xil_proj_name_.bit"
+        write_bitstream -verbose -force ${origin_dir}/vivado/3_bitstream_${_xil_proj_name_}.bit
+        write_cfgmem -force -format bin -interface smapx32 -disablebitswap -loadbit "up 0 ${origin_dir}/vivado/3_bitstream_${_xil_proj_name_}.bit" ${origin_dir}/vivado/3_binary_${_xil_proj_name_}.bin
 
-        # Generate hardware platform for an SoC project (if applicable)
+        # To generate hardware platform for an SoC project (if applicable), you must re-run 
+        # bitstream generation since non-project mode "write_bitstream" command is incompatible 
+        # with it.
+        # Thus, the project-based command "launch_runs -to step write_bitstream" needs to be 
+        # executed before "write_hw_platform". 
+        # Note: "write_hw_platform" must be executed in a new shell. Thus, run "make xsa" after running this script.
         if {[catch {\
-            write_hw_platform -fixed -include_bit -force -file "${origin_dir}/vivado/3_hw_platform_$_xil_proj_name_.xsa"\
+            write_hw_platform -fixed -include_bit -force -file "${origin_dir}/vivado/3_hw_platform_${_xil_proj_name_}.xsa"\
         } error_msg]} {
-            puts "TCL: This project does not contain any Vitis modules. Skipping Hardware Platform generation for Vitis."
+            puts "TCL: This project does not contain any Vitis modules. Skipping Hardware Platform generation for Vitis. Message generated: $error_msg"
         } else {
-            puts "TCL: Generating Hardware Platform for Vitis."
+            puts "**************************************************"
+            puts "TCL: To generate the .xsa hardware platform, "
+            puts "     run \"make xsa\" command after running"
+            puts "     this script with successful bitstream"
+            puts "     generation."
+            puts "**************************************************"
+            puts "TCL: Generate bitstream once again to successfully generate the .xsa file later."
+            launch_runs impl_1 -to_step write_bitstream
         }
     }
 } else {

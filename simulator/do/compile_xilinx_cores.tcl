@@ -16,35 +16,40 @@ delete_library_and_mappings ${proj_root_dir}simulator/xil_iplib_vhdl
 # ----------------------------------------------------------
 # Mandatory libraries that will always appear in the vsim -L option (Verilog first)
 # NOTE: the 'glbl' need to be added and compiled manually...
-set unisim_location_verilog "C:/Xilinx/Vivado/2020.2/data/verilog/src"
+# IMPORTANT: The actual generation of precompiled libraries takes place in: 
+#            "./tcl/generic/vivado/recreate_vivado_proj.tcl"
+# NOTE: vivado_version is defined in "simulator/do/make_sim.tcl"
+set vivado_version_alias "[string map {"." "_"} $vivado_version]"
+set unisim_location_verilog "C:/Xilinx/Vivado/${vivado_version}/data/verilog/src"
 set glbl_file_location "$unisim_location_verilog/glbl.v"
 create_lib_if_noexist ${proj_root_dir}simulator/xil_iplib_verilog $searched_libraries_file_path
 vlog -work ${proj_root_dir}simulator/xil_iplib_verilog $glbl_file_location
 
-map_precompiled_lib "${proj_root_dir}simulator/vivado_precompiled_ver/xpm"
-add_searched_library ${proj_root_dir}simulator/vivado_precompiled_ver/xpm $searched_libraries_file_path
+map_precompiled_lib "${proj_root_dir}simulator/vivado_precompiled_ver/${vivado_version_alias}/xpm"
+add_searched_library "${proj_root_dir}simulator/vivado_precompiled_ver/${vivado_version_alias}/xpm" $searched_libraries_file_path
 
-map_precompiled_lib "${proj_root_dir}simulator/vivado_precompiled_ver/unisims_ver"
-add_searched_library ${proj_root_dir}simulator/vivado_precompiled_ver/unisims_ver $searched_libraries_file_path
+map_precompiled_lib "${proj_root_dir}simulator/vivado_precompiled_ver/${vivado_version_alias}/unisims_ver"
+add_searched_library "${proj_root_dir}simulator/vivado_precompiled_ver/${vivado_version_alias}/unisims_ver" $searched_libraries_file_path
 
-map_precompiled_lib "${proj_root_dir}simulator/vivado_precompiled_ver/unimacro_ver"
-add_searched_library ${proj_root_dir}simulator/vivado_precompiled_ver/unimacro_ver $searched_libraries_file_path
+map_precompiled_lib "${proj_root_dir}simulator/vivado_precompiled_ver/${vivado_version_alias}/unimacro_ver"
+add_searched_library "${proj_root_dir}simulator/vivado_precompiled_ver/${vivado_version_alias}/unimacro_ver" $searched_libraries_file_path
 
-map_precompiled_lib "${proj_root_dir}simulator/vivado_precompiled_ver/secureip"
-add_searched_library ${proj_root_dir}simulator/vivado_precompiled_ver/secureip $searched_libraries_file_path
+map_precompiled_lib "${proj_root_dir}simulator/vivado_precompiled_ver/${vivado_version_alias}/secureip"
+add_searched_library "${proj_root_dir}simulator/vivado_precompiled_ver/${vivado_version_alias}/secureip" $searched_libraries_file_path
 
 
 
 # Mandatory libraries that will always appear in the vsim -L option (VHDL Second)
 # NOTE: the 'glbl' has been precompiled as well. No need to add it manually.
-map_precompiled_lib "${proj_root_dir}simulator/vivado_precompiled_ver/unisim"
-add_searched_library ${proj_root_dir}simulator/vivado_precompiled_ver/unisim $searched_libraries_file_path
+map_precompiled_lib "${proj_root_dir}simulator/vivado_precompiled_ver/${vivado_version_alias}/unisim"
+add_searched_library "${proj_root_dir}simulator/vivado_precompiled_ver/${vivado_version_alias}/unisim" $searched_libraries_file_path
 
 
 
 # Search for all generated Xilinx IP sources
+set proj_name "[file tail ${proj_root_dir}]"
 set found_xilinx_cores [glob -nocomplain -type d \
-    ${proj_root_dir}vivado/ip/*
+    ${proj_root_dir}vivado/${proj_name}.gen/sources_1/ip/*
 ]
 
 if {[llength $found_xilinx_cores] > 0} {
@@ -111,10 +116,10 @@ if {[llength $found_xilinx_cores] > 0} {
 
 
         # Try to find the missing source in the precompiled vivado libraries
-        set precompiled_vivado_simlib_ips_verilog [glob -nocomplain -type d ${proj_root_dir}simulator/vivado_precompiled_ver/$missing_ip_src_to_add]
+        set precompiled_vivado_simlib_ips_verilog [glob -nocomplain -type d ${proj_root_dir}simulator/vivado_precompiled_ver/${vivado_version_alias}/$missing_ip_src_to_add]
         set precompiled_vivado_simlib_ips_verilog_name "[file tail $precompiled_vivado_simlib_ips_verilog]"
 
-        set precompiled_vivado_simlib_ips_vhdl [glob -nocomplain -type d ${proj_root_dir}simulator/vivado_precompiled_vhdl/$missing_ip_src_to_add]
+        set precompiled_vivado_simlib_ips_vhdl [glob -nocomplain -type d ${proj_root_dir}simulator/vivado_precompiled_vhdl/${vivado_version_alias}/$missing_ip_src_to_add]
         set precompiled_vivado_simlib_ips_vhdl_name  "[file tail $precompiled_vivado_simlib_ips_vhdl]"
 
         # Check if the IP lib is available in VHDL or Verilog precompiled libraries

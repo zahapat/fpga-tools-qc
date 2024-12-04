@@ -68,7 +68,7 @@
 
             time_stamp_counter_overflow : out std_logic;
 
-            pcd_ctrl_pulse_ready : in std_logic
+            eom_ctrl_pulse_ready : in std_logic
         );
     end fsm_gflow;
 
@@ -84,8 +84,8 @@
             (1.0/real(CLK_HZ) * 1.0e9);
         constant CLK_PERIODS_CTRL_PULSE : natural :=
                 natural( ceil(real(CTRL_PULSE_DUR_WITH_DEADTIME_NS) / CLK_PERIOD_NS) );
-        signal pcd_ctrl_pulse_ready_p1 : std_logic := '0';
-        signal pcd_ctrl_pulse_fedge_latched : std_logic := '0';
+        signal eom_ctrl_pulse_ready_p1 : std_logic := '0';
+        signal eom_ctrl_pulse_fedge_latched : std_logic := '0';
 
         -- Angles alpha (binary represenatation):
         type t_qx_angle_alpha is array(4-1 downto 0) of std_logic_vector(1 downto 0);
@@ -198,12 +198,12 @@
         impure function gflow_controller_binary_encoding (
             constant QUBITS_CNT : natural
         ) return t_qubits_binary_encoding_2d is
-            variable v_qubits_binary_encoding_2d : t_qubits_binary_encoding_2d := (others => 1);
+            variable v_qubits_binary_encoding_2d : t_qubits_binary_encoding_2d;
         begin
+            v_qubits_binary_encoding_2d := (others => 1);
             for i in 1 to QUBITS_CNT-2 loop
                 v_qubits_binary_encoding_2d(i) := i;
             end loop;
-
             return v_qubits_binary_encoding_2d;
         end function;
         constant QUBIT_ID : t_qubits_binary_encoding_2d := gflow_controller_binary_encoding(QUBITS_CNT);
@@ -345,7 +345,7 @@
                     sl_gflow_success_done <= '0';
                     slv_unsuccessful_qubits <= (others => '0');
                     int_main_counter <= int_main_counter + 1;
-                    pcd_ctrl_pulse_ready_p1 <= pcd_ctrl_pulse_ready;
+                    eom_ctrl_pulse_ready_p1 <= eom_ctrl_pulse_ready;
 
                     -- Time Stamp counter always inscrements each clock cycle and overflows
                     -- If 1 cycle = 5 ns: 5*10^(-9) sec * 2^(28*2) cycles = overflow after every 42.949673 sec
@@ -365,19 +365,19 @@
                     if sl_gflow_success_flag = '1' then
 
                         -- Send 1 clock cycle long pulse as soon as the output PCD control pulse generation starts
-                        if pcd_ctrl_pulse_ready = '0' and pcd_ctrl_pulse_ready_p1 = '1' then
+                        if eom_ctrl_pulse_ready = '0' and eom_ctrl_pulse_ready_p1 = '1' then
                             sl_gflow_success_done <= '1';
                         end if;
 
                         -- Latch PCD output pulse falling edge event
-                        if pcd_ctrl_pulse_ready = '1' and pcd_ctrl_pulse_ready_p1 = '0' then
-                            pcd_ctrl_pulse_fedge_latched <= '1';
+                        if eom_ctrl_pulse_ready = '1' and eom_ctrl_pulse_ready_p1 = '0' then
+                            eom_ctrl_pulse_fedge_latched <= '1';
                         end if;
 
                         -- Wait until PCD pulse has been transmitted and all qubits from previous clusters states have been skipped
-                        if pcd_ctrl_pulse_fedge_latched = '1' and to_integer(unsigned(slv_counter_skip_qubits)) = CLK_PERIODS_SKIP then
+                        if eom_ctrl_pulse_fedge_latched = '1' and to_integer(unsigned(slv_counter_skip_qubits)) = CLK_PERIODS_SKIP then
                             sl_gflow_success_flag <= '0';
-                            pcd_ctrl_pulse_fedge_latched <= '0';
+                            eom_ctrl_pulse_fedge_latched <= '0';
                             slv_counter_skip_qubits <= std_logic_vector(to_unsigned(0, slv_counter_skip_qubits'length));
                         end if;
                     end if;
@@ -420,57 +420,55 @@
                     -----------------------------------
                     -- INTERMEDIATE qubit/s detected --
                     -----------------------------------
-                    if (int_state_gflow /= 0 and int_state_gflow < QUBITS_CNT-1) then
-                        -- Create parallel threads, activate one based on the actual state
-                        for i in 1 to QUBITS_CNT-2 loop
-                            if QUBIT_ID(i) = int_state_gflow then
-                                slv_actual_qubit <= slv_qubits_sampled(QUBIT_ID(i)*2+1 downto QUBIT_ID(i)*2);
-                                slv_qubit_buffer_2d(QUBIT_ID(i)) <= slv_qubits_sampled(QUBIT_ID(i)*2+1 downto QUBIT_ID(i)*2);
+                    -- Create parallel threads, activate one based on the actual state
+                    for i in 1 to QUBITS_CNT-2 loop
+                        if QUBIT_ID(i) = int_state_gflow then
+                            slv_actual_qubit <= slv_qubits_sampled(QUBIT_ID(i)*2+1 downto QUBIT_ID(i)*2);
+                            slv_qubit_buffer_2d(QUBIT_ID(i)) <= slv_qubits_sampled(QUBIT_ID(i)*2+1 downto QUBIT_ID(i)*2);
 
-                                to_math_alpha <= QX_BASIS_ALPHA((i) mod 4);
-                                slv_alpha_buffer_2d(QUBIT_ID(i)) <= QX_BASIS_ALPHA((QUBIT_ID(i)) mod 4);
+                            to_math_alpha <= QX_BASIS_ALPHA((i) mod 4);
+                            slv_alpha_buffer_2d(QUBIT_ID(i)) <= QX_BASIS_ALPHA((QUBIT_ID(i)) mod 4);
 
-                                if feedback_mod_valid = '1' then
-                                    slv_to_math_sx_sz <= feedback_mod;
+                            if feedback_mod_valid = '1' then
+                                slv_to_math_sx_sz <= feedback_mod;
+                            end if;
+
+                            -- If the counter has reached the max delay, don't ask and reset it and assess the next state
+                            -- if int_main_counter = MAX_PERIODS_CORR(QUBIT_ID(i)) -1 then
+                            if int_main_counter = MAX_PERIODS(QUBIT_ID(i)) -1 then
+
+                                -- Detect Qubit 3 and proceed to Qubit 4, sample time stamp
+                                -- if qubits_sampled_valid(QUBITS_CNT-1-QUBIT_ID(i)) = '1' then
+                                if qubits_sampled_valid(QUBIT_ID(i)) = '1' then
+                                    actual_qubit_valid <= '1';
+                                    slv_time_stamp_buffer_2d(QUBIT_ID(i)+1) 
+                                        <= std_logic_vector(uns_actual_time_stamp_counter(st_transaction_data_max_width));
+                                    int_state_gflow <= int_state_gflow + 1;
+                                else
+                                    int_state_gflow <= 0;
+                                    slv_unsuccessful_qubits(QUBIT_ID(i)) <= '1';
                                 end if;
+                            end if;
 
-                                -- If the counter has reached the max delay, don't ask and reset it and assess the next state
-                                -- if int_main_counter = MAX_PERIODS_CORR(QUBIT_ID(i)) -1 then
-                                if int_main_counter = MAX_PERIODS(QUBIT_ID(i)) -1 then
+                            -- Look for detection before the last counter iteration (counter the data skew)
+                            for u in 0 to 0 loop
+                                -- if int_main_counter = MAX_PERIODS_CORR(QUBIT_ID(i)) -2 -u then
+                                if int_main_counter = MAX_PERIODS(QUBIT_ID(i)) -2 -u then
 
-                                    -- Detect Qubit 3 and proceed to Qubit 4, sample time stamp
+                                    -- Detect Qubit 3 earlier and proceed to Qubit 4
                                     -- if qubits_sampled_valid(QUBITS_CNT-1-QUBIT_ID(i)) = '1' then
                                     if qubits_sampled_valid(QUBIT_ID(i)) = '1' then
+                                        -- Leave the state early, reset counter, sample time stamp
                                         actual_qubit_valid <= '1';
                                         slv_time_stamp_buffer_2d(QUBIT_ID(i)+1) 
                                             <= std_logic_vector(uns_actual_time_stamp_counter(st_transaction_data_max_width));
                                         int_state_gflow <= int_state_gflow + 1;
-                                    else
-                                        int_state_gflow <= 0;
-                                        slv_unsuccessful_qubits(QUBIT_ID(i)) <= '1';
                                     end if;
+
                                 end if;
-
-                                -- Look for detection before the last counter iteration (counter the data skew)
-                                for u in 0 to 0 loop
-                                    -- if int_main_counter = MAX_PERIODS_CORR(QUBIT_ID(i)) -2 -u then
-                                    if int_main_counter = MAX_PERIODS(QUBIT_ID(i)) -2 -u then
-
-                                        -- Detect Qubit 3 earlier and proceed to Qubit 4
-                                        -- if qubits_sampled_valid(QUBITS_CNT-1-QUBIT_ID(i)) = '1' then
-                                        if qubits_sampled_valid(QUBIT_ID(i)) = '1' then
-                                            -- Leave the state early, reset counter, sample time stamp
-                                            actual_qubit_valid <= '1';
-                                            slv_time_stamp_buffer_2d(QUBIT_ID(i)+1) 
-                                                <= std_logic_vector(uns_actual_time_stamp_counter(st_transaction_data_max_width));
-                                            int_state_gflow <= int_state_gflow + 1;
-                                        end if;
-
-                                    end if;
-                                end loop;
-                            end if;
-                        end loop;
-                    end if;
+                            end loop;
+                        end if;
+                    end loop;
 
 
                     -------------------------
@@ -551,7 +549,7 @@
                     sl_gflow_success_done <= '0';
                     int_main_counter_two_qubits <= int_main_counter_two_qubits + 1;
                     slv_unsuccessful_qubits_two_qubits <= (others => '0');
-                    pcd_ctrl_pulse_ready_p1 <= pcd_ctrl_pulse_ready;
+                    eom_ctrl_pulse_ready_p1 <= eom_ctrl_pulse_ready;
 
                     -- Time Stamp counter always inscrements each clock cycle and overflows
                     -- If 1 cycle = 10 ns: 10*10^(-9) sec * 2^32 cycles = overflow after every 42.949673 sec
@@ -571,19 +569,19 @@
                     if sl_gflow_success_flag = '1' then
 
                         -- Send 1 clock cycle long pulse as soon as the output PCD control pulse generation starts
-                        if pcd_ctrl_pulse_ready = '0' and pcd_ctrl_pulse_ready_p1 = '1' then
+                        if eom_ctrl_pulse_ready = '0' and eom_ctrl_pulse_ready_p1 = '1' then
                             sl_gflow_success_done <= '1';
                         end if;
 
                         -- Latch PCD output pulse falling edge event
-                        if pcd_ctrl_pulse_ready = '1' and pcd_ctrl_pulse_ready_p1 = '0' then
-                            pcd_ctrl_pulse_fedge_latched <= '1';
+                        if eom_ctrl_pulse_ready = '1' and eom_ctrl_pulse_ready_p1 = '0' then
+                            eom_ctrl_pulse_fedge_latched <= '1';
                         end if;
 
                         -- Wait until PCD pulse has been transmitted and all qubits from previous clusters states have been skipped
-                        if pcd_ctrl_pulse_fedge_latched = '1' and to_integer(unsigned(slv_counter_skip_qubits)) = CLK_PERIODS_SKIP then
+                        if eom_ctrl_pulse_fedge_latched = '1' and to_integer(unsigned(slv_counter_skip_qubits)) = CLK_PERIODS_SKIP then
                             sl_gflow_success_flag <= '0';
-                            pcd_ctrl_pulse_fedge_latched <= '0';
+                            eom_ctrl_pulse_fedge_latched <= '0';
                             slv_counter_skip_qubits <= std_logic_vector(to_unsigned(0, slv_counter_skip_qubits'length));
                         end if;
                     end if;

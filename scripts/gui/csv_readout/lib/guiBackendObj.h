@@ -11,7 +11,7 @@ typedef unsigned int UINT32;
 class guiBackendObj {
     // Shared variables among threads
     unsigned char* dataBufferRead;
-    bool fpga_error;
+    bool thr1_to_thr2_stop_request;
 
     // Thread Lock and Condition Variable for sharing data among threads
     std::mutex mtx;
@@ -19,6 +19,16 @@ class guiBackendObj {
 
     // Flag when a new value is ready
     bool ready_new_value;
+
+    // Readout variables
+    int last_column_cntr = 0;
+    int actual_file_id = 0;
+    int actual_column_cntr_csv1 = 0;
+    int actual_column_cntr_csv2 = 0;
+    int actual_column_cntr_csv3 = 0;
+    bool actual_file_csv1 = 0;
+    bool actual_file_csv2 = 0;
+    bool actual_file_csv3 = 0;
 
     // OK API Variables
     okTDeviceInfo  m_devInfo;
@@ -45,10 +55,21 @@ class guiBackendObj {
     OpalKelly::FrontPanelDevices allOkDevices;
     OpalKelly::FrontPanelPtr okDevicePtr;
 
-    // Output CSV Files
+    // Declaration of output CSV Files
     std::ofstream outFile1;
     std::ofstream outFile2;
     std::ofstream outFile3;
+
+    // Declaration of readout bucket bins for data and cmds
+    UINT32 command;
+    UINT32 data;
+    std::bitset<32> uns32b;
+    std::bitset<28> uns28b_data;
+    std::bitset<4> uns4b_cmd;
+
+    // Declaration of iterators
+    UINT32 i_iter;
+    UINT32 j_iter;
 
 private:
 
@@ -77,11 +98,16 @@ public:
         // Define transfer size
         // (1048576 BytesTotal / 4 BytesPerTransaction = 262144 TransactionsTotal)
         //  1048576 = 1 * 1024 * 1024 = 1x TransferSize
-        m_u32BlockSize = 16;
-        // m_u32SegmentSize = 64 * m_u32BlockSize;
-        m_u32SegmentSize = 1 * m_u32BlockSize;
+
+        // m_u32BlockSize = 16; // Before
+        m_u32BlockSize = 64; // After
+
+        // m_u32SegmentSize = 64 * m_u32BlockSize; original
+        
+        m_u32SegmentSize = 8 * m_u32BlockSize;
         m_u32TransferSize = 1 * m_u32SegmentSize;  // DO NOT CHANGE
         m_u32TransferSizeCount = 1; // DO NOT CHANGE
+
 
         // Clear content of the output files and add headers
         // Header CSV file 1
@@ -111,7 +137,8 @@ public:
             outFile1 << "timestamp_q" << i << ",";
         }
         outFile1 << ",@time" << std::endl;
-        outFile1.close();
+        // outFile1.close();
+
 
         // Header CSV file 2
         outFile2.open("outputFile2.csv", std::ofstream::out | std::ofstream::trunc);
@@ -125,12 +152,13 @@ public:
             else if (qubits_count == 6) {outFile2 << std::bitset<6>(i) << ",";}
         }
         outFile2 << ",@time" << std::endl;
-        outFile2.close();
+        // outFile2.close();
+
 
         // Header CSV file 3
         outFile3.open("outputFile3.csv", std::ofstream::out | std::ofstream::trunc);
         for (int i = 1; i <= qubits_count*2; i++){
-            outFile3 << "chann_q" << i << ",";
+            outFile3 << "chann_" << i << ",";
         }
         outFile3 << ",";
 
@@ -138,12 +166,14 @@ public:
             outFile3 << "loss_q" << i << ",";
         }
         outFile3 << ",@time" << std::endl;
-        outFile3.close();
+        // outFile3.close();
+
     }
 
     // Destructor
     virtual ~guiBackendObj()
     {
+        // Close all files
         outFile1.close();
         outFile2.close();
         outFile3.close();

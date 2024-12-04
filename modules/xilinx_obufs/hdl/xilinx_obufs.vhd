@@ -39,7 +39,7 @@
         gen_obufs : for i in data_in'range generate
 
             -- Use OLOGIC cell as a register
-            pcd_regctrlout0: FDRE
+            inst_fdre_ologic: FDRE
             port map (
                 D => data_in(i),
                 Q => slv_obuf_fdre_data(i),

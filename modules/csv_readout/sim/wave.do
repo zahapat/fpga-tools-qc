@@ -3,7 +3,7 @@ quietly WaveActivateNextPane {} 0
 add wave -noupdate -divider {TB: universal_readout_tb ALL signals}
 add wave -noupdate /csv_readout_tb/files_recreated
 add wave -noupdate /csv_readout_tb/rst
-add wave -noupdate /csv_readout_tb/wr_valid_gflow_success_done
+add wave -noupdate /csv_readout_tb/wr_valid_feedfwd_success_done
 add wave -noupdate /csv_readout_tb/wr_data_qubit_buffer
 add wave -noupdate /csv_readout_tb/wr_data_time_stamp_buffer
 add wave -noupdate /csv_readout_tb/wr_data_alpha_buffer
@@ -22,7 +22,7 @@ add wave -noupdate /csv_readout_tb/clk_rd
 add wave -noupdate -divider DUT
 add wave -noupdate /csv_readout_tb/dut_csv_readout/rst
 add wave -noupdate /csv_readout_tb/dut_csv_readout/wr_sys_clk
-add wave -noupdate /csv_readout_tb/dut_csv_readout/wr_valid_gflow_success_done
+add wave -noupdate /csv_readout_tb/dut_csv_readout/wr_valid_feedfwd_success_done
 add wave -noupdate /csv_readout_tb/dut_csv_readout/wr_data_qubit_buffer
 add wave -noupdate /csv_readout_tb/dut_csv_readout/wr_data_time_stamp_buffer
 add wave -noupdate /csv_readout_tb/dut_csv_readout/wr_data_alpha_buffer
@@ -68,7 +68,7 @@ add wave -noupdate /csv_readout_tb/dut_csv_readout/slv_flow_alpha_buffer_shreg
 add wave -noupdate /csv_readout_tb/dut_csv_readout/slv_flow_modulo_buffer_shreg
 add wave -noupdate /csv_readout_tb/dut_csv_readout/slv_flow_random_buffer_shreg
 add wave -noupdate /csv_readout_tb/dut_csv_readout/slv_flow_timestamp_buffer_shreg
-add wave -noupdate /csv_readout_tb/dut_csv_readout/sl_readout_request_gflow
+add wave -noupdate /csv_readout_tb/dut_csv_readout/sl_readout_request_feedfwd
 add wave -noupdate /csv_readout_tb/dut_csv_readout/sl_request_read_coincidences_shift_enable
 add wave -noupdate /csv_readout_tb/dut_csv_readout/sl_request_read_photons_shift_enable
 add wave -noupdate /csv_readout_tb/dut_csv_readout/sl_request_read_alpha_shift_enable

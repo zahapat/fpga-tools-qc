@@ -28,7 +28,7 @@ set delimiter ","
 set list_all_args [convert_string_to_list_on_delimiters $argline $delimiter]
 set arg_count [llength $list_all_args]
 
-set arguments_cnt 3
+set arguments_cnt 4
 if { $arg_count == $arguments_cnt } {
 
     # Library for VHDL src files
@@ -44,6 +44,12 @@ if { $arg_count == $arguments_cnt } {
     # Project root directory
     set proj_root_dir [string trim [lindex $list_all_args 2] ]
     puts "TCL: Argument 3 proj_root_dir: '$proj_root_dir'"
+    puts "TCL: proj_root_dir = $proj_root_dir"
+
+    # Vivado Version
+    set vivado_version [string trim [lindex $list_all_args 3] ]
+    puts "TCL: Argument 4 vivado_version: '$vivado_version'"
+    puts "TCL: vivado_version = $vivado_version"
 
 } else {
     puts "TCL: ERROR: There must be $arguments_cnt Command-line argument/s passed to the TCL script. Total arguments found:  $::argc . Quit."

@@ -1,6 +1,7 @@
     -- File "lfsr_inemul.vhd": Input generator based on a Galois Field in pulsed mode (return to zero)
     -- Engineer: Patrik Zahalka (patrik.zahalka@univie.ac.at; zahalka.patrik@gmail.com)
-    -- Year: 2022
+    -- More irreducible primitive polynomials: 
+    -- https://link.springer.com/content/pdf/bbm%3A978-1-4615-1509-8%2F1.pdf
 
     library ieee;
     use ieee.std_logic_1164.all;
@@ -19,7 +20,7 @@
             RST_VAL                 : std_logic := '1';
             SYMBOL_WIDTH            : integer := 8; -- Channels count / Data width
             -- PRIM_POL_INT_VAL        : positive := 285; -- Too sparse field
-            PRIM_POL_INT_VAL        : positive := 501;
+            -- PRIM_POL_INT_VAL        : positive := 501;
             GF_SEED                 : positive := 1;
             DATA_PULLDOWN_ENABLE    : boolean := true;
             PULLDOWN_CYCLES         : positive := 2 -- min 2
@@ -48,7 +49,63 @@
         constant SHIFTREG_WIDTH : positive := PULLDOWN_CYCLES+1;
 
         -- LFSR
-        constant PRIM_POL_BIT_VAL : std_logic_vector := std_logic_vector(to_unsigned(PRIM_POL_INT_VAL, SYMBOL_WIDTH+1));
+        -- More irreducible primitive polynomials: 
+        -- https://link.springer.com/content/pdf/bbm%3A978-1-4615-1509-8%2F1.pdf
+        function incr_galois_cntr (
+            slv_galois_cntr_feedback : std_logic_vector(SYMBOL_WIDTH-1 downto 0) := (others => '0');
+            INT_PRIMPOL : positive
+        ) return std_logic_vector is
+            variable v_slv_galois_cntr : std_logic_vector(SYMBOL_WIDTH-1 downto 0) := (others => '0');
+            variable v_slv_primpol : std_logic_vector(SYMBOL_WIDTH downto 0) := std_logic_vector(to_unsigned(INT_PRIMPOL, SYMBOL_WIDTH+1));
+        begin
+            -- Calculate a new iteration
+            v_slv_galois_cntr(SYMBOL_WIDTH-1 downto 0) 
+                := slv_galois_cntr_feedback(SYMBOL_WIDTH-2 downto 0) & '0';
+            if slv_galois_cntr_feedback(SYMBOL_WIDTH-1) = '1' then
+                v_slv_galois_cntr(SYMBOL_WIDTH-1 downto 0) 
+                    := slv_galois_cntr_feedback(SYMBOL_WIDTH-2 downto 0) 
+                        & '0' xor v_slv_primpol(SYMBOL_WIDTH-1 downto 0);
+            end if;
+
+            return v_slv_galois_cntr;
+        end function;
+        signal slv_main_counter_galois : std_logic_vector(SYMBOL_WIDTH-1 downto 0) := std_logic_vector(to_unsigned(GF_SEED, SYMBOL_WIDTH)); -- NEW
+        signal slv_main_counter_galois_feedback : std_logic_vector(SYMBOL_WIDTH-1 downto 0) := std_logic_vector(to_unsigned(GF_SEED, SYMBOL_WIDTH)); -- NEW
+
+        -- Assign a primitive polynomial based on counter width
+        function get_int_primpol return positive is
+            variable v_int_primpol : positive := 7;
+        begin
+            -- Set primitive polynomials for these bit widths
+            if SYMBOL_WIDTH = 2 then v_int_primpol := 7; end if;
+            if SYMBOL_WIDTH = 3 then v_int_primpol := 13; end if;
+            if SYMBOL_WIDTH = 4 then v_int_primpol := 25; end if;
+            if SYMBOL_WIDTH = 5 then v_int_primpol := 41; end if;
+            if SYMBOL_WIDTH = 6 then v_int_primpol := 97; end if;
+            if SYMBOL_WIDTH = 7 then v_int_primpol := 137; end if;
+            if SYMBOL_WIDTH = 8 then v_int_primpol := 425; end if;
+            if SYMBOL_WIDTH = 9 then v_int_primpol := 529; end if;
+            if SYMBOL_WIDTH = 10 then v_int_primpol := 1033; end if;
+            if SYMBOL_WIDTH = 11 then v_int_primpol := 2053; end if;
+            if SYMBOL_WIDTH = 12 then v_int_primpol := 4179; end if;
+            if SYMBOL_WIDTH = 13 then v_int_primpol := 8357; end if;
+            if SYMBOL_WIDTH = 14 then v_int_primpol := 16553; end if;
+            if SYMBOL_WIDTH = 15 then v_int_primpol := 32785; end if;
+            if SYMBOL_WIDTH = 16 then v_int_primpol := 66193; end if;
+            if SYMBOL_WIDTH = 17 then v_int_primpol := 131137; end if;
+            if SYMBOL_WIDTH = 18 then v_int_primpol := 262273; end if;
+            if SYMBOL_WIDTH = 19 then v_int_primpol := 524377; end if;
+            if SYMBOL_WIDTH = 20 then v_int_primpol := 1048585; end if;
+            if SYMBOL_WIDTH = 21 then v_int_primpol := 2097157; end if;
+
+            -- Else, let the HW generation fail
+            if SYMBOL_WIDTH < 2 then v_int_primpol := 1; end if;
+            if SYMBOL_WIDTH > 21 then v_int_primpol := 1; end if;
+            return v_int_primpol;
+        end function;
+
+        constant INT_PRIM_POL : positive := get_int_primpol; -- NEW
+        -- constant PRIM_POL_BIT_VAL : std_logic_vector := std_logic_vector(to_unsigned(INT_PRIM_POL, SYMBOL_WIDTH+1));
 
 
         -------------------------------------------------------------------
@@ -64,7 +121,7 @@
 
         -- LFSR
         signal slv_reg_act_rand_number : std_logic_vector(SYMBOL_WIDTH-1 downto 0) := std_logic_vector(to_unsigned(GF_SEED, SYMBOL_WIDTH));
-        signal slv_prev_rand_feedback : std_logic_vector(SYMBOL_WIDTH-1 downto 0) := std_logic_vector(to_unsigned(GF_SEED, SYMBOL_WIDTH));
+        -- signal slv_prev_rand_feedback : std_logic_vector(SYMBOL_WIDTH-1 downto 0) := std_logic_vector(to_unsigned(GF_SEED, SYMBOL_WIDTH));
 
         -- 2-FF synchronizer / delay for better placement
         signal slv_2ff_data_out_p1 : std_logic_vector(SYMBOL_WIDTH-1 downto 0) := (others => '0');
@@ -128,20 +185,28 @@
         proc_bit_pulse_gen_1 : process (clk)
         begin
             if rising_edge(clk) then
+                -- OLD - incorrect slv_prev_rand_feedback behaviour
+                -- if rst = RST_VAL then
+                --     slv_reg_act_rand_number <= std_logic_vector(to_unsigned(GF_SEED, SYMBOL_WIDTH));
+                --     slv_prev_rand_feedback <= std_logic_vector(to_unsigned(GF_SEED, SYMBOL_WIDTH));
+                -- else
+
+                --     -- Default
+                --     slv_reg_act_rand_number(SYMBOL_WIDTH-1 downto 0) <= slv_prev_rand_feedback(SYMBOL_WIDTH-2 downto 0) & '0';
+                --     slv_prev_rand_feedback <= slv_reg_act_rand_number;
+
+                --     -- Galois Counter
+                --     if slv_prev_rand_feedback(SYMBOL_WIDTH-1) = '1' then
+                --         slv_reg_act_rand_number(SYMBOL_WIDTH-1 downto 0) <= slv_prev_rand_feedback(SYMBOL_WIDTH-2 downto 0) & '0' xor PRIM_POL_BIT_VAL(SYMBOL_WIDTH-1 downto 0);
+                --     end if;
+
+                -- end if;
+
+                -- NEW
                 if rst = RST_VAL then
                     slv_reg_act_rand_number <= std_logic_vector(to_unsigned(GF_SEED, SYMBOL_WIDTH));
-                    slv_prev_rand_feedback <= std_logic_vector(to_unsigned(GF_SEED, SYMBOL_WIDTH));
                 else
-
-                    -- Default
-                    slv_reg_act_rand_number(SYMBOL_WIDTH-1 downto 0) <= slv_prev_rand_feedback(SYMBOL_WIDTH-2 downto 0) & '0';
-                    slv_prev_rand_feedback <= slv_reg_act_rand_number;
-
-                    -- Galois Counter
-                    if slv_prev_rand_feedback(SYMBOL_WIDTH-1) = '1' then
-                        slv_reg_act_rand_number(SYMBOL_WIDTH-1 downto 0) <= slv_prev_rand_feedback(SYMBOL_WIDTH-2 downto 0) & '0' xor PRIM_POL_BIT_VAL(SYMBOL_WIDTH-1 downto 0);
-                    end if;
-
+                    slv_reg_act_rand_number <= incr_galois_cntr(slv_reg_act_rand_number, INT_PRIM_POL);
                 end if;
             end if;
         end process;

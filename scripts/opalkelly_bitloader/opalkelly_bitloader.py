@@ -103,7 +103,7 @@ FULLPATH_TO_OUTPUTS_DIR = "C:\\Git\\zahapat\\fpga-tools-qc\\outputs"
 # ---------------------------------------------------------------------
 # Switch to bitfile sets generated at different commits
 # COMMIT_HASH_SHORT = "428d99b"
-COMMIT_HASH_SHORT = "ead4671"
+COMMIT_HASH_SHORT = "bf92d0a"
 
 # Switch to a differet projects at a given commit
 TOP = "top_gflow"

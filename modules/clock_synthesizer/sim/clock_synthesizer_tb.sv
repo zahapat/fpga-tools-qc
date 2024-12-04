@@ -41,9 +41,39 @@ module clock_synthesizer_tb;
     localparam REAL_PHASE_OUT3 = 0.000;
     localparam REAL_PHASE_OUT4 = 0.000;
     localparam REAL_PHASE_OUT5 = 0.000;
-    localparam REAL_PHASE_OUT6 = 0.00;
+    localparam REAL_PHASE_OUT6 = 0.000;
+
+    localparam CLKFBOUT_USE_FINE_PS = 0;
+    localparam CLKOUT0_USE_FINE_PS = 0;
+    localparam CLKOUT1_USE_FINE_PS = 0;
+    localparam CLKOUT2_USE_FINE_PS = 0;
+    localparam CLKOUT3_USE_FINE_PS = 0;
+    localparam CLKOUT4_USE_FINE_PS = 0;
+    localparam CLKOUT5_USE_FINE_PS = 0;
+    localparam CLKOUT6_USE_FINE_PS = 0;
+    
+
+    localparam INT_BUF_CLKFB = -1; // 0=No Buffer; 1=BUFH; 2=BUFIO; 3=BUFR; else=BUFG (default)
+    localparam INT_BUF_OUT0 = -1;  // 0=No Buffer; 1=BUFH; 2=BUFIO; 3=BUFR; else=BUFG (default)
+    localparam INT_BUF_OUT1 = -1;
+    localparam INT_BUF_OUT2 = -1;
+    localparam INT_BUF_OUT3 = -1;
+    localparam INT_BUF_OUT4 = -1;
+    localparam INT_BUF_OUT5 = -1;
+    localparam INT_BUF_OUT6 = -1;
+    localparam INT_BUF_OUTB0 = 0;  // 0=No Buffer (Default); 1=BUFH; 2=BUFIO; 3=BUFR; else=BUFG
+    localparam INT_BUF_OUTB1 = 0;
+    localparam INT_BUF_OUTB2 = 0;
+    localparam INT_BUF_OUTB3 = 0;
+    
+    localparam INT_COMPENSATION = 0;        // Delay Compensation 0=ZHOLD, 1=BUF_IN, 2=EXTERNAL, 3=INTERNAL
+    localparam REAL_CLKIN1_PKPK_JITTER_PS = 20.0;
+    localparam INT_BANDWIDTH = 1;           // Target Bandwidth 0=LOW, 1=HIGH, others=OPTIMIZED
+
+    localparam INT_SELECT_PRIMITIVE = -1;   // 0 = PLL, else MMCM
 
     // Inputs
+    logic in_reset = 1'b0;
     logic in_clk0_p = 1'b0;
     logic in_clk0_n = 1'b0;
 
@@ -56,6 +86,7 @@ module clock_synthesizer_tb;
     logic out_fineps_dready;
 
     // Outputs
+    logic out_clkfb;
     logic out_clk0;
     logic out_clk1;
     logic out_clk2;
@@ -63,15 +94,50 @@ module clock_synthesizer_tb;
     logic out_clk4;
     logic out_clk5;
     logic out_clk6;
+    logic out_clkb0;
+    logic out_clkb1;
+    logic out_clkb2;
+    logic out_clkb3;
+    logic out_clk0_inv;
+    logic out_clk1_inv;
+    logic out_clk2_inv;
+    logic out_clk3_inv;
+    logic out_clk0_nobuf;
+    logic out_clk1_nobuf;
+    logic out_clk2_nobuf;
+    logic out_clk3_nobuf;
     logic locked;
 
     // DUT Instance
     clock_synthesizer #(
+        .INT_SELECT_PRIMITIVE(INT_SELECT_PRIMITIVE),
+
+        // Output buffering - place BUFR or BUFG
+        .INT_BUF_CLKFB(INT_BUF_CLKFB),
+        .INT_BUF_OUT0(INT_BUF_OUT0),
+        .INT_BUF_OUT1(INT_BUF_OUT1),
+        .INT_BUF_OUT2(INT_BUF_OUT2),
+        .INT_BUF_OUT3(INT_BUF_OUT3),
+        .INT_BUF_OUT4(INT_BUF_OUT4),
+        .INT_BUF_OUT5(INT_BUF_OUT5),
+        .INT_BUF_OUT6(INT_BUF_OUT6),
+        .INT_BUF_OUTB0(INT_BUF_OUTB0),
+        .INT_BUF_OUTB1(INT_BUF_OUTB1),
+        .INT_BUF_OUTB2(INT_BUF_OUTB2),
+        .INT_BUF_OUTB3(INT_BUF_OUTB3),
+
+        // Select algorithm for target bandwidth and performance characteristics (affects jitter, phase margin and others)
+        .INT_BANDWIDTH(INT_BANDWIDTH), // 0=LOW, 1=HIGH, others=OPTIMIZED
+        
+        // Delay Compensation
+        .INT_COMPENSATION(INT_COMPENSATION),
+        
         // If input clk is differential
         .IF_CLKIN1_DIFF(IF_CLKIN1_DIFF),
-
+        
         // Set input clk parameters
         .REAL_CLKIN1_MHZ(REAL_CLKIN1_MHZ),
+        .REAL_CLKIN1_PKPK_JITTER_PS(REAL_CLKIN1_PKPK_JITTER_PS),
 
         // Setup the VCO frequency for the entire device
         .INT_VCO_DIVIDE(INT_VCO_DIVIDE),
@@ -99,8 +165,20 @@ module clock_synthesizer_tb;
         .REAL_PHASE_OUT3(REAL_PHASE_OUT3),
         .REAL_PHASE_OUT4(REAL_PHASE_OUT4),
         .REAL_PHASE_OUT5(REAL_PHASE_OUT5),
-        .REAL_PHASE_OUT6(REAL_PHASE_OUT6)
+        .REAL_PHASE_OUT6(REAL_PHASE_OUT6),
+
+        .CLKFBOUT_USE_FINE_PS(CLKFBOUT_USE_FINE_PS),
+        .CLKOUT0_USE_FINE_PS(CLKOUT0_USE_FINE_PS),
+        .CLKOUT1_USE_FINE_PS(CLKOUT1_USE_FINE_PS),
+        .CLKOUT2_USE_FINE_PS(CLKOUT2_USE_FINE_PS),
+        .CLKOUT3_USE_FINE_PS(CLKOUT3_USE_FINE_PS),
+        .CLKOUT4_USE_FINE_PS(CLKOUT4_USE_FINE_PS),
+        .CLKOUT5_USE_FINE_PS(CLKOUT5_USE_FINE_PS),
+        .CLKOUT6_USE_FINE_PS(CLKOUT6_USE_FINE_PS)
     ) dut (
+        // Reset
+        .in_reset(in_reset),
+
         // Inputs
         .in_clk0_p(in_clk0_p),
         .in_clk0_n(in_clk0_n),
@@ -113,6 +191,7 @@ module clock_synthesizer_tb;
         .out_fineps_dready(out_fineps_dready),
 
         // Outputs
+        .out_clkfb(out_clkfb),
         .out_clk0(out_clk0),
         .out_clk1(out_clk1),
         .out_clk2(out_clk2),
@@ -120,6 +199,18 @@ module clock_synthesizer_tb;
         .out_clk4(out_clk4),
         .out_clk5(out_clk5),
         .out_clk6(out_clk6),
+        .out_clkb0(out_clkb0),
+        .out_clkb1(out_clkb1),
+        .out_clkb2(out_clkb2),
+        .out_clkb3(out_clkb3),
+        .out_clk0_inv(out_clk0_inv),
+        .out_clk1_inv(out_clk1_inv),
+        .out_clk2_inv(out_clk2_inv),
+        .out_clk3_inv(out_clk3_inv),
+        .out_clk0_nobuf(out_clk0_nobuf),
+        .out_clk1_nobuf(out_clk1_nobuf),
+        .out_clk2_nobuf(out_clk2_nobuf),
+        .out_clk3_nobuf(out_clk3_nobuf),
         .locked(locked)
     );
 
@@ -142,6 +233,11 @@ module clock_synthesizer_tb;
     initial begin #SIM_TIMEOUT $finish; end // End of Simulation (timeout)
 
     initial begin
+
+        in_reset <= 1'b1;
+        #100ns;
+        in_reset <= 1'b0;
+
         in_fineps_incr = 0;
         in_fineps_decr = 0;
         // in_fineps_valid = 0; // Uncomment if valid signal needs to be used, comment in constant valid mode

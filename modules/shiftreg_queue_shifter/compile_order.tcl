@@ -6,11 +6,12 @@
 #    * ModelSim
 
 
+
 # -------------------------------------------------------
 # 2.1) Add TB Files
 # -------------------------------------------------------
-#    * ModelSim
-add_sim_file ./modules/qubit_deskew/sim/qubit_deskew_tb.vhd
+#    * ModelSim 
+add_sim_file ./modules/shiftreg_queue_shifter/sim/shiftreg_queue_shifter_tb.vhd
 
 
 
@@ -25,8 +26,7 @@ add_sim_file ./modules/qubit_deskew/sim/qubit_deskew_tb.vhd
 # 1.1) Add SRC HDL Files
 # -------------------------------------------------------
 #    * Vivado
-add_src_file lib_src ./modules/qubit_deskew/hdl/qubit_deskew.vhd
+add_src_file lib_src ./modules/shiftreg_queue_shifter/hdl/shiftreg_queue_shifter.vhd
 
 #    * ModelSim
-add_sim_file ./modules/qubit_deskew/hdl/qubit_deskew.vhd
-
+add_sim_file ./modules/shiftreg_queue_shifter/hdl/shiftreg_queue_shifter.vhd

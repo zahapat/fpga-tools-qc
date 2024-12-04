@@ -1,12 +1,12 @@
 
-SIMULATION REPORT          Generated on Tue Jun 04 17:06:15 2024
+SIMULATION REPORT          Generated on Mon Nov 18 00:11:07 2024
 
 
-Design simulated: C:/Git/zahapat/fpga-tools-qc/simulator/vivado_precompiled_ver/unisim.glbl_vhd(glbl_vhd_v) C:/Git/zahapat/fpga-tools-qc/simulator/xil_iplib_verilog.glbl C:/Git/zahapat/fpga-tools-qc/simulator/lib_sim.pulse_gen_tb(sim)
-Number of signals/nets in design: 81
-Number of processes in design: 18
+Design simulated: C:/Git/zahapat/fpga-tools-qc/simulator/vivado_precompiled_ver/2020_2/unisim.glbl_vhd(glbl_vhd_v) C:/Git/zahapat/fpga-tools-qc/simulator/xil_iplib_verilog.glbl C:/Git/zahapat/fpga-tools-qc/simulator/lib_sim.pulse_gen_tb(sim)
+Number of signals/nets in design: 103
+Number of processes in design: 19
 Number of instances from user libraries in design: 9
-Number of executable statements in design: 1511
+Number of executable statements in design: 1727
 
 Simulator Parameters:
 
@@ -33,7 +33,7 @@ List of Design units used:
     Occurrences: 1
 
     Package Body: vpkg
-    Library: C:/Git/zahapat/fpga-tools-qc/simulator/vivado_precompiled_ver/unisim
+    Library: C:/Git/zahapat/fpga-tools-qc/simulator/vivado_precompiled_ver/2020_2/unisim
     Source File: C:/Xilinx/Vivado/2020.2/data/vhdl/src/unisims/unisim_VPKG.vhd
     Occurrences: 1
 
@@ -70,7 +70,7 @@ List of Design units used:
 
     Entity: glbl_vhd , acc : <novopt>
     Architecture: glbl_vhd_v
-    Library: C:/Git/zahapat/fpga-tools-qc/simulator/vivado_precompiled_ver/unisim
+    Library: C:/Git/zahapat/fpga-tools-qc/simulator/vivado_precompiled_ver/2020_2/unisim
     Source File: C:/Xilinx/Vivado/2020.2/data/vhdl/src/unisims/primitive/GLBL_VHD.vhd
     Occurrences: 1
 

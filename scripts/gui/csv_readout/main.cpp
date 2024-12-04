@@ -104,13 +104,6 @@ bool guiBackendObj::initializeFPGA(okCFrontPanel* okDevice, char* bitfile_name)
 
 std::tuple<int, int> guiBackendObj::processReceivedData(std::tuple<int, int> col_and_file_id, unsigned char* pucBuffer, UINT32 bufferSize)
 {
-    // Catch up with processing done previously
-    int actual_column_cntr = std::get<0>(col_and_file_id);
-    int actual_file_id = std::get<1>(col_and_file_id);
-
-    outFile1.open("outputFile1.csv", std::ofstream::app);
-    outFile2.open("outputFile2.csv", std::ofstream::app);
-    outFile3.open("outputFile3.csv", std::ofstream::app);
 
     // CSV file line creation plan (corresponds with file ./modules/csv_readout/hdl/csv_readout.vhd)
     // readout_data_32b(3 downto 0) = x"F"    : Print out the line buffer
@@ -130,122 +123,115 @@ std::tuple<int, int> guiBackendObj::processReceivedData(std::tuple<int, int> col
     // readout_data_32b(3 downto 0) = x"D"    : Regular reporting 8 (Available)
     // readout_data_32b(3 downto 0) = x"0"    : Forbidden: it can mean data loss or unwanted behaviour
 
-    UINT32 i;
-    UINT32* pu32Buffer = (UINT32*)pucBuffer;
-    std::bitset<32> uns32b;
-    std::bitset<28> uns28b_data;
-    std::bitset<4> uns4b_cmd;
 
-    int write_max_clusters_per_process = 1;
-    int written_clusters_per_process = 0;
+    UINT32* pu32Buffer = (UINT32*)pucBuffer;
 
     // Data Processing: Divide by number of bytes in the total number of bits
-    for (i=0; i<bufferSize/4; i++) {
-
-        // If data nonzero (zero is invalid transaction carrying no information, possibly unwanted behaviour)
-        if (pu32Buffer[i])
-            uns32b = std::bitset<32>(pu32Buffer[i]);
+    for (i_iter = 0; i_iter < bufferSize/4; i_iter++) {
+        uns32b = std::bitset<32>(pu32Buffer[i_iter]);
 
         // Parse the received command on bits (3 downto 0)
-        for(int j = 0; j < 4; j++){
-            uns4b_cmd.set(j, uns32b[j]);
+        for(j_iter = 0; j_iter < 4; j_iter++){
+            uns4b_cmd.set(j_iter, uns32b[j_iter]);
         }
-        UINT32 command = (UINT32)(uns4b_cmd.to_ulong());
+        command = (UINT32)(uns4b_cmd.to_ulong());
 
         // Parse the received data on bits (31 downto 4)
-        for(int j = 4; j < 32; j++){
-            uns28b_data.set(j, uns32b[j]);
+        for(j_iter = 0; j_iter < 28; j_iter++){
+            uns28b_data.set(j_iter, uns32b[j_iter+4]);
         }
-        UINT32 data = (UINT32)(uns28b_data.to_ulong());
+        data = (UINT32)(uns28b_data.to_ulong());
 
         // Create the CSV line based on the received lower 4 bits stored in 'command_parsed'
-        if (command == 15){ // Print out the line buffer to outFile1/2
-            if (actual_file_id = 1){
-                outFile1 << ","<< std::to_string(data) << std::endl;
-            } 
-            else if (actual_file_id = 2){
-                outFile2 << "," << std::to_string(data) << std::endl;
-            } 
-            else if (actual_file_id = 3){
-                outFile3 << "," << std::to_string(data) << std::endl;
-            }
-            actual_column_cntr = 0;
-        }
+        switch(command) {
+            case 15: // x"F" Print out the line buffer to outFile1/2
+                if (actual_file_csv3){
+                    outFile3 << "," << std::to_string(data) << std::endl;
+                    actual_file_csv3 = false; // NEW
+                }
 
-        else if (command == 14){ // Extra Comma Delimiter to outFile1/2/..
-            if (actual_file_id = 1){
-                outFile1 << ",";
-            } 
-            else if (actual_file_id = 2){
-                outFile2 << ",";
-            } 
-            else if (actual_file_id = 3){
-                outFile3 << ",";
-            }
-            actual_column_cntr++;
-        }
+                if (actual_file_csv2){
+                    outFile2 << "," << std::to_string(data) << std::endl;
+                    actual_file_csv2 = false; // NEW
+                }
 
-        else if (command == 1){  // Event-based data group (Photons H/V) to outFile1
-            outFile1 << std::to_string(data) << ",";
-            actual_column_cntr++;
-            actual_file_id = 1;
-        }
+                if (actual_file_csv1){
+                    outFile1 << "," << std::to_string(data) << std::endl;
+                    actual_file_csv1 = false; // NEW
+                }
+                break;
 
-        else if (command == 2){  // Event-based data group (Alpha) to outFile1
-            outFile1 << std::to_string(data) << ",";
-            actual_column_cntr++;
-            actual_file_id = 1;
-        }
+            case 14: // x"E" Extra Comma Delimiter to outFile1/2/..
+                if (actual_file_csv1){
+                    outFile1 << ",";
+                }
+                else if (actual_file_csv2){
+                    outFile2 << ",";
+                }
+                else if (actual_file_csv3){
+                    outFile3 << ",";
+                }
+                break;
 
-        else if (command == 3){  // Event-based data group (Modulo) to outFile1
-            outFile1 << std::to_string(data) << ",";
-            actual_column_cntr++;
-            actual_file_id = 1;
-        }
+            case 1:  // x"1" Event-based data group (Photons H/V) to outFile1
+                outFile1 << std::to_string(data) << ",";
+                actual_column_cntr_csv1++;
+                actual_file_csv1 = true; // NEW
+                break;
 
-        else if (command == 4){  // Event-based data group (Random bit) to outFile1
-            outFile1 << std::to_string(data) << ",";
-            actual_column_cntr++;
-            actual_file_id = 1;
-        }
+            case 2:  // x"2" Event-based data group (Alpha) to outFile1
+                outFile1 << std::to_string(data) << ",";
+                actual_column_cntr_csv1++;
+                actual_file_csv1 = true; // NEW
+                break;
 
-        else if (command == 5){  // Event-based data group (Timestamps) to outFile1
-            outFile1 << std::to_string(data) << ",";
-            actual_column_cntr++;
-            actual_file_id = 1;
-        }
+            case 3:  // x"3" Event-based data group (Modulo) to outFile1
+                outFile1 << std::to_string(data) << ",";
+                actual_column_cntr_csv1++;
+                actual_file_csv1 = true; // NEW
+                break;
 
-        else if (command == 6){  // Regular reporting group (Coincidence patterns) to outFile2
-            outFile2 << std::to_string(data) << ",";
-            actual_column_cntr++;
-            actual_file_id = 2;
-        }
+            case 4:  // x"4" Event-based data group (Random bit) to outFile1
+                outFile1 << std::to_string(data) << ",";
+                actual_column_cntr_csv1++;
+                actual_file_csv1 = true; // NEW
+                break;
 
-        else if (command == 7){  // Regular reporting (Photon Channel Counting)
-            outFile3 << std::to_string(data) << ",";
-            actual_column_cntr++;
-            actual_file_id = 3;
-        }
+            case 5:  // x"5" Event-based data group (Timestamps) to outFile1
+                outFile1 << std::to_string(data) << ",";
+                actual_column_cntr_csv1++;
+                actual_file_csv1 = true; // NEW
+                break;
 
-        else if (command == 8){  // Regular reporting (Photon Losses)
-            outFile3 << std::to_string(data) << ",";
-            actual_column_cntr++;
-            actual_file_id = 3;
-        }
-        else if (command == 9){std::cout << "Unwanted behaviour: detected cmd " << 9 << std::endl;} // Regular reporting 4 (Available)
-        else if (command == 10){std::cout << "Unwanted behaviour: detected cmd " << 10 << std::endl;} // Regular reporting 5 (Available)
-        else if (command == 11){std::cout << "Unwanted behaviour: detected cmd " << 11 << std::endl;} // Regular reporting 6 (Available)
-        else if (command == 12){std::cout << "Unwanted behaviour: detected cmd " << 12 << std::endl;} // Regular reporting 7 (Available)
-        else if (command == 13){std::cout << "Unwanted behaviour: detected cmd " << 13 << std::endl;} // Regular reporting 8 (Available)
-        else {
-            std::cout << "Unwanted behaviour: detected unexpected cmd out of range (0 to 2^4). " << std::endl;
+            case 6:  // x"6" Regular reporting group (Coincidence patterns) to outFile2
+                outFile2 << std::to_string(data) << ",";
+                actual_column_cntr_csv2++;
+                actual_file_csv2 = true; // NEW
+                break;
+
+            case 7:  // x"7" Regular reporting (Photon Channel Counting)
+                outFile3 << std::to_string(data) << ",";
+                actual_file_csv3 = true; // NEW
+                break;
+
+            case 8:  // x"8" Regular reporting (Photon Losses)
+                outFile3 << std::to_string(data) << ",";
+                actual_column_cntr_csv3++;
+                actual_file_csv3 = true; // NEW
+                break;
+            
+            default:
+                // Regular reporting 4 (Available)
+                // Regular reporting 5 (Available)
+                // Regular reporting 6 (Available)
+                // Regular reporting 7 (Available)
+                // Regular reporting 8 (Available)
+                std::cout << "Udefined behaviour: cmd out of range (0 to 2^4). Detected cmd: " << command << std::endl;
+                break;
         }
     }
 
-    outFile1.close();
-    outFile2.close();
-    outFile3.close();
-    return {actual_column_cntr, actual_file_id};
+    return {0, 0};
 }
 
 
@@ -360,6 +346,10 @@ int guiBackendObj::thread1_acquire()
 
     std::cout << "thread1_acquire: Entered" << std::endl;
 
+    // Initialize timer
+    std::chrono::duration<double> float_time_difference = std::chrono::duration<double>(0.0);
+    const auto time_start = std::chrono::high_resolution_clock::now();
+
     // Verify Command Line Arguments (for debugging)
     std::cout << "thread1_acquire: Verification: program_only = " << program_only << std::endl;
     std::cout << "thread1_acquire: Verification: qubits_count = " << qubits_count << std::endl;
@@ -367,7 +357,7 @@ int guiBackendObj::thread1_acquire()
     std::cout << "thread1_acquire: Verification: bitfile_name = " << bitfile_name << std::endl;
 
     // Initilize temrination request for switching it later
-    bool thread1_termination_request = false;
+    bool thread1_stop_request = false;
 
 
     // Establish connection with the device given by okBoardOnSerial (if "", then gets one device)
@@ -382,14 +372,14 @@ int guiBackendObj::thread1_acquire()
                 // Device(s) detected, but not with the target okBoardOnSerial specified.
                 std::cout << "thread1_acquire: Devices detected but the board on specified serial '" << okBoardOnSerial << "' is missing or could not be accessed." << std::endl;
             }
-            thread1_termination_request = true;
+            thread1_stop_request = true;
             std::cout << "thread1_acquire: Waiting for connection. (Attempt " << i << "/5)." << std::endl;
             std::this_thread::sleep_for(ms(1000));
             okDevicePtr = allOkDevices.Open(okBoardOnSerial);
             okCFrontPanel* const okDevice = okDevicePtr.get();
         }
         else {
-            thread1_termination_request = false;
+            thread1_stop_request = false;
             std::cout << "thread1_acquire: An FPGA device has been successfully detected." << std::endl;
             break;
         }
@@ -397,12 +387,12 @@ int guiBackendObj::thread1_acquire()
 
 
     // Program the FPGA, gracefully terminate the program if initializeFPGA is unsuccessful
-    if (!thread1_termination_request){
+    if (!thread1_stop_request){
         try {
             if (false == initializeFPGA(okDevice, bitfile_name)) {
                 std::cout << "thread1_acquire: Target FPGA '" << okDevice << "' could not be initialized with the given bitfile: '" << bitfile_name << "'" << std::endl;
                 throw std::runtime_error("thread1_acquire: RUNTIME ERROR: An error occurred while programming the FPGA.");
-                thread1_termination_request = true;
+                thread1_stop_request = true;
             } 
             else {
                 std::cout << "thread1_acquire: Target FPGA '" << okDevice << "' has been programmed successfully with bitfile: '" << bitfile_name << "'" << std::endl;
@@ -410,11 +400,11 @@ int guiBackendObj::thread1_acquire()
         }
         catch (const std::runtime_error &e) {
             std::cout << "thread1_acquire: runtime_error handler: " << e.what() << " Bitfile used: '" << bitfile_name << "'" << std::endl;
-            thread1_termination_request = true;
+            thread1_stop_request = true;
         }
         catch (...) {
             std::cout << "thread1_acquire: Exception handler: FPGA initialization was unsuccessful using the bitfile: '" << bitfile_name << "'" << std::endl;
-            thread1_termination_request = true;
+            thread1_stop_request = true;
         }
     }
     else {
@@ -434,7 +424,7 @@ int guiBackendObj::thread1_acquire()
 
     // Skip readout if program_only flag is set to true
     if (program_only == true) {
-        thread1_termination_request = true;
+        thread1_stop_request = true;
         std::cout << "thread1_acquire: Skipping readout on request." << std::endl;
     }
 
@@ -443,27 +433,38 @@ int guiBackendObj::thread1_acquire()
 
         std::unique_lock<std::mutex> lock(mtx);
 
-        // release the lock and wait until ready_new_value has been consumed
+        // release the lock and wait until ready_new_value has been consumed [ready_new_value should be FALSE to proceed after wait]
         cv.wait(lock, [this]{ return !ready_new_value; });
-        {
-            if (!thread1_termination_request) {
-                // Read per 1x TransferSize blocks of processed_data
-                thread1_termination_request = Read(dataBufferRead, okDevice, 1);
-            }
 
-            // Update OK/NOK status
-            fpga_error = thread1_termination_request;
-
-            // Handshake
-            ready_new_value = true;
+        // Stop Condition 1: Break the loop on timeout and notify thread 2 later if stop condition is asserted
+        float_time_difference = std::chrono::high_resolution_clock::now() - time_start;
+        if (float_time_difference >= std::chrono::duration<double>(float_run_time_seconds)) {
+            std::cout << "thread1_acquire: [timer]: Readout timeout @" << std::chrono::duration_cast<std::chrono::nanoseconds>(float_time_difference).count()/1e9 << " sec." << std::endl;
+            thread1_stop_request = true;
         }
+
+        // Stop Condition 2: Perform Read and scan for errors
+        if (!thread1_stop_request) {
+            // Read per 1x TransferSize blocks of processed_data, scan for errors and notify thread 2 later if stop condition is asserted
+            // Note: The FIFO must not be empty while performing this operation
+            thread1_stop_request = Read(dataBufferRead, okDevice, 1);
+
+            if (thread1_stop_request)
+                std::cout << "thread1_acquire: [Read]: An error occurred while performing Read operation. Exit." << std::endl;
+        }
+
+        // Update OK/NOK status
+        thr1_to_thr2_stop_request = thread1_stop_request;
+
+        // Handshake
+        ready_new_value = true;
 
         // Wake up thread2_process_data
         cv.notify_one();
 
         // Condition to stop the infinite loop
-        if (thread1_termination_request == true){
-            std::cout << "thread1_acquire: Break" << std::endl;
+        if (thread1_stop_request == true){
+            std::cout << "thread1_acquire: Exit Thread" << std::endl;
             break;
         }
     }
@@ -489,15 +490,10 @@ void guiBackendObj::thread2_process_data()
     std::cout << "thread2_process_data: Entered" << std::endl;
 
     // Initilize temrination request for switching it later
-    bool thread2_termination_request = false;
+    bool thread2_stop_request = false;
 
     // Initialize tuple pointer
     std::tuple<int, int> col_and_file_id = {0, 0};
-
-    // Initialize timer
-    std::chrono::duration<double> float_time_difference = std::chrono::duration<double>(0.0);
-    const auto time_start = std::chrono::high_resolution_clock::now();
-
 
     // Data to be transferred from thread 1 to thread 2
     unsigned char* thread2_dataBufferRead = new unsigned char[m_u32SegmentSize];
@@ -513,16 +509,15 @@ void guiBackendObj::thread2_process_data()
         cv.wait(lock, [this]{ return ready_new_value; });
 
         // Condition to stop the infinite loop
-        if (thread2_termination_request == true){
-            std::cout << "thread2_process_data: Break" << std::endl;
+        if (thread2_stop_request == true){
+            std::cout << "thread2_process_data: Exit Thread" << std::endl;
             break;
         }
 
         // Process data, break on error
-        thread2_termination_request = fpga_error;
+        thread2_stop_request = thr1_to_thr2_stop_request;
 
-        if (!thread2_termination_request) {
-
+        if (!thread2_stop_request) {
 
             std::copy(&dataBufferRead[0], &dataBufferRead[0] + m_u32SegmentSize, &thread2_dataBufferRead[0]);
 
@@ -531,12 +526,6 @@ void guiBackendObj::thread2_process_data()
             cv.notify_one();
 
             col_and_file_id = processReceivedData(col_and_file_id, thread2_dataBufferRead, m_u32TransferSize);
-
-            float_time_difference = std::chrono::high_resolution_clock::now() - time_start;
-            if (float_time_difference >= std::chrono::duration<double>(float_run_time_seconds)) {
-                std::cout << "Readout timeout @" << std::chrono::duration_cast<std::chrono::nanoseconds>(float_time_difference).count()/1e9 << " sec." << std::endl;
-                thread2_termination_request = true;
-            }
         }
     }
 }
@@ -646,7 +635,10 @@ int main(int argc, char** argv)
     std::thread t1(&guiBackendObj::thread1_acquire, &f);
     std::thread t2(&guiBackendObj::thread2_process_data, &f);
 
+    
+    std::cout << "DEBUG: Waiting for t1 to join" << std::endl;
     t1.join();
+    std::cout << "DEBUG: Waiting for t2 to join" << std::endl;
     t2.join();
     return 0;
 }

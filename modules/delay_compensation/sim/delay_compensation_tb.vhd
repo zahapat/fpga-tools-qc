@@ -19,10 +19,10 @@
     use std.env.finish;
     use std.env.stop;
 
-    entity qubit_deskew_tb is
-    end qubit_deskew_tb;
+    entity delay_compensation_tb is
+    end delay_compensation_tb;
 
-    architecture sim of qubit_deskew_tb is
+    architecture sim of delay_compensation_tb is
 
 
         constant CLK_100_HZ : integer := 100e6;
@@ -41,10 +41,8 @@
         -- Generics
         constant RST_VAL                   : std_logic := '1';
         constant CHANNELS_CNT              : positive := 2;
-        constant BUFFER_DEPTH              : positive := 3;
+        constant PATTERN_WIDTH              : positive := 3;
         constant BUFFER_PATTERN            : positive := 1;
-
-        constant CNT_ONEHOT_WIDTH          : positive := 2;  -- to keep a signal high for a long time 1xclk = 10 ns -> 2 x 10ns = 20 ns (does not exceed 32 ns => OK)
 
         constant DETECTOR_ACTIVE_PERIOD_NS   : positive := 10;
         constant DETECTOR_DEAD_PERIOD_NS     : positive := 22;
@@ -55,7 +53,7 @@
         constant REAL_TOLERANCE_SPCM_PULSE_MAX_NS : real := 0.01;
 
         constant TOLERANCE_KEEP_FASTER_BIT_CYCLES : natural := 0;
-        constant IGNORE_CYCLES_AFTER_TIMEUP : natural := BUFFER_DEPTH+1;
+        constant IGNORE_CYCLES_AFTER_TIMEUP : natural := PATTERN_WIDTH+1;
 
         constant PHOTON_1H_DELAY_NS : real := 75.65;          -- no delay = + 0; check every clk
         constant PHOTON_1V_DELAY_NS : real := 75.01;          -- no delay = + 0; check every clk
@@ -72,9 +70,9 @@
         signal clk : std_logic := '1';
         signal rst : std_logic := RST_VAL;
         signal noisy_channels_in : std_logic_vector(2-1 downto 0) := (others => '0');
-        signal qubit_valid_250MHz : std_logic;          -- Valid acts like write enable to sampler
-        signal channels_redge_synchronized : std_logic_vector(2-1 downto 0) := (others => '0');
-        signal qubit_250MHz : std_logic_vector(2-1 downto 0);
+        signal qubit_valid : std_logic;          -- Valid acts like write enable to sampler
+        signal channels_redge : std_logic_vector(2-1 downto 0) := (others => '0');
+        signal qubit_compensated : std_logic_vector(2-1 downto 0);
 
         -- Desired input data to be send to the unit
         signal slv_input_data : std_logic_vector(1 downto 0) := (others => '1');
@@ -101,19 +99,13 @@
 
 
         -- Assert data buffer
-        type t_buff_data is array(CHANNELS_CNT-1 downto 0) of std_logic_vector(BUFFER_DEPTH-1 downto 0);
+        type t_buff_data is array(CHANNELS_CNT-1 downto 0) of std_logic_vector(PATTERN_WIDTH-1 downto 0);
         signal s_buff_data : t_buff_data := (others => (others => '0'));
         signal s_buff_data_p1 : t_buff_data := (others => (others => '0'));
         signal s_buff_data_p2 : t_buff_data := (others => (others => '0'));
 
     begin
 
-
-        -- Check for invalid generics
-        assert positive((1.0/real(CLK_HZ) / 1.0e-9))*CNT_ONEHOT_WIDTH 
-            <= (DETECTOR_ACTIVE_PERIOD_NS + DETECTOR_DEAD_PERIOD_NS) report
-            "The duration of the output pulse must not exceed the duration of period of the input signal from detectors"
-            severity failure;
 
 
         -- CLK generator
@@ -123,14 +115,13 @@
         gen_clk_freq_hz_int(s_clk_100MHz, CLK_100_HZ);
 
         -- DUT instance
-        dut_qubit_deskew : entity lib_src.qubit_deskew(rtl)
+        dut_delay_compensation : entity lib_src.delay_compensation(rtl)
         generic map (
             RST_VAL                   => RST_VAL,
-            BUFFER_DEPTH              => BUFFER_DEPTH,
+            PATTERN_WIDTH              => PATTERN_WIDTH,
             BUFFER_PATTERN            => BUFFER_PATTERN,
             CLK_HZ                    => CLK_HZ,
 
-            CNT_ONEHOT_WIDTH          => CNT_ONEHOT_WIDTH,
             DETECTOR_ACTIVE_PERIOD_NS => DETECTOR_ACTIVE_PERIOD_NS,
             DETECTOR_DEAD_PERIOD_NS   => DETECTOR_DEAD_PERIOD_NS,
 
@@ -144,11 +135,11 @@
             clk => clk,
             rst => rst,
             noisy_channels_in => noisy_channels_in,
-            
-            channels_redge_synchronized => channels_redge_synchronized,
 
-            qubit_valid_250MHz => qubit_valid_250MHz,
-            qubit_250MHz => qubit_250MHz
+            channels_redge => channels_redge,
+
+            qubit_valid => qubit_valid,
+            qubit_compensated => qubit_compensated
         );
 
 
@@ -229,7 +220,7 @@
         ---------------------------------------------
         -- GENERATE RANDOM QUBITS WITH FREQ 78 MHz --
         ---------------------------------------------
-        -- Send random data to the dut_qubit_deskew and to the TB
+        -- Send random data to the dut_delay_compensation and to the TB
         proc_gen_rand_qbts : process
             variable seed1, seed2 : integer := RAND_NUMBS_SEEDS;
             variable v_rand : std_logic_vector(1 downto 0) := (others => '0');
@@ -338,7 +329,7 @@
         end process;
 
 
-        -- Measure the delay of the received qubit
+        -- Measure the delay of the received qubit_compensated
         proc_measure_io_delayV : process
             variable v_time_start_real : real := 0.0;
             variable v_time_delta_real : real := 0.0;
@@ -357,7 +348,7 @@
                 -- wait until rising_edge(clk);
                 v_time_start_real := real(now / 1 ps) / 1000.0; -- 'now' base time unit is in ps -> convert to ns
 
-                wait until rising_edge(qubit_valid_250MHz);
+                wait until rising_edge(qubit_valid);
                 v_time_delta_real := (real(now / 1 ps) / 1000.0) - v_time_start_real; -- 'now' base time unit is in ps -> convert to ns
                 v_cntr_real := v_cntr_real + 1.0;
                 v_time_delta_acc_real := v_time_delta_acc_real + v_time_delta_real;
@@ -391,7 +382,7 @@
                 -- wait until rising_edge(clk);
                 v_time_start_real := real(now / 1 ps) / 1000.0; -- 'now' base time unit is in ps -> convert to ns
 
-                wait until rising_edge(qubit_valid_250MHz);
+                wait until rising_edge(qubit_valid);
                 v_time_delta_real := (real(now / 1 ps) / 1000.0) - v_time_start_real; -- 'now' base time unit is in ps -> convert to ns
                 v_cntr_real := v_cntr_real + 1.0;
                 v_time_delta_acc_real := v_time_delta_acc_real + v_time_delta_real;
@@ -429,17 +420,17 @@
             for u in 0 to REPETITIONS_TEST1-1 loop
 
                 wait for 0 ns;
-                s_buff_data_p2 <= << signal dut_qubit_deskew.s_buff_data : t_buff_data >>;
+                s_buff_data_p2 <= << signal dut_delay_compensation.s_buff_data : t_buff_data >>;
                 wait for 0 ns;
 
                 wait until rising_edge(clk);
                 wait for 0 ns;
-                s_buff_data_p1 <= << signal dut_qubit_deskew.s_buff_data : t_buff_data >>;
+                s_buff_data_p1 <= << signal dut_delay_compensation.s_buff_data : t_buff_data >>;
                 wait for 0 ns;
 
                 wait until rising_edge(clk);
                 wait for 0 ns;
-                s_buff_data <= << signal dut_qubit_deskew.s_buff_data : t_buff_data >>;
+                s_buff_data <= << signal dut_delay_compensation.s_buff_data : t_buff_data >>;
                 wait for 0 ns;
 
                 -- Check that Redge was successfully detected and that no unexpected traffic is present
@@ -448,9 +439,9 @@
                     -- Check correct function of buffers for rising edge detection
                     for i in 0 to CHANNELS_CNT-1 loop
                         tests_cnt := tests_cnt + 1;
-                        if s_buff_data_p2(i) = std_logic_vector(to_unsigned(0, BUFFER_DEPTH)) then
-                            if s_buff_data_p1(i) = std_logic_vector(to_unsigned(1, BUFFER_DEPTH)) then
-                                if s_buff_data(i) /= std_logic_vector(to_unsigned(3, BUFFER_DEPTH)) then
+                        if s_buff_data_p2(i) = std_logic_vector(to_unsigned(0, PATTERN_WIDTH)) then
+                            if s_buff_data_p1(i) = std_logic_vector(to_unsigned(1, PATTERN_WIDTH)) then
+                                if s_buff_data(i) /= std_logic_vector(to_unsigned(3, PATTERN_WIDTH)) then
                                     errors_cnt := errors_cnt + 1;
                                     print_string("ERROR: The expected pattern 0(3'b000) => 1(3'b001) => 3(3'b011) is not present. Instead: 0(3'b000) => 1(3'b001) => " & integer'image(to_integer(unsigned(s_buff_data(i)))));
                                     report "Unexpected transition." severity error;
@@ -470,12 +461,12 @@
             slv_input_data <= "11";
             for u in 0 to REPETITIONS_TEST2-1 loop
 
-                    wait until qubit_250MHz(1 downto 0) = "11";
+                    wait until qubit_compensated(1 downto 0) = "11";
                     wait for 0 ns;
                     tests_cnt := tests_cnt + 1;
-                    if qubit_250MHz(1) /= '1' and qubit_250MHz(0) /= '1' then
+                    if qubit_compensated(1) /= '1' and qubit_compensated(0) /= '1' then
                         errors_cnt := errors_cnt + 1;
-                        print_string("ERROR: Expected value of qubit 4 should be '11'. Actual: " & std_logic'image(qubit_250MHz(1)) & std_logic'image(qubit_250MHz(0)));
+                        print_string("ERROR: Expected value of qubit_compensated 4 should be '11'. Actual: " & std_logic'image(qubit_compensated(1)) & std_logic'image(qubit_compensated(0)));
                         report "Unexpected transition." severity error;
                         wait for 20 ns;
                         stop;
@@ -489,12 +480,12 @@
             slv_input_data <= "10";
             for u in 0 to REPETITIONS_TEST2-1 loop
 
-                    wait until qubit_250MHz(1) = '1';
+                    wait until qubit_compensated(1) = '1';
                     wait for 0 ns;
                     tests_cnt := tests_cnt + 1;
-                    if qubit_250MHz(1) /= '1' and qubit_250MHz(0) /= '0' then
+                    if qubit_compensated(1) /= '1' and qubit_compensated(0) /= '0' then
                         errors_cnt := errors_cnt + 1;
-                        print_string("ERROR: Expected value of qubit 4 should be '10'. Actual: " & std_logic'image(qubit_250MHz(1)) & std_logic'image(qubit_250MHz(0)));
+                        print_string("ERROR: Expected value of qubit_compensated 4 should be '10'. Actual: " & std_logic'image(qubit_compensated(1)) & std_logic'image(qubit_compensated(0)));
                         report "Unexpected transition." severity error;
                         wait for 20 ns;
                         stop;
@@ -508,12 +499,12 @@
             slv_input_data <= "01";
             for u in 0 to REPETITIONS_TEST2-1 loop
 
-                    wait until qubit_250MHz(0) = '1';
+                    wait until qubit_compensated(0) = '1';
                     wait for 0 ns;
                     tests_cnt := tests_cnt + 1;
-                    if qubit_250MHz(1) /= '0' and qubit_250MHz(0) /= '1' then
+                    if qubit_compensated(1) /= '0' and qubit_compensated(0) /= '1' then
                         errors_cnt := errors_cnt + 1;
-                        print_string("ERROR: Expected value of qubit 4 should be '01'. Actual: " & std_logic'image(qubit_250MHz(1)) & std_logic'image(qubit_250MHz(0)));
+                        print_string("ERROR: Expected value of qubit_compensated 4 should be '01'. Actual: " & std_logic'image(qubit_compensated(1)) & std_logic'image(qubit_compensated(0)));
                         report "Unexpected transition." severity error;
                         wait for 20 ns;
                         stop;
@@ -522,7 +513,7 @@
 
             end loop;
 
-            print_result("qubit_deskew_tb", errors_cnt, tests_cnt);
+            print_result("delay_compensation_tb", errors_cnt, tests_cnt);
 
             finish;
             wait;

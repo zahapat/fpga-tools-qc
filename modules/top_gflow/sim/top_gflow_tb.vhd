@@ -55,7 +55,8 @@
         signal laser_clk : std_logic := '1';
 
         -- External Detector: Excelitas SPCM (Single Photon Counting Module) SPCM-AQRH-1X
-        constant NOMINAL_DETECTOR_HIGH_TIME_NS : time := 10 ns;
+        -- constant NOMINAL_DETECTOR_HIGH_TIME_NS : time := 10 ns;
+        constant NOMINAL_DETECTOR_HIGH_TIME_NS : time := 6.68 ns; -- MEASURED Value (Detector's output pulse width at above 1V)
         constant NOMINAL_DETECTOR_DEAD_TIME_NS : time := 22 ns;
         constant REALISTIC_DETECTOR_HIGH_TIME_NS : time := 5 ns;
 
@@ -106,10 +107,11 @@
 
         signal input_pads : std_logic_vector(INPUT_PADS_CNT-1 downto 0) := (others => '0');
         signal output_pads : std_logic_vector(1 downto 0);
-        signal o_pcd_ctrl_pulse : std_logic;
-        signal o_pcd_ctrl_pulsegen_busy : std_logic;   -- Debug port 1
-        signal o_photon_1h : std_logic;         -- Debug port 2
-        signal o_photon_1v : std_logic;         -- Debug port 3
+        signal o_eom_ctrl_pulse : std_logic;
+        signal o_eom_ctrl_pulsegen_busy : std_logic;
+        signal o_debug_port_1 : std_logic;      -- Debug port 1
+        signal o_debug_port_2 : std_logic;         -- Debug port 2
+        signal o_debug_port_3 : std_logic;         -- Debug port 3
 
         signal readout_clk        : std_logic := '0';
         signal readout_data_ready : std_logic := '0';
@@ -128,7 +130,7 @@
         type t_natural_arr_allphotons_2d is array(2*INT_QUBITS_CNT-1 downto 0) of natural;
         type t_time_arr_allphotons_2d is array(2*INT_QUBITS_CNT-1 downto 0) of time;
         type t_natural_arr_qubits_2d is array(INT_QUBITS_CNT-1 downto 0) of natural;
-        type t_natural_arr_qubits_allcombinations_2d is array(INT_QUBITS_CNT**2-1 downto 0) of natural;
+        type t_natural_arr_qubits_allcombinations_2d is array(2**INT_QUBITS_CNT-1 downto 0) of natural;
         signal s_photons_allcombinations_acc : t_natural_arr_qubits_allcombinations_2d := (others => 0);
         signal s_allphotons_transmitted_cnt : t_natural_arr_allphotons_2d := (others => 0);
         signal s_qubits_transmitted_cnt : t_natural_arr_qubits_2d := (others => 0);
@@ -405,7 +407,7 @@
 
             write(str, string'(""));
             writeline(output, str);
-            for i in 0 to INT_QUBITS_CNT**2-1 loop
+            for i in 0 to 2**INT_QUBITS_CNT-1 loop
                 -- Print accumulated photon combinations after successful flows (1 = Horizontal, 0 = Vertical Photon)
                 write(str, string'("Combination " & to_string(to_unsigned(i, INT_QUBITS_CNT)) 
                     & ": " & integer'image(s_photons_allcombinations_acc(i))));
@@ -497,10 +499,11 @@
 
             led => led,                               -- Debug LEDs
             input_pads => input_pads,                 -- Inputs from SPCM
-            o_pcd_ctrl_pulse => o_pcd_ctrl_pulse,     -- PCD Trigger
-            o_pcd_ctrl_pulsegen_busy => o_pcd_ctrl_pulsegen_busy,     -- Debug port 1
-            o_photon_1h => o_photon_1h,                 -- Debug port 2
-            o_photon_1v => o_photon_1v                  -- Debug port 3
+            o_eom_ctrl_pulse => o_eom_ctrl_pulse,     -- PCD Trigger
+            o_eom_ctrl_pulsegen_busy => o_eom_ctrl_pulsegen_busy,
+            o_debug_port_1 => o_debug_port_1,                 -- Debug port 1
+            o_debug_port_2 => o_debug_port_2,                 -- Debug port 2
+            o_debug_port_3 => o_debug_port_3                  -- Debug port 3
         );
 
         -----------------------
@@ -565,7 +568,7 @@
                     end if;
 
                     -- Wait until valid pulse being transmitted along with the pcd ctrl pulse
-                    wait until rising_edge(o_pcd_ctrl_pulsegen_busy);
+                    wait until rising_edge(o_eom_ctrl_pulsegen_busy);
 
                     if ctrl_input_emulation_mode = SEND_CLUSTER_THEN_WAIT then
                         v_time_delta_real := (real(now / 1 ps) / 1000.0) - v_time_start_real; -- 'now' base time unit is in ps -> convert to ns
@@ -662,7 +665,7 @@
             loop
                 v_prev_state := << signal.top_gflow_tb.dut_top_gflow.state_gflow : natural range 0 to INT_QUBITS_CNT-1 >>;
 
-                wait until rising_edge(o_pcd_ctrl_pulsegen_busy);
+                wait until rising_edge(o_eom_ctrl_pulsegen_busy);
                 v_curr_state := << signal.top_gflow_tb.dut_top_gflow.state_gflow : natural range 0 to INT_QUBITS_CNT-1 >>;
                 v_success_flag := << signal.top_gflow_tb.dut_top_gflow.sl_gflow_success_flag : std_logic >>;
 
@@ -683,6 +686,7 @@
         begin
             -- Wait until the readout line is complete for a completed flow
             wait until readout_csv1_line_done_event'event;
+            report "DEBUG: readout_csv1_line_done_event'event";
 
             wait_deltas(10);
 
@@ -1015,9 +1019,12 @@
             write(v_line_buffer, string'("PHOTON_6H_DELAY_ABS_NS=" & real'image(PHOTON_6H_DELAY_ABS_NS))); writeline(output, v_line_buffer);
             write(v_line_buffer, string'("PHOTON_6V_DELAY_ABS_NS=" & real'image(PHOTON_6V_DELAY_ABS_NS))); writeline(output, v_line_buffer);
 
-            -- Wait until MMCM1 is locked, then trigger input emulation
-            wait until rising_edge(<< signal.top_gflow_tb.dut_top_gflow.locked_mmcm1 : std_logic >>);
+            -- Wait until MMCM0 is locked, then trigger input emulation
+            wait until rising_edge(<< signal.top_gflow_tb.dut_top_gflow.mmcm_locked : std_logic >>);
+            wait for 500 ns;
 
+
+            wait for WAIT_BEFORE_FIRST_PHOTON_NS; -- NEW
             ctrl_input_emulation_mode <= SEND_CLUSTER_THEN_WAIT;
             ctrl_sim_start <= '1';
 

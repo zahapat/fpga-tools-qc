@@ -1,0 +1,108 @@
+
+SIMULATION REPORT          Generated on Thu Nov 07 19:26:28 2024
+
+
+Design simulated: C:/Git/zahapat/fpga-tools-qc/simulator/vivado_precompiled_ver/2020_2/unisim.glbl_vhd(glbl_vhd_v) C:/Git/zahapat/fpga-tools-qc/simulator/xil_iplib_verilog.glbl C:/Git/zahapat/fpga-tools-qc/simulator/lib_sim.fsm_feedforward_tb(sim)
+Number of signals/nets in design: 623
+Number of processes in design: 30
+Number of instances from user libraries in design: 13
+Number of executable statements in design: 2754
+
+Simulator Parameters:
+
+    Current directory: C:/Git/zahapat/fpga-tools-qc/simulator
+    Project file: modelsim.ini
+    Simulation time resolution: 1ps
+
+List of Design units used:
+
+    Package Body: types_pack
+    Library: C:/Git/zahapat/fpga-tools-qc/simulator/lib_src
+    Source File: C:/Git/zahapat/fpga-tools-qc/packages/global_src/types_pack.vhd
+    Occurrences: 1
+
+    Package Body: generics
+    Library: C:/Git/zahapat/fpga-tools-qc/simulator/lib_src
+    Source File: C:/Git/zahapat/fpga-tools-qc/packages/global_src/generics.vhd
+    Occurrences: 1
+
+    Package Body: const_pack
+    Library: C:/Git/zahapat/fpga-tools-qc/simulator/lib_src
+    Source File: C:/Git/zahapat/fpga-tools-qc/packages/global_src/const_pack.vhd
+    Occurrences: 1
+
+    Package Body: essentials_tb
+    Library: C:/Git/zahapat/fpga-tools-qc/simulator/lib_sim
+    Source File: C:/Git/zahapat/fpga-tools-qc/packages/global_sim/essentials_tb.vhd
+    Occurrences: 1
+
+    Package Body: env
+    Library: C:/intelFPGA/20.1/modelsim_ase/std
+    Source File: C:/intelFPGA/20.1/modelsim_ase/win32aloem/../vhdl_src/std/env.vhd
+    Occurrences: 1
+
+    Package Body: math_real
+    Library: C:/intelFPGA/20.1/modelsim_ase/ieee
+    Source File: C:/intelFPGA/20.1/modelsim_ase/win32aloem/../vhdl_src/ieee/1076-2code.vhd
+    Occurrences: 1
+
+    Module: glbl , acc : <novopt>
+    Library: C:/Git/zahapat/fpga-tools-qc/simulator/xil_iplib_verilog
+    Source File: C:/Xilinx/Vivado/2020.2/data/verilog/src/glbl.v
+    Timescale: 1ps / 1ps
+    Occurrences: 1
+
+    Package Body: vpkg
+    Library: C:/Git/zahapat/fpga-tools-qc/simulator/vivado_precompiled_ver/2020_2/unisim
+    Source File: C:/Xilinx/Vivado/2020.2/data/vhdl/src/unisims/unisim_VPKG.vhd
+    Occurrences: 1
+
+    Package Body: vital_primitives
+    Library: C:/intelFPGA/20.1/modelsim_ase/ieee
+    Source File: C:/intelFPGA/20.1/modelsim_ase/win32aloem/../vhdl_src/vital2000/prmtvs_b_2000.vhd
+    Occurrences: 1
+
+    Package Body: vital_timing
+    Library: C:/intelFPGA/20.1/modelsim_ase/ieee
+    Source File: C:/intelFPGA/20.1/modelsim_ase/win32aloem/../vhdl_src/vital2000/timing_b_2000.vhd
+    Source File: C:/intelFPGA/20.1/modelsim_ase/win32aloem/../vhdl_src/vital2000/timing_p_2000.vhd
+    Occurrences: 1
+
+    Package Body: numeric_std
+    Library: C:/intelFPGA/20.1/modelsim_ase/ieee
+    Source File: C:/intelFPGA/20.1/modelsim_ase/win32aloem/../vhdl_src/ieee/mti_numeric_std.vhd
+    Occurrences: 1
+
+    Package Body: std_logic_1164
+    Library: C:/intelFPGA/20.1/modelsim_ase/ieee
+    Source File: C:/intelFPGA/20.1/modelsim_ase/win32aloem/../vhdl_src/ieee/stdlogic.vhd
+    Occurrences: 1
+
+    Package Body: textio
+    Library: C:/intelFPGA/20.1/modelsim_ase/std
+    Source File: C:/intelFPGA/20.1/modelsim_ase/win32aloem/../vhdl_src/std/textio.vhd
+    Occurrences: 1
+
+    Package: standard
+    Library: C:/intelFPGA/20.1/modelsim_ase/std
+    Source File: C:/intelFPGA/20.1/modelsim_ase/win32aloem/../vhdl_src/std/standard.vhd
+    Occurrences: 1
+
+    Entity: glbl_vhd , acc : <novopt>
+    Architecture: glbl_vhd_v
+    Library: C:/Git/zahapat/fpga-tools-qc/simulator/vivado_precompiled_ver/2020_2/unisim
+    Source File: C:/Xilinx/Vivado/2020.2/data/vhdl/src/unisims/primitive/GLBL_VHD.vhd
+    Occurrences: 1
+
+    Entity: fsm_feedforward_tb , acc : <novopt>
+    Architecture: sim
+    Library: C:/Git/zahapat/fpga-tools-qc/simulator/lib_sim
+    Source File: C:/Git/zahapat/fpga-tools-qc/modules/fsm_feedforward/sim/fsm_feedforward_tb.vhd
+    Occurrences: 1
+
+    Entity: fsm_feedforward , acc : <novopt>
+    Architecture: rtl
+    Library: C:/Git/zahapat/fpga-tools-qc/simulator/lib_src
+    Source File: C:/Git/zahapat/fpga-tools-qc/modules/fsm_feedforward/hdl/fsm_feedforward.vhd
+    Occurrences: 1
+

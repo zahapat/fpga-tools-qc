@@ -28,15 +28,16 @@ set orig_proj_dir "[file normalize "$origin_dir/"]"
 close_project -quiet
 open_project "${origin_dir}/vivado/${_xil_proj_name_}.xpr"
 
-# Run with user-defined strategies for synthesis and implementation
-source "${origin_dir}/tcl/project_specific/vivado/strategy_synth.tcl"
-source "${origin_dir}/tcl/project_specific/vivado/strategy_impl.tcl"
-
-puts "TCL: Launch runs all the way through write_bitstream and then write_hw_platform. "
-reset_run synth_1
-launch_runs impl_1 -to_step write_bitstream -jobs 4
-wait_on_run impl_1
-write_hw_platform -fixed -include_bit -force -file "${origin_dir}/vivado/4_hw_platform_$_xil_proj_name_.xsa"
+# Run hardware platform generation
+puts "TCL: Attempt to launch write_hw_platform. "
+if {[catch {\
+    open_run impl_1
+    write_hw_platform -fixed -include_bit -force -file "${origin_dir}/vivado/3_hw_platform_${_xil_proj_name_}.xsa"\
+} error_msg]} {
+    puts "TCL: Export Hardware could not be run. Skipping Hardware Platform generation for Vitis. Message generated: $error_msg"
+} else {
+    puts "TCL: Generating Hardware Platform for Vitis successful."
+}
 
 # Close project
 puts "TCL: Running $script_file for project $_xil_proj_name_ COMPLETED SUCCESSFULLY. "

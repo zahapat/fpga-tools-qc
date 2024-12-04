@@ -174,13 +174,14 @@ proc exec_vsim {file_lib_and_name file_lib_path glbl_lib_and_name searched_libra
     # Supress warnings in IPs requiring warning supression (warnings that can't be resolved any other way)
     list ips_requiring_warning_supression {}
     lappend ips_requiring_warning_supression "fifo_generator_v13_2_5"
+    lappend ips_requiring_warning_supression "fifo_generator_v13_2_6"
     set supress_warning_msg_id ""
     foreach xil_ip $data_line {
         foreach ip_requiring_warning_supression $ips_requiring_warning_supression {
             if {$xil_ip eq $ip_requiring_warning_supression} {
                 puts "TCL: Xilinx IP Core '$ip_requiring_warning_supression' is known to produce 'vsim-8683' warnings \
                     one can not resolve by modifying the encrypted source code. Supress these warnings."
-                set supress_warning_msg_id "vsim-8683"
+                set supress_warning_msg_id "+nowarnvsim-8683"
             }
         }
     }
@@ -189,7 +190,7 @@ proc exec_vsim {file_lib_and_name file_lib_path glbl_lib_and_name searched_libra
     # NOTE: Suppressed warning vsim-8683 (... has no driver) 
     #       because the there is no way to open and debug
     #       encrypted Xilinx IP Core files.
-    vsim -lib $file_lib_path -onfinish stop +nowarn${supress_warning_msg_id} \
+    vsim -lib $file_lib_path -onfinish stop ${supress_warning_msg_id} \
         -L "[lindex $all_searched_libraries 0]" \
         -L "[lindex $all_searched_libraries 1]" \
         -L "[lindex $all_searched_libraries 2]" \

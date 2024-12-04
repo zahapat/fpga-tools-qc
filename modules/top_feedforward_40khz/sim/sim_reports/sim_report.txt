@@ -1,0 +1,473 @@
+
+SIMULATION REPORT          Generated on Wed Nov 27 00:52:47 2024
+
+
+Design simulated: C:/Git/zahapat/fpga-tools-qc/simulator/vivado_precompiled_ver/2020_2/unisim.glbl_vhd(glbl_vhd_v) C:/Git/zahapat/fpga-tools-qc/simulator/xil_iplib_verilog.glbl C:/Git/zahapat/fpga-tools-qc/simulator/lib_sim.top_feedforward_40khz_tb(sim)
+Number of signals/nets in design: 6372788
+Number of processes in design: 8683
+Number of instances from user libraries in design: 391
+Number of executable statements in design: 125797
+
+Simulator Parameters:
+
+    Current directory: C:/Git/zahapat/fpga-tools-qc/simulator
+    Project file: modelsim.ini
+    Simulation time resolution: 1ps
+
+List of Design units used:
+
+    Entity: obuf , acc : <novopt>
+    Architecture: obuf_v
+    Library: C:/Git/zahapat/fpga-tools-qc/simulator/vivado_precompiled_ver/2020_2/unisim
+    Source File: C:/Xilinx/Vivado/2020.2/data/vhdl/src/unisims/primitive/OBUF.vhd
+    Occurrences: 5
+
+    Package Body: std_logic_misc
+    Library: C:/intelFPGA/20.1/modelsim_ase/ieee
+    Source File: C:/intelFPGA/20.1/modelsim_ase/win32aloem/../vhdl_src/synopsys/mti_std_logic_misc.vhd
+    Occurrences: 1
+
+    Package: attributes
+    Library: C:/intelFPGA/20.1/modelsim_ase/synopsys
+    Source File: C:/intelFPGA/20.1/modelsim_ase/win32aloem/../vhdl_src/synopsys/syn_attributes.vhd
+    Occurrences: 1
+
+    Package Body: std_logic_unsigned
+    Library: C:/intelFPGA/20.1/modelsim_ase/ieee
+    Source File: C:/intelFPGA/20.1/modelsim_ase/win32aloem/../vhdl_src/synopsys/mti_std_logic_unsigned.vhd
+    Occurrences: 1
+
+    Module: fifo_generator_0 , acc : <novopt>
+    Library: C:/Git/zahapat/fpga-tools-qc/simulator/xil_iplib_verilog
+    Source File: C:/Git/zahapat/fpga-tools-qc/vivado/fpga-tools-qc.gen/sources_1/ip/fifo_generator_0/sim/fifo_generator_0.v
+    Timescale: 1ns / 1ps
+    Occurrences: 1
+
+    Module: B_ISERDESE2 , acc : <novopt>
+    Library: C:/Git/zahapat/fpga-tools-qc/simulator/vivado_precompiled_ver/2020_2/secureip
+    Source File: C:/Xilinx/Vivado/2020.2/data/secureip/iserdese2/iserdese2_002.vp
+    Timescale: 1ps / 1ps
+    Occurrences: 4
+
+    Module: ISERDESE2_WRAP , acc : <novopt>
+    Library: C:/Git/zahapat/fpga-tools-qc/simulator/vivado_precompiled_ver/2020_2/secureip
+    Source File: C:/Xilinx/Vivado/2020.2/data/secureip/iserdese2/iserdese2_001.vp
+    Timescale: 1ps / 1ps
+    Occurrences: 4
+
+    Package Body: std_logic_arith
+    Library: C:/intelFPGA/20.1/modelsim_ase/ieee
+    Source File: C:/intelFPGA/20.1/modelsim_ase/win32aloem/../vhdl_src/synopsys/mti_std_logic_arith.vhd
+    Occurrences: 1
+
+    Module: MMCME2_ADV (cell) , acc : <novopt>
+    Library: C:/Git/zahapat/fpga-tools-qc/simulator/vivado_precompiled_ver/2020_2/unisims_ver
+    Source File: C:/Xilinx/Vivado/2020.2/data/verilog/src/unisims/MMCME2_ADV.v
+    Timescale: 1ps / 1ps
+    Occurrences: 1
+
+    Module: IBUFDS , acc : <novopt>
+    Library: C:/Git/zahapat/fpga-tools-qc/simulator/vivado_precompiled_ver/2020_2/unisims_ver
+    Source File: C:/Xilinx/Vivado/2020.2/data/verilog/src/unisims/IBUFDS.v
+    Timescale: 1ps / 1ps
+    Occurrences: 1
+
+    Module: BUFG , acc : <novopt>
+    Library: C:/Git/zahapat/fpga-tools-qc/simulator/vivado_precompiled_ver/2020_2/unisims_ver
+    Source File: C:/Xilinx/Vivado/2020.2/data/verilog/src/unisims/BUFG.v
+    Timescale: 1ps / 1ps
+    Occurrences: 6
+
+    Module: clock_synthesizer , acc : <novopt>
+    Library: C:/Git/zahapat/fpga-tools-qc/simulator/xil_iplib_verilog
+    Source File: C:/Git/zahapat/fpga-tools-qc/modules/clock_synthesizer/hdl/clock_synthesizer.sv
+    Timescale: 1ns / 1ps
+    Occurrences: 1
+
+    Module: std , acc : <novopt>
+    Library: C:/intelFPGA/20.1/modelsim_ase/sv_std
+    Source File: $MODEL_TECH/../verilog_src/std/std.sv
+    Occurrences: 1
+
+    Package Body: randompkg
+    Library: C:/Git/zahapat/fpga-tools-qc/simulator/osvvm
+    Source File: C:/Git/zahapat/fpga-tools-qc/packages/osvvm/RandomPkg.vhd
+    Occurrences: 1
+
+    Package Body: numeric_std_unsigned
+    Library: C:/intelFPGA/20.1/modelsim_ase/ieee
+    Source File: C:/intelFPGA/20.1/modelsim_ase/win32aloem/../vhdl_src/ieee/mti_numeric_std_unsigned.vhd
+    Occurrences: 1
+
+    Package Body: randombasepkg
+    Library: C:/Git/zahapat/fpga-tools-qc/simulator/osvvm
+    Source File: C:/Git/zahapat/fpga-tools-qc/packages/osvvm/RandomBasePkg.vhd
+    Occurrences: 1
+
+    Package Body: sortlistpkg_int
+    Library: C:/Git/zahapat/fpga-tools-qc/simulator/osvvm
+    Source File: C:/Git/zahapat/fpga-tools-qc/packages/osvvm/SortListPkg_int.vhd
+    Occurrences: 1
+
+    Package Body: alertlogpkg
+    Library: C:/Git/zahapat/fpga-tools-qc/simulator/osvvm
+    Source File: C:/Git/zahapat/fpga-tools-qc/packages/osvvm/AlertLogPkg.vhd
+    Occurrences: 1
+
+    Package Body: textutilpkg
+    Library: C:/Git/zahapat/fpga-tools-qc/simulator/osvvm
+    Source File: C:/Git/zahapat/fpga-tools-qc/packages/osvvm/TextUtilPkg.vhd
+    Occurrences: 1
+
+    Package Body: transcriptpkg
+    Library: C:/Git/zahapat/fpga-tools-qc/simulator/osvvm
+    Source File: C:/Git/zahapat/fpga-tools-qc/packages/osvvm/TranscriptPkg.vhd
+    Occurrences: 1
+
+    Package Body: osvvmglobalpkg
+    Library: C:/Git/zahapat/fpga-tools-qc/simulator/osvvm
+    Source File: C:/Git/zahapat/fpga-tools-qc/packages/osvvm/OsvvmGlobalPkg.vhd
+    Occurrences: 1
+
+    Package Body: namepkg
+    Library: C:/Git/zahapat/fpga-tools-qc/simulator/osvvm
+    Source File: C:/Git/zahapat/fpga-tools-qc/packages/osvvm/NamePkg.vhd
+    Occurrences: 1
+
+    Package Body: clk_pack_tb
+    Library: C:/Git/zahapat/fpga-tools-qc/simulator/lib_sim
+    Source File: C:/Git/zahapat/fpga-tools-qc/packages/sim_tools/clk_pack_tb.vhd
+    Occurrences: 1
+
+    Package Body: essentials_tb
+    Library: C:/Git/zahapat/fpga-tools-qc/simulator/lib_sim
+    Source File: C:/Git/zahapat/fpga-tools-qc/packages/global_sim/essentials_tb.vhd
+    Occurrences: 1
+
+    Package Body: types_pack_tb
+    Library: C:/Git/zahapat/fpga-tools-qc/simulator/lib_sim
+    Source File: C:/Git/zahapat/fpga-tools-qc/packages/global_sim/types_pack_tb.vhd
+    Occurrences: 1
+
+    Package Body: print_list_pack_tb
+    Library: C:/Git/zahapat/fpga-tools-qc/simulator/lib_sim
+    Source File: C:/Git/zahapat/fpga-tools-qc/packages/sim_tools/print_list_pack_tb.vhd
+    Occurrences: 1
+
+    Package: list_string_pack_tb
+    Library: C:/Git/zahapat/fpga-tools-qc/simulator/lib_sim
+    Source File: C:/Git/zahapat/fpga-tools-qc/packages/sim_tools/list_string_pack_tb.vhd
+    Source File: C:/Git/zahapat/fpga-tools-qc/packages/sim_tools/list_pack_tb.vhd
+    Occurrences: 1
+
+    Package Body: list_pack_tb
+    Library: C:/Git/zahapat/fpga-tools-qc/simulator/lib_sim
+    Source File: C:/Git/zahapat/fpga-tools-qc/packages/sim_tools/list_pack_tb.vhd
+    Occurrences: 1
+
+    Package Body: const_pack_tb
+    Library: C:/Git/zahapat/fpga-tools-qc/simulator/lib_sim
+    Source File: C:/Git/zahapat/fpga-tools-qc/packages/global_sim/const_pack_tb.vhd
+    Occurrences: 1
+
+    Package Body: ti_vvc_framework_support_pkg
+    Library: C:/Git/zahapat/fpga-tools-qc/packages/uvvm/uvvm_vvc_framework/sim/uvvm_vvc_framework
+    Source File: C:/Git/zahapat/fpga-tools-qc/packages/uvvm/script/../uvvm_vvc_framework/script/../src/ti_vvc_framework_support_pkg.vhd
+    Occurrences: 1
+
+    Package Body: ti_protected_types_pkg
+    Library: C:/Git/zahapat/fpga-tools-qc/packages/uvvm/uvvm_vvc_framework/sim/uvvm_vvc_framework
+    Source File: C:/Git/zahapat/fpga-tools-qc/packages/uvvm/script/../uvvm_vvc_framework/script/../src/ti_protected_types_pkg.vhd
+    Occurrences: 1
+
+    Package Body: func_cov_pkg
+    Library: C:/Git/zahapat/fpga-tools-qc/packages/uvvm/uvvm_util/sim/uvvm_util
+    Source File: C:/Git/zahapat/fpga-tools-qc/packages/uvvm/script/../uvvm_util/script/../src/func_cov_pkg.vhd
+    Occurrences: 1
+
+    Package Body: rand_pkg
+    Library: C:/Git/zahapat/fpga-tools-qc/packages/uvvm/uvvm_util/sim/uvvm_util
+    Source File: C:/Git/zahapat/fpga-tools-qc/packages/uvvm/script/../uvvm_util/script/../src/rand_pkg.vhd
+    Source File: C:/Git/zahapat/fpga-tools-qc/packages/uvvm/script/../uvvm_util/script/../src/generic_queue_pkg.vhd
+    Occurrences: 1
+
+    Package Body: generic_queue_pkg
+    Library: C:/Git/zahapat/fpga-tools-qc/packages/uvvm/uvvm_util/sim/uvvm_util
+    Source File: C:/Git/zahapat/fpga-tools-qc/packages/uvvm/script/../uvvm_util/script/../src/generic_queue_pkg.vhd
+    Occurrences: 1
+
+    Package Body: bfm_common_pkg
+    Library: C:/Git/zahapat/fpga-tools-qc/packages/uvvm/uvvm_util/sim/uvvm_util
+    Source File: C:/Git/zahapat/fpga-tools-qc/packages/uvvm/script/../uvvm_util/script/../src/bfm_common_pkg.vhd
+    Occurrences: 1
+
+    Package Body: methods_pkg
+    Library: C:/Git/zahapat/fpga-tools-qc/packages/uvvm/uvvm_util/sim/uvvm_util
+    Source File: C:/Git/zahapat/fpga-tools-qc/packages/uvvm/script/../uvvm_util/script/../src/methods_pkg.vhd
+    Occurrences: 1
+
+    Package Body: alert_hierarchy_pkg
+    Library: C:/Git/zahapat/fpga-tools-qc/packages/uvvm/uvvm_util/sim/uvvm_util
+    Source File: C:/Git/zahapat/fpga-tools-qc/packages/uvvm/script/../uvvm_util/script/../src/alert_hierarchy_pkg.vhd
+    Occurrences: 1
+
+    Package Body: license_pkg
+    Library: C:/Git/zahapat/fpga-tools-qc/packages/uvvm/uvvm_util/sim/uvvm_util
+    Source File: C:/Git/zahapat/fpga-tools-qc/packages/uvvm/script/../uvvm_util/script/../src/license_pkg.vhd
+    Occurrences: 1
+
+    Package Body: hierarchy_linked_list_pkg
+    Library: C:/Git/zahapat/fpga-tools-qc/packages/uvvm/uvvm_util/sim/uvvm_util
+    Source File: C:/Git/zahapat/fpga-tools-qc/packages/uvvm/script/../uvvm_util/script/../src/hierarchy_linked_list_pkg.vhd
+    Occurrences: 1
+
+    Package: global_signals_and_shared_variables_pkg
+    Library: C:/Git/zahapat/fpga-tools-qc/packages/uvvm/uvvm_util/sim/uvvm_util
+    Source File: C:/Git/zahapat/fpga-tools-qc/packages/uvvm/script/../uvvm_util/script/../src/global_signals_and_shared_variables_pkg.vhd
+    Occurrences: 1
+
+    Package Body: protected_types_pkg
+    Library: C:/Git/zahapat/fpga-tools-qc/packages/uvvm/uvvm_util/sim/uvvm_util
+    Source File: C:/Git/zahapat/fpga-tools-qc/packages/uvvm/script/../uvvm_util/script/../src/protected_types_pkg.vhd
+    Occurrences: 1
+
+    Package Body: string_methods_pkg
+    Library: C:/Git/zahapat/fpga-tools-qc/packages/uvvm/uvvm_util/sim/uvvm_util
+    Source File: C:/Git/zahapat/fpga-tools-qc/packages/uvvm/script/../uvvm_util/script/../src/string_methods_pkg.vhd
+    Occurrences: 1
+
+    Package Body: adaptations_pkg
+    Library: C:/Git/zahapat/fpga-tools-qc/packages/uvvm/uvvm_util/sim/uvvm_util
+    Source File: C:/Git/zahapat/fpga-tools-qc/packages/uvvm/script/../uvvm_util/script/../src/adaptations_pkg.vhd
+    Occurrences: 1
+
+    Package Body: types_pkg
+    Library: C:/Git/zahapat/fpga-tools-qc/packages/uvvm/uvvm_util/sim/uvvm_util
+    Source File: C:/Git/zahapat/fpga-tools-qc/packages/uvvm/script/../uvvm_util/script/../src/types_pkg.vhd
+    Occurrences: 1
+
+    Package Body: signals_pack
+    Library: C:/Git/zahapat/fpga-tools-qc/simulator/lib_src
+    Source File: C:/Git/zahapat/fpga-tools-qc/packages/global_src/signals_pack.vhd
+    Occurrences: 1
+
+    Package Body: types_pack
+    Library: C:/Git/zahapat/fpga-tools-qc/simulator/lib_src
+    Source File: C:/Git/zahapat/fpga-tools-qc/packages/global_src/types_pack.vhd
+    Occurrences: 1
+
+    Package Body: generics
+    Library: C:/Git/zahapat/fpga-tools-qc/simulator/lib_src
+    Source File: C:/Git/zahapat/fpga-tools-qc/packages/global_src/generics.vhd
+    Occurrences: 1
+
+    Package Body: const_pack
+    Library: C:/Git/zahapat/fpga-tools-qc/simulator/lib_src
+    Source File: C:/Git/zahapat/fpga-tools-qc/packages/global_src/const_pack.vhd
+    Occurrences: 1
+
+    Package Body: env
+    Library: C:/intelFPGA/20.1/modelsim_ase/std
+    Source File: C:/intelFPGA/20.1/modelsim_ase/win32aloem/../vhdl_src/std/env.vhd
+    Occurrences: 1
+
+    Package Body: std_logic_textio
+    Library: C:/intelFPGA/20.1/modelsim_ase/ieee
+    Source File: C:/intelFPGA/20.1/modelsim_ase/win32aloem/../vhdl_src/synopsys/std_logic_textio.vhd
+    Occurrences: 1
+
+    Package Body: math_real
+    Library: C:/intelFPGA/20.1/modelsim_ase/ieee
+    Source File: C:/intelFPGA/20.1/modelsim_ase/win32aloem/../vhdl_src/ieee/1076-2code.vhd
+    Occurrences: 1
+
+    Module: glbl , acc : <novopt>
+    Library: C:/Git/zahapat/fpga-tools-qc/simulator/xil_iplib_verilog
+    Source File: C:/Xilinx/Vivado/2020.2/data/verilog/src/glbl.v
+    Timescale: 1ps / 1ps
+    Occurrences: 1
+
+    Package Body: vpkg
+    Library: C:/Git/zahapat/fpga-tools-qc/simulator/vivado_precompiled_ver/2020_2/unisim
+    Source File: C:/Xilinx/Vivado/2020.2/data/vhdl/src/unisims/unisim_VPKG.vhd
+    Occurrences: 1
+
+    Package Body: vital_primitives
+    Library: C:/intelFPGA/20.1/modelsim_ase/ieee
+    Source File: C:/intelFPGA/20.1/modelsim_ase/win32aloem/../vhdl_src/vital2000/prmtvs_b_2000.vhd
+    Occurrences: 1
+
+    Package Body: vital_timing
+    Library: C:/intelFPGA/20.1/modelsim_ase/ieee
+    Source File: C:/intelFPGA/20.1/modelsim_ase/win32aloem/../vhdl_src/vital2000/timing_b_2000.vhd
+    Source File: C:/intelFPGA/20.1/modelsim_ase/win32aloem/../vhdl_src/vital2000/timing_p_2000.vhd
+    Occurrences: 1
+
+    Package Body: numeric_std
+    Library: C:/intelFPGA/20.1/modelsim_ase/ieee
+    Source File: C:/intelFPGA/20.1/modelsim_ase/win32aloem/../vhdl_src/ieee/mti_numeric_std.vhd
+    Occurrences: 1
+
+    Package Body: std_logic_1164
+    Library: C:/intelFPGA/20.1/modelsim_ase/ieee
+    Source File: C:/intelFPGA/20.1/modelsim_ase/win32aloem/../vhdl_src/ieee/stdlogic.vhd
+    Occurrences: 1
+
+    Package Body: textio
+    Library: C:/intelFPGA/20.1/modelsim_ase/std
+    Source File: C:/intelFPGA/20.1/modelsim_ase/win32aloem/../vhdl_src/std/textio.vhd
+    Occurrences: 1
+
+    Package: standard
+    Library: C:/intelFPGA/20.1/modelsim_ase/std
+    Source File: C:/intelFPGA/20.1/modelsim_ase/win32aloem/../vhdl_src/std/standard.vhd
+    Occurrences: 1
+
+    Entity: glbl_vhd , acc : <novopt>
+    Architecture: glbl_vhd_v
+    Library: C:/Git/zahapat/fpga-tools-qc/simulator/vivado_precompiled_ver/2020_2/unisim
+    Source File: C:/Xilinx/Vivado/2020.2/data/vhdl/src/unisims/primitive/GLBL_VHD.vhd
+    Occurrences: 1
+
+    Entity: top_feedforward_40khz_tb , acc : <novopt>
+    Architecture: sim
+    Library: C:/Git/zahapat/fpga-tools-qc/simulator/lib_sim
+    Source File: C:/Git/zahapat/fpga-tools-qc/modules/top_feedforward_40khz/sim/top_feedforward_40khz_tb.vhd
+    Source File: C:/Xilinx/Vivado/2020.2/data/vhdl/src/unisims/unisim_retarget_VCOMP.vhdp
+    Occurrences: 1
+
+    Entity: top_feedforward_40khz , acc : <novopt>
+    Architecture: str
+    Library: C:/Git/zahapat/fpga-tools-qc/simulator/lib_src
+    Source File: C:/Git/zahapat/fpga-tools-qc/modules/top_feedforward_40khz/hdl/top_feedforward_40khz.vhd
+    Source File: C:/Xilinx/Vivado/2020.2/data/vhdl/src/unisims/unisim_retarget_VCOMP.vhdp
+    Occurrences: 1
+
+    Entity: srlc32e , acc : <novopt>
+    Architecture: srlc32e_v
+    Library: C:/Git/zahapat/fpga-tools-qc/simulator/vivado_precompiled_ver/2020_2/unisim
+    Source File: C:/Xilinx/Vivado/2020.2/data/vhdl/src/unisims/primitive/SRLC32E.vhd
+    Occurrences: 3
+
+    Entity: idelayctrl , acc : <novopt>
+    Architecture: idelayctrl_v
+    Library: C:/Git/zahapat/fpga-tools-qc/simulator/vivado_precompiled_ver/2020_2/unisim
+    Source File: C:/Xilinx/Vivado/2020.2/data/vhdl/src/unisims/primitive/IDELAYCTRL.vhd
+    Occurrences: 3
+
+    Entity: xilinx_sdr_sampler , acc : <novopt>
+    Architecture: rtl
+    Library: C:/Git/zahapat/fpga-tools-qc/simulator/lib_src
+    Source File: C:/Git/zahapat/fpga-tools-qc/modules/xilinx_sdr_sampler/hdl/xilinx_sdr_sampler.vhd
+    Source File: C:/Xilinx/Vivado/2020.2/data/vhdl/src/unisims/unisim_retarget_VCOMP.vhdp
+    Occurrences: 4
+
+    Entity: ibuf , acc : <novopt>
+    Architecture: ibuf_v
+    Library: C:/Git/zahapat/fpga-tools-qc/simulator/vivado_precompiled_ver/2020_2/unisim
+    Source File: C:/Xilinx/Vivado/2020.2/data/vhdl/src/unisims/primitive/IBUF.vhd
+    Occurrences: 4
+
+    Entity: idelaye2 , acc : <novopt>
+    Architecture: idelaye2_v
+    Library: C:/Git/zahapat/fpga-tools-qc/simulator/vivado_precompiled_ver/2020_2/unisim
+    Source File: C:/Xilinx/Vivado/2020.2/data/vhdl/src/unisims/primitive/IDELAYE2.vhd
+    Occurrences: 4
+
+    Entity: iserdese2 , acc : <novopt>
+    Architecture: iserdese2_v
+    Library: C:/Git/zahapat/fpga-tools-qc/simulator/vivado_precompiled_ver/2020_2/unisim
+    Source File: C:/Xilinx/Vivado/2020.2/data/vhdl/src/unisims/secureip/ISERDESE2.vhd
+    Occurrences: 4
+
+    Entity: reset , acc : <novopt>
+    Architecture: rtl
+    Library: C:/Git/zahapat/fpga-tools-qc/simulator/lib_src
+    Source File: C:/Git/zahapat/fpga-tools-qc/modules/reset/hdl/reset.vhd
+    Occurrences: 3
+
+    Entity: csv_readout , acc : <novopt>
+    Architecture: rtl
+    Library: C:/Git/zahapat/fpga-tools-qc/simulator/lib_src
+    Source File: C:/Git/zahapat/fpga-tools-qc/modules/csv_readout/hdl/csv_readout.vhd
+    Source File: C:/Xilinx/Vivado/2020.2/data/vhdl/src/unisims/unisim_retarget_VCOMP.vhdp
+    Occurrences: 1
+
+    Entity: fifo36e1 , acc : <novopt>
+    Architecture: fifo36e1_v
+    Library: C:/Git/zahapat/fpga-tools-qc/simulator/vivado_precompiled_ver/2020_2/unisim
+    Source File: C:/Xilinx/Vivado/2020.2/data/vhdl/src/unisims/primitive/FIFO36E1.vhd
+    Occurrences: 64
+
+    Entity: ff36_internal_vhdl , acc : <novopt>
+    Architecture: ff36_internal_vhdl_v
+    Library: C:/Git/zahapat/fpga-tools-qc/simulator/vivado_precompiled_ver/2020_2/unisim
+    Source File: C:/Xilinx/Vivado/2020.2/data/vhdl/src/unisims/primitive/FIFO36E1.vhd
+    Occurrences: 64
+
+    Entity: delay_compensation , acc : <novopt>
+    Architecture: rtl
+    Library: C:/Git/zahapat/fpga-tools-qc/simulator/lib_src
+    Source File: C:/Git/zahapat/fpga-tools-qc/modules/delay_compensation/hdl/delay_compensation.vhd
+    Occurrences: 2
+
+    Entity: nff_cdcc_flag , acc : <novopt>
+    Architecture: rtl
+    Library: C:/Git/zahapat/fpga-tools-qc/simulator/lib_src
+    Source File: C:/Git/zahapat/fpga-tools-qc/modules/nff_cdcc_flag/hdl/nff_cdcc_flag.vhd
+    Occurrences: 5
+
+    Entity: fsm_feedforward , acc : <novopt>
+    Architecture: rtl
+    Library: C:/Git/zahapat/fpga-tools-qc/simulator/lib_src
+    Source File: C:/Git/zahapat/fpga-tools-qc/modules/fsm_feedforward/hdl/fsm_feedforward.vhd
+    Occurrences: 1
+
+    Entity: lfsr_bitgen , acc : <novopt>
+    Architecture: rtl
+    Library: C:/Git/zahapat/fpga-tools-qc/simulator/lib_src
+    Source File: C:/Git/zahapat/fpga-tools-qc/modules/lfsr_bitgen/hdl/lfsr_bitgen.vhd
+    Occurrences: 1
+
+    Entity: nff_cdcc , acc : <novopt>
+    Architecture: rtl
+    Library: C:/Git/zahapat/fpga-tools-qc/simulator/lib_src
+    Source File: C:/Git/zahapat/fpga-tools-qc/modules/nff_cdcc/hdl/nff_cdcc.vhd
+    Occurrences: 6
+
+    Entity: nff_cdcc_cntr , acc : <novopt>
+    Architecture: rtl
+    Library: C:/Git/zahapat/fpga-tools-qc/simulator/lib_src
+    Source File: C:/Git/zahapat/fpga-tools-qc/modules/nff_cdcc_cntr/hdl/nff_cdcc_cntr.vhd
+    Occurrences: 4
+
+    Entity: pulse_gen , acc : <novopt>
+    Architecture: rtl
+    Library: C:/Git/zahapat/fpga-tools-qc/simulator/lib_src
+    Source File: C:/Git/zahapat/fpga-tools-qc/modules/pulse_gen/hdl/pulse_gen.vhd
+    Occurrences: 2
+
+    Entity: reg_delay , acc : <novopt>
+    Architecture: rtl
+    Library: C:/Git/zahapat/fpga-tools-qc/simulator/lib_src
+    Source File: C:/Git/zahapat/fpga-tools-qc/modules/reg_delay/hdl/reg_delay.vhd
+    Occurrences: 3
+
+    Entity: xilinx_obufs , acc : <novopt>
+    Architecture: rtl
+    Library: C:/Git/zahapat/fpga-tools-qc/simulator/lib_src
+    Source File: C:/Git/zahapat/fpga-tools-qc/modules/xilinx_obufs/hdl/xilinx_obufs.vhd
+    Source File: C:/Xilinx/Vivado/2020.2/data/vhdl/src/unisims/unisim_retarget_VCOMP.vhdp
+    Occurrences: 5
+
+    Entity: fdre , acc : <novopt>
+    Architecture: fdre_v
+    Library: C:/Git/zahapat/fpga-tools-qc/simulator/vivado_precompiled_ver/2020_2/unisim
+    Source File: C:/Xilinx/Vivado/2020.2/data/vhdl/src/unisims/primitive/FDRE.vhd
+    Occurrences: 5
+
+    Package: vcomponents
+    Library: C:/Git/zahapat/fpga-tools-qc/simulator/vivado_precompiled_ver/2020_2/xpm
+    Source File: C:/Xilinx/Vivado/2020.2/data/ip/xpm/xpm_VCOMP.vhd
+    Occurrences: 1
+

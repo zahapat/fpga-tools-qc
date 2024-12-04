@@ -470,15 +470,21 @@ move_dashboard_gadget -quiet -name {methodology_1} -row 2 -col 1
 
 # Generate & Compile Xilinx Simulation Libraries (Verilog) for ModelSim
 set device_family [get_property FAMILY [get_property PART [current_project]]]
-puts "TCL: Generate & Compile Xilinx Simulation Libraries \(Verilog\) for ModelSim"
-if {![file exist "${orig_proj_dir}/simulator/vivado_precompiled_ver"]} {
+set vivado_version "[version -short]"
+set vivado_version_alias "[string map {"." "_"} $vivado_version]"
+set precompile_lib_outdir "${orig_proj_dir}/simulator/vivado_precompiled_ver/${vivado_version_alias}"
+
+# Create directories
+if {![file exists $precompile_lib_outdir]} {
+    exec mkdir $precompile_lib_outdir
+    puts "TCL: Generate & Compile Xilinx Simulation Libraries \(Verilog\) for ModelSim"
     if {[ catch {
         compile_simlib \
             -simulator modelsim \
             -family all \
             -language verilog \
             -library all \
-            -dir ./simulator/vivado_precompiled_ver
+            -dir [file join $precompile_lib_outdir ""]
     } errorstring]} {
         puts "TCL: IP Precompiled Libraries 'vivado_precompiled_ver' generation ended with some errors: $errorstring . Pass."
     }
@@ -492,8 +498,9 @@ close_project
 # ---------------------------------------------
 # Parse .xci file to modify IPDefaultOutputPath
 # ---------------------------------------------
+# You can't change the IPDefaultOutputPath - it must be $PGENDIR/sources_1
 set detect_pattern "IPDefaultOutputPath"
-set replace_by_line "    <Option Name=\"IPDefaultOutputPath\" Val=\"${orig_proj_dir}/vivado\"/>"
+set replace_by_line "    <Option Name=\"IPDefaultOutputPath\" Val=\"\$PGENDIR/sources_1\"/>"
 set detected_line 0
 set cnt 0
 set proj_xpr_file [open "${origin_dir}/vivado/${_xil_proj_name_}.xpr" r]

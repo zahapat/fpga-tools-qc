@@ -44,7 +44,7 @@
         -- Data Signals
         signal wr_channels_detections : t_photon_counter_2d := (others => (others => '0'));
         signal wr_photon_losses : std_logic_vector(INT_QUBITS_CNT-2 downto 0) := (others => '0');
-        signal wr_valid_gflow_success_done : std_logic := '0';
+        signal wr_valid_feedfwd_success_done : std_logic := '0';
         signal wr_data_qubit_buffer : t_qubit_buffer_2d := (others => (others => '0'));
         signal wr_data_time_stamp_buffer : t_time_stamp_buffer_2d := (others => (others => '0'));
         signal wr_data_alpha_buffer : t_alpha_buffer_2d := (others => (others => '0'));
@@ -101,7 +101,7 @@
             -- Data Signals
             wr_channels_detections => wr_channels_detections,
             wr_photon_losses => wr_photon_losses, 
-            wr_valid_gflow_success_done => wr_valid_gflow_success_done,
+            wr_valid_feedfwd_success_done => wr_valid_feedfwd_success_done,
             wr_data_qubit_buffer => wr_data_qubit_buffer,
             wr_data_time_stamp_buffer => wr_data_time_stamp_buffer,
             wr_data_alpha_buffer => wr_data_alpha_buffer,
@@ -153,12 +153,12 @@
             end loop;
         end process;
 
-        -- Emulate Successful Gflow Data Output
-        trans_successful_gflow_results : process
+        -- Emulate Successful Feedforward Data Output
+        trans_successful_feedfwd_results : process
         begin
             wait for INT_QUBITS_CNT*1000 ns;
             wait until rising_edge(clk_wr);
-            wr_valid_gflow_success_done <= '1';
+            wr_valid_feedfwd_success_done <= '1';
             for i in 0 to INT_QUBITS_CNT-1 loop
                 wr_data_qubit_buffer(i) <= std_logic_vector(unsigned(wr_data_qubit_buffer(i)) + "1");
                 wr_data_alpha_buffer(i) <= std_logic_vector(to_unsigned(i mod 4, 2));
@@ -171,7 +171,7 @@
             end loop;
 
             wait until rising_edge(clk_wr);
-            wr_valid_gflow_success_done <= '0';
+            wr_valid_feedfwd_success_done <= '0';
 
         end process;
 

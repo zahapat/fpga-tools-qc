@@ -66,14 +66,15 @@
             -- Debug LEDs
             led : out std_logic_vector(3 downto 0);
 
-            -- Inputs from SPCM
+            -- Inputs from Detectors
             input_pads : in std_logic_vector(2*INT_QUBITS_CNT-1 downto 0);
 
             -- PCD Trigger & valid signal for IO delay measurements
-            o_pcd_ctrl_pulse : out std_logic;
-            o_pcd_ctrl_pulsegen_busy : out std_logic;
-            o_photon_1h : out std_logic;
-            o_photon_1v : out std_logic
+            o_eom_ctrl_pulse : out std_logic;
+            -- o_eom_ctrl_pulsegen_busy : out std_logic;  -- for propagation delay measurements
+            o_debug_port_1 : out std_logic;      -- Debug port 1
+            o_debug_port_2 : out std_logic;      -- Debug port 2
+            o_debug_port_3 : out std_logic       -- Debug port 3
 
         );
     end top_gflow_ok_wrapper;
@@ -304,7 +305,7 @@
             -- PCD Control Pulse Design & Delay
             INT_CTRL_PULSE_HIGH_DURATION_NS => INT_CTRL_PULSE_HIGH_DURATION_NS,
             INT_CTRL_PULSE_DEAD_DURATION_NS => INT_CTRL_PULSE_DEAD_DURATION_NS,
-            INT_CTRL_PULSE_EXTRA_DELAY_NS   => INT_CTRL_PULSE_EXTRA_DELAY_NS
+            INT_CTRL_PULSE_EXTRA_DELAY_CYCLES => INT_CTRL_PULSE_EXTRA_DELAY_CYCLES
         )
         port map (
             -- External 200MHz oscillator
@@ -320,14 +321,15 @@
             readout_enable     => slv_pipe_out_endp_read_en,
             readout_data_32b   => slv_pipe_out_endp_data,
 
-            -- Inputs from SPCM
+            -- Inputs from Detectors
             input_pads => input_pads,
 
             -- PCD Trigger
-            o_pcd_ctrl_pulse => o_pcd_ctrl_pulse,
-            o_pcd_ctrl_pulsegen_busy => o_pcd_ctrl_pulsegen_busy,
-            o_photon_1h => o_photon_1h,
-            o_photon_1v => o_photon_1v
+            o_eom_ctrl_pulse => o_eom_ctrl_pulse,
+            o_eom_ctrl_pulsegen_busy => open,
+            o_debug_port_1 => o_debug_port_1,
+            o_debug_port_2 => o_debug_port_2,
+            o_debug_port_3 => o_debug_port_3
         );
 
     end architecture;

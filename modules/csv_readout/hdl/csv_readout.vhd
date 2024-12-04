@@ -26,7 +26,7 @@
             -- Data Signals
             wr_channels_detections : t_photon_counter_2d;
             wr_photon_losses : in std_logic_vector(INT_QUBITS_CNT-2 downto 0);
-            wr_valid_gflow_success_done : in std_logic;
+            wr_valid_feedfwd_success_done : in std_logic;
             wr_data_qubit_buffer : in t_qubit_buffer_2d;
             wr_data_time_stamp_buffer : in t_time_stamp_buffer_2d;
             wr_data_alpha_buffer : in t_alpha_buffer_2d;
@@ -80,7 +80,7 @@
         -- Actual time counter
         constant ACTUAL_TIME_COUNTER_WIDTH : natural := INT_DATA_SPACE_IN_CHANNEL;
         signal slv_time_now : std_logic_vector(ACTUAL_TIME_COUNTER_WIDTH-1 downto 0) := (others => '0');
-        signal slv_time_gflow_sample_request : std_logic_vector(slv_time_now'range) := (others => '0');
+        signal slv_time_feedfwd_sample_request : std_logic_vector(slv_time_now'range) := (others => '0');
         signal slv_time_periodic_sample_request : std_logic_vector(slv_time_now'range) := (others => '0');
         signal slv_time_periodic_sample_request_2 : std_logic_vector(slv_time_now'range) := (others => '0');
 
@@ -168,7 +168,7 @@
         signal slv_flow_random_buffer_shreg : std_logic_vector(slv_flow_random_buffer_sampled'range) := (others => '0');
         signal slv_flow_timestamp_buffer_shreg : std_logic_vector(slv_flow_timestamp_buffer_sampled'range) := (others => '0');
 
-        signal sl_readout_request_gflow : std_logic := '0'; -- '1' value will be latched
+        signal sl_readout_request_feedfwd : std_logic := '0'; -- '1' value will be latched
 
         -- Notify the FSM to transfer data from samplers to shifters and perform the readout
         signal sl_request_read_coincidences_shift_enable : std_logic := '0';
@@ -189,7 +189,7 @@
             SEND_GFLOW_ALPHA,
             SEND_GFLOW_MODULO,
             SEND_GFLOW_RANDOM,
-            SEND_GFLOW_TIMESTAMP
+            SEND_FEEDFWD_TIMESTAMP
         );
         signal state_fifo_readout : t_state_write_data_transac := SCAN_READOUT_REQUESTS;
 
@@ -211,15 +211,15 @@
         -- x"2" = SEND_GFLOW_ALPHA      (continues the x"1")
         -- x"3" = SEND_GFLOW_MODULO     (continues the x"2")
         -- x"4" = SEND_GFLOW_RANDOM     (continues the x"3")
-        -- x"5" = SEND_GFLOW_TIMESTAMP  (continues the x"4", readout end)
+        -- x"5" = SEND_FEEDFWD_TIMESTAMP  (continues the x"4", readout end)
         -- x"6" = SEND_COINCIDENCES     (periodical readout)
         -- x"7" = SEND_CH_DETECTIONS    (periodical readout)
         -- x"8" = SEND_PHOTON_LOSSES    (periodical readout)
-        -- x"9" = abavilable
-        -- x"A" = abavilable
-        -- x"B" = abavilable
-        -- x"C" = abavilable
-        -- x"D" = abavilable
+        -- x"9" = available
+        -- x"A" = available
+        -- x"B" = available
+        -- x"C" = available
+        -- x"D" = available
         -- x"E" = EXTRA COMMA DELIMITER
         -- x"F" = ENTER (PRINT LINE)
 
@@ -230,22 +230,28 @@
         proc_slv_time_now : process(wr_sys_clk)
         begin
             if rising_edge(wr_sys_clk) then
-                slv_time_now <= std_logic_vector(unsigned(slv_time_now) + "1");
+                if wr_rst = '1' then
+                    slv_time_now <= (others => '0');
+                    slv_time_feedfwd_sample_request <= (others => '0');
+                    slv_time_periodic_sample_request <= (others => '0');
+                    slv_time_periodic_sample_request_2 <= (others => '0');
+                else
+                    slv_time_now <= std_logic_vector(unsigned(slv_time_now) + "1");
 
-                -- Sample actual time along with sample requests
-                if wr_valid_gflow_success_done = '1' then
-                    slv_time_gflow_sample_request <= slv_time_now;
-                end if;
-                
-                if sl_periodic_report_sample_request(sl_periodic_report_sample_request'high) = '1' then
-                    slv_time_periodic_sample_request <= slv_time_now;
-                end if;
+                    -- Sample actual time along with sample requests
+                    if wr_valid_feedfwd_success_done = '1' then
+                        slv_time_feedfwd_sample_request <= slv_time_now;
+                    end if;
 
-                if sl_periodic_report_sample_request_2(sl_periodic_report_sample_request_2'high) = '1' then
-                    slv_time_periodic_sample_request_2 <= slv_time_now;
+                    if sl_periodic_report_sample_request(sl_periodic_report_sample_request'high) = '1' then
+                        slv_time_periodic_sample_request <= slv_time_now;
+                    end if;
+
+                    if sl_periodic_report_sample_request_2(sl_periodic_report_sample_request_2'high) = '1' then
+                        slv_time_periodic_sample_request_2 <= slv_time_now;
+                    end if;
+
                 end if;
-                
-                    
             end if;
         end process;
 
@@ -286,13 +292,16 @@
         -- COINCIDENCES COMBINATION ACCUMULATION --
         -------------------------------------------
         gen_pick_higher_bits : for i in 0 to INT_QUBITS_CNT-1 generate
-            slv_higher_bits_qubit_buffer(i) <= wr_data_qubit_buffer(i)(1);
+            -- slv_higher_bits_qubit_buffer(i) <= wr_data_qubit_buffer(i)(1);
+
+            -- CONVERT TO CONVENTIONAL H/V(=0/1) from H/V(=1/0) NOTATION
+            slv_higher_bits_qubit_buffer(i) <= not wr_data_qubit_buffer(i)(1); -- NEW
         end generate;
 
         proc_qubit_combination_accum : process(wr_sys_clk)
         begin
             if rising_edge(wr_sys_clk) then
-                if wr_valid_gflow_success_done = '1' then
+                if wr_valid_feedfwd_success_done = '1' then
                     for i in 0 to INT_QUBITS_CNT**2-1 loop
                         if std_logic_vector(to_unsigned(COMBINATION_ADDR(i), INT_QUBITS_CNT)) = slv_higher_bits_qubit_buffer then
                             slv_combinations_counters_2d(COMBINATION_ADDR(i)) 
@@ -348,7 +357,7 @@
             if rising_edge(wr_sys_clk) then
 
                 -- Sample on sample request
-                if wr_valid_gflow_success_done = '1' then -- Sample request signal
+                if wr_valid_feedfwd_success_done = '1' then -- Sample request signal
                     for i in 0 to INT_QUBITS_CNT-1 loop
                         slv_flow_photons_buffer_shreg((i+1)*2-1 downto i*2) 
                             <= wr_data_qubit_buffer(i);
@@ -368,7 +377,7 @@
             if rising_edge(wr_sys_clk) then
 
                 -- Sample on sample request
-                if wr_valid_gflow_success_done = '1' then -- Sample request signal
+                if wr_valid_feedfwd_success_done = '1' then -- Sample request signal
                     for i in 0 to INT_QUBITS_CNT-1 loop
                         slv_flow_alpha_buffer_shreg((i+1)*2-1 downto i*2) 
                             <= wr_data_alpha_buffer(i);
@@ -388,7 +397,7 @@
             if rising_edge(wr_sys_clk) then
 
                 -- Sample on sample request
-                if wr_valid_gflow_success_done = '1' then -- Sample request signal
+                if wr_valid_feedfwd_success_done = '1' then -- Sample request signal
                     for i in 0 to INT_QUBITS_CNT-1 loop
                         slv_flow_modulo_buffer_shreg((i+1)*2-1 downto i*2) 
                             <= wr_data_modulo_buffer(i);
@@ -409,7 +418,7 @@
             if rising_edge(wr_sys_clk) then
 
                 -- Sample on sample request
-                if wr_valid_gflow_success_done = '1' then -- Sample request signal
+                if wr_valid_feedfwd_success_done = '1' then -- Sample request signal
                     for i in 0 to INT_QUBITS_CNT-1 loop
                         slv_flow_random_buffer_shreg((i+1)*1-1 downto i*1) 
                             <= wr_data_random_buffer(i);
@@ -429,7 +438,7 @@
             if rising_edge(wr_sys_clk) then
 
                 -- Sample on sample request
-                if wr_valid_gflow_success_done = '1' then -- Sample request signal
+                if wr_valid_feedfwd_success_done = '1' then -- Sample request signal
                     for i in 0 to INT_QUBITS_CNT loop
                         slv_flow_timestamp_buffer_shreg((i+1)*28-1 downto i*28)
                             <= wr_data_time_stamp_buffer(i);
@@ -529,31 +538,43 @@
 
 
                 -- Counter to send a value per desired number of seconds
-                if int_periodic_report_counter = PERIODIC_REPORT_CLK_PERIODS-1 then
+                if wr_rst = '1' then
                     int_periodic_report_counter <= 0;
-                    sl_periodic_report_flag <= '1';
-                    sl_periodic_report_sample_request <= (others => '1');
-                else
-                    int_periodic_report_counter <= int_periodic_report_counter + 1;
                     sl_periodic_report_flag <= '0';
                     sl_periodic_report_sample_request <= (others => '0');
+                else
+                    if int_periodic_report_counter = PERIODIC_REPORT_CLK_PERIODS-1 then
+                        int_periodic_report_counter <= 0;
+                        sl_periodic_report_flag <= '1';
+                        sl_periodic_report_sample_request <= (others => '1');
+                    else
+                        int_periodic_report_counter <= int_periodic_report_counter + 1;
+                        sl_periodic_report_flag <= '0';
+                        sl_periodic_report_sample_request <= (others => '0');
+                    end if;
                 end if;
 
                 -- 2nd counter to send a value per desired number of seconds
-                if int_periodic_report_counter_2 = PERIODIC_REPORT_CLK_PERIODS_2-1 then
+                if wr_rst = '1' then
                     int_periodic_report_counter_2 <= 0;
-                    sl_periodic_report_flag_2 <= '1';
-                    sl_periodic_report_sample_request_2 <= (others => '1');
-                else
-                    int_periodic_report_counter_2 <= int_periodic_report_counter_2 + 1;
                     sl_periodic_report_flag_2 <= '0';
                     sl_periodic_report_sample_request_2 <= (others => '0');
+                else
+                    if int_periodic_report_counter_2 = PERIODIC_REPORT_CLK_PERIODS_2-1 then
+                        int_periodic_report_counter_2 <= 0;
+                        sl_periodic_report_flag_2 <= '1';
+                        sl_periodic_report_sample_request_2 <= (others => '1');
+                    else
+                        int_periodic_report_counter_2 <= int_periodic_report_counter_2 + 1;
+                        sl_periodic_report_flag_2 <= '0';
+                        sl_periodic_report_sample_request_2 <= (others => '0');
+                    end if;
                 end if;
 
 
                 -- Queued Requests
-                if wr_valid_gflow_success_done = '1' then
-                    sl_readout_request_gflow <= wr_valid_gflow_success_done;
+                if wr_valid_feedfwd_success_done = '1' then
+                    sl_readout_request_feedfwd <= wr_valid_feedfwd_success_done;
                 end if;
 
                 if sl_periodic_report_flag = '1' then
@@ -571,7 +592,7 @@
                     when SCAN_READOUT_REQUESTS => 
 
                         -- Default
-                        if sl_readout_request_gflow = '1' then -- (Higher Priority)
+                        if sl_readout_request_feedfwd = '1' then -- (Higher Priority)
                             -- Gflow report readout request
                             state_fifo_readout <= SEND_GFLOW_PHOTONS; -- Multi-transactional sequence of readout tx commands
                             sl_request_read_photons_shift_enable <= '1'; -- Pipe On (will be done after 2 clk cycles)
@@ -591,7 +612,7 @@
 
                     when SEND_COINCIDENCES =>
 
-                        -- Send periodic report in a way it has a higher priority over the 'sl_readout_request_gflow' but does not interfere with it
+                        -- Send periodic report in a way it has a higher priority over the 'sl_readout_request_feedfwd' but does not interfere with it
                         if int_readout_counter = INT_QUBITS_CNT**2 then
                             int_readout_counter <= 0;
 
@@ -620,7 +641,7 @@
 
                     when SEND_CH_DETECTIONS =>
 
-                        -- Send periodic report in a way it has a higher priority over the 'sl_readout_request_gflow' but does not interfere with it
+                        -- Send periodic report in a way it has a higher priority over the 'sl_readout_request_feedfwd' but does not interfere with it
                         if int_readout_counter = INT_QUBITS_CNT*2 then
                             int_readout_counter <= 0;
 
@@ -649,7 +670,7 @@
 
                     when SEND_PHOTON_LOSSES =>
 
-                        -- Send periodic report in a way it has a higher priority over the 'sl_readout_request_gflow' but does not interfere with it
+                        -- Send periodic report in a way it has a higher priority over the 'sl_readout_request_feedfwd' but does not interfere with it
                         if int_readout_counter = INT_QUBITS_CNT-1 then
                             int_readout_counter <= 0;
 
@@ -680,7 +701,7 @@
 
                     when SEND_GFLOW_PHOTONS => 
 
-                        -- Send periodic report in a way it has a higher priority over the 'sl_readout_request_gflow' but does not interfere with it
+                        -- Send periodic report in a way it has a higher priority over the 'sl_readout_request_feedfwd' but does not interfere with it
                         if int_readout_counter = INT_QUBITS_CNT then
                             int_readout_counter <= 0;
 
@@ -709,7 +730,7 @@
 
                     when SEND_GFLOW_ALPHA =>
 
-                        -- Send periodic report in a way it has a higher priority over the 'sl_readout_request_gflow' but does not interfere with it
+                        -- Send periodic report in a way it has a higher priority over the 'sl_readout_request_feedfwd' but does not interfere with it
                         if int_readout_counter = INT_QUBITS_CNT then
                             int_readout_counter <= 0;
 
@@ -736,7 +757,7 @@
 
                     when SEND_GFLOW_MODULO =>
 
-                        -- Send periodic report in a way it has a higher priority over the 'sl_readout_request_gflow' but does not interfere with it
+                        -- Send periodic report in a way it has a higher priority over the 'sl_readout_request_feedfwd' but does not interfere with it
                         if int_readout_counter = INT_QUBITS_CNT then
                             int_readout_counter <= 0;
 
@@ -764,7 +785,7 @@
 
                     when SEND_GFLOW_RANDOM =>
 
-                        -- Send periodic report in a way it has a higher priority over the 'sl_readout_request_gflow' but does not interfere with it
+                        -- Send periodic report in a way it has a higher priority over the 'sl_readout_request_feedfwd' but does not interfere with it
                         if int_readout_counter = INT_QUBITS_CNT then
                             int_readout_counter <= 0;
 
@@ -773,7 +794,7 @@
                             slv_wr_data_stream_32b(31 downto 4) <= (others => '0');
                             slv_wr_data_stream_32b(3 downto 0) <= x"E";
 
-                            state_fifo_readout <= SEND_GFLOW_TIMESTAMP; -- Coordinate the readout logic
+                            state_fifo_readout <= SEND_FEEDFWD_TIMESTAMP; -- Coordinate the readout logic
                             sl_request_read_timestamp_shift_enable <= '1'; -- Pipe On (will be done after 2 clk cycles)
 
                         else
@@ -791,19 +812,19 @@
 
                         end if;
 
-                    when SEND_GFLOW_TIMESTAMP =>
+                    when SEND_FEEDFWD_TIMESTAMP =>
 
-                        -- Send periodic report in a way it has a higher priority over the 'sl_readout_request_gflow' but does not interfere with it
+                        -- Send periodic report in a way it has a higher priority over the 'sl_readout_request_feedfwd' but does not interfere with it
                         if int_readout_counter = INT_QUBITS_CNT+1 then
                             int_readout_counter <= 0;
 
                             -- Send enter
                             sl_wr_en_flag_pulsed <= '1';
-                            slv_wr_data_stream_32b(31 downto 4) <= slv_time_gflow_sample_request; -- Send TIME information about when data were sampled along with x"F" (end of frame)
+                            slv_wr_data_stream_32b(31 downto 4) <= slv_time_feedfwd_sample_request; -- Send TIME information about when data were sampled along with x"F" (end of frame)
                             slv_wr_data_stream_32b(3 downto 0) <= x"F";
 
                             state_fifo_readout <= SCAN_READOUT_REQUESTS; -- Coordinate the readout logic
-                            sl_readout_request_gflow <= '0'; -- Job done flag
+                            sl_readout_request_feedfwd <= '0'; -- Job done flag
 
                         else
                             int_readout_counter <= int_readout_counter + 1;
@@ -823,7 +844,7 @@
                         state_fifo_readout <= SCAN_READOUT_REQUESTS;
 
                         -- Set next transaction request to zero, wait to be asserted once next cluster has been measured
-                        sl_readout_request_gflow <= '0';
+                        sl_readout_request_feedfwd <= '0';
 
                 end case;
             end if;
@@ -836,8 +857,10 @@
             if rising_edge(wr_sys_clk) then
 
                 -- DO NOT TOUCH: Default values
-                sl_wr_en <= '0';
-                sl_full_latched <= sl_full_latched;
+                if wr_rst = '0' then
+                    sl_wr_en <= '0';
+                    sl_full_latched <= sl_full_latched;
+                end if;
 
                 -- USER INPUT: Condition for writing to FIFO
                 if sl_wr_en_flag_pulsed = '1' then

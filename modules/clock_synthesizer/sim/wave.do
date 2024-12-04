@@ -1,6 +1,7 @@
 onerror {resume}
 quietly WaveActivateNextPane {} 0
 add wave -noupdate -divider {TB: clock_synthesizer_tb ALL signals}
+add wave -noupdate /clock_synthesizer_tb/in_reset
 add wave -noupdate /clock_synthesizer_tb/in_clk0_p
 add wave -noupdate /clock_synthesizer_tb/in_clk0_n
 add wave -noupdate /clock_synthesizer_tb/in_fineps_clk
@@ -34,13 +35,9 @@ add wave -noupdate /clock_synthesizer_tb/dut/out_fineps_dready
 add wave -noupdate -divider {DUT: 'clock_synthesizer' INTERNAL signals}
 add wave -noupdate /clock_synthesizer_tb/dut/fineps_dready
 add wave -noupdate /clock_synthesizer_tb/dut/fineps_incdec
-add wave -noupdate /clock_synthesizer_tb/dut/mmcm_out_clk
 add wave -noupdate /clock_synthesizer_tb/dut/fineps_en
 add wave -noupdate /clock_synthesizer_tb/dut/fineps_valid
 add wave -noupdate /clock_synthesizer_tb/dut/ps_done
-add wave -noupdate /clock_synthesizer_tb/dut/mmcm_out_feedback_bufg
-add wave -noupdate /clock_synthesizer_tb/dut/mmcm_out_clk_bufg
-add wave -noupdate /clock_synthesizer_tb/dut/mmcm_out_feedback
 add wave -noupdate -divider {Constants and Generics}
 add wave -noupdate /clock_synthesizer_tb/IF_CLKIN1_DIFF
 add wave -noupdate /clock_synthesizer_tb/REAL_CLKIN1_MHZ
@@ -68,10 +65,21 @@ add wave -noupdate /clock_synthesizer_tb/REAL_PHASE_OUT3
 add wave -noupdate /clock_synthesizer_tb/REAL_PHASE_OUT4
 add wave -noupdate /clock_synthesizer_tb/REAL_PHASE_OUT5
 add wave -noupdate /clock_synthesizer_tb/REAL_PHASE_OUT6
+add wave -noupdate /clock_synthesizer_tb/dut/REF_JITTER1_UI_REAL
+add wave -noupdate /clock_synthesizer_tb/dut/REF_JITTER1_UI_REAL_MULTIPLIED
+add wave -noupdate /clock_synthesizer_tb/dut/REF_JITTER1_UI_ROUNDED1
+add wave -noupdate /clock_synthesizer_tb/dut/REF_JITTER1_UI_DIVIDED
+add wave -noupdate /clock_synthesizer_tb/dut/REF_JITTER1_UI_ROUNDED2
+add wave -noupdate /clock_synthesizer_tb/dut/REF_JITTER1_UI_REAL_ORIG_ORDER
+add wave -noupdate /clock_synthesizer_tb/dut/out_clkfb
+add wave -noupdate /clock_synthesizer_tb/out_clkb0
+add wave -noupdate /clock_synthesizer_tb/out_clkb1
+add wave -noupdate /clock_synthesizer_tb/out_clkb2
+add wave -noupdate /clock_synthesizer_tb/out_clkb3
 TreeUpdate [SetDefaultTree]
-WaveRestoreCursors {{Cursor 1} {201872 ps} 0}
+WaveRestoreCursors {{Cursor 1} {75499 ps} 0}
 quietly wave cursor active 1
-configure wave -namecolwidth 344
+configure wave -namecolwidth 381
 configure wave -valuecolwidth 100
 configure wave -justifyvalue left
 configure wave -signalnamewidth 0
@@ -85,4 +93,4 @@ configure wave -griddelta 40
 configure wave -timeline 0
 configure wave -timelineunits ps
 update
-WaveRestoreZoom {0 ps} {1575 ns}
+WaveRestoreZoom {0 ps} {3185652 ps}

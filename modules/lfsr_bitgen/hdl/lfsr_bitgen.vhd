@@ -1,6 +1,7 @@
     -- lfsr_bitgen.vhd: This code contains the hardware architecture of the Galois Linear Feedback Shift Register
     -- for pseudo-random number generation
-    -- More irreducible primitive polynomials: https://link.springer.com/content/pdf/bbm%3A978-1-4615-1509-8%2F1.pdf
+    -- More irreducible primitive polynomials: 
+    -- https://link.springer.com/content/pdf/bbm%3A978-1-4615-1509-8%2F1.pdf
     
 
     library ieee;

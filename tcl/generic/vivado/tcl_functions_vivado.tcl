@@ -78,6 +78,7 @@ proc add_module {relpath_to_module} {
             ]
             if {[llength $foundFiles] > 0} {
                 foreach file_path $foundFiles {
+                    read_xdc $file_path -unmanaged
                     add_files -norecurse -fileset "constrs_1" "$file_path"
                     puts -nonewline $vivado_added_scripts_report "$file_path\n"
                 }
@@ -91,6 +92,7 @@ proc add_module {relpath_to_module} {
             if {[llength $foundFiles] > 0} {
                 foreach file_path $foundFiles {
                     if { [string first $this_file_name $file_path] == -1} {
+                        # Read lines in the file. This is not an xdc file.
                         source $file_path
                         puts -nonewline $vivado_added_scripts_report "$file_path\n"
                     }
@@ -109,4 +111,22 @@ proc add_module {relpath_to_module} {
         puts "TCL: ERROR: Required module directory '[file normalize ${relpath_to_module}]' does not exist. Quit."
         quit
     }
+}
+
+
+# Tell whether a certain instance exists in the design
+proc check_inst_present_in_design {path_to_inst all_insts} {
+    if {$all_insts eq ""} {
+        set all_insts [get_cells -hier -filter {NAME =~ */* && IS_PRIMITIVE != 1}]
+    }
+    set target_inst_present 0
+    foreach inst $all_insts {
+        puts ${inst}
+        if {${inst} eq "$path_to_inst"} {
+            puts "MATCH"
+            set target_inst_present 1
+        }
+    }
+    puts "$target_inst_present"
+    return $target_inst_present
 }

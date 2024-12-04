@@ -69,7 +69,7 @@
         signal actual_qubit : std_logic_vector(1 downto 0) := (others => '0');
         signal time_stamp_counter_overflow : std_logic := '0';
         signal state_gflow : natural range 0 to QUBITS_CNT-1;
-        signal pcd_ctrl_pulse_ready : std_logic := '1';
+        signal eom_ctrl_pulse_ready : std_logic := '1';
 
         -- Number od random inputs INST_B
         constant MAX_RANDOM_NUMBS : natural := 300;
@@ -168,7 +168,7 @@
             state_gflow => state_gflow,
 
             time_stamp_counter_overflow => time_stamp_counter_overflow,
-            pcd_ctrl_pulse_ready => pcd_ctrl_pulse_ready
+            eom_ctrl_pulse_ready => eom_ctrl_pulse_ready
         );
 
 
