@@ -42,7 +42,6 @@
         constant PHOTON_5V_DELAY_NS      : real := -3181.05;
         constant PHOTON_6H_DELAY_NS      : real := -3177.95;
         constant PHOTON_6V_DELAY_NS      : real := -3181.05;
-        constant DISCARD_QUBITS_TIME_NS  : natural := 0;
         
 
         -- CLK of the FPGA
@@ -63,7 +62,7 @@
         signal o_feedforward_pulse_trigger : std_logic_vector(0 downto 0) := (others => '0');
         signal o_unsuccessful_qubits : std_logic_vector(QUBITS_CNT-1 downto 1) := (others => '0');
         signal feedfwd_success_flag : std_logic := '0';
-        signal feedfwd_success_done : std_logic := '0';
+        signal feedfwd_start : std_logic := '0';
         signal qubit_buffer : t_qubit_buffer_2d := (others => (others => '0'));
         signal time_stamp_buffer : t_time_stamp_buffer_2d := (others => (others => '0'));
         signal actual_qubit_valid : std_logic := '0';
@@ -142,8 +141,7 @@
             PHOTON_5H_DELAY_NS      => PHOTON_5H_DELAY_NS,
             PHOTON_5V_DELAY_NS      => PHOTON_5V_DELAY_NS,
             PHOTON_6H_DELAY_NS      => PHOTON_6H_DELAY_NS,
-            PHOTON_6V_DELAY_NS      => PHOTON_6V_DELAY_NS,
-            DISCARD_QUBITS_TIME_NS  => DISCARD_QUBITS_TIME_NS
+            PHOTON_6V_DELAY_NS      => PHOTON_6V_DELAY_NS
         )
         port map (
             clk => clk,
@@ -158,7 +156,7 @@
             o_unsuccessful_qubits => o_unsuccessful_qubits,
 
             feedfwd_success_flag => feedfwd_success_flag,
-            feedfwd_success_done => feedfwd_success_done,
+            feedfwd_start => feedfwd_start,
             qubit_buffer => qubit_buffer,
             time_stamp_buffer => time_stamp_buffer,
 

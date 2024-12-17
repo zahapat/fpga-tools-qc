@@ -38,7 +38,8 @@ GENERIC_ARGS = 	--generic1_name=$(GEN1_NAME)   --generic1_val=$(GEN1_VAL)\
 				--generic31_name=$(GEN31_NAME) --generic31_val=$(GEN31_VAL)\
 				--generic32_name=$(GEN32_NAME) --generic32_val=$(GEN32_VAL)\
 				--generic33_name=$(GEN33_NAME) --generic33_val=$(GEN33_VAL)\
-				--generic34_name=$(GEN34_NAME) --generic34_val=$(GEN34_VAL)
+				--generic34_name=$(GEN34_NAME) --generic34_val=$(GEN34_VAL)\
+				--generic35_name=$(GEN35_NAME) --generic35_val=$(GEN35_VAL)
 
 
 

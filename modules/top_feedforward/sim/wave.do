@@ -55,9 +55,6 @@ add wave -noupdate /top_feedforward_tb/dut_top_feedforward/readout_data_32b
 add wave -noupdate /top_feedforward_tb/dut_top_feedforward/led
 add wave -noupdate /top_feedforward_tb/dut_top_feedforward/o_photon_1v_before_cdcc
 add wave -noupdate /top_feedforward_tb/dut_top_feedforward/o_eom_ctrl_pulsegen_busy
-add wave -noupdate /top_feedforward_tb/dut_top_feedforward/o_debug_port_1
-add wave -noupdate /top_feedforward_tb/dut_top_feedforward/o_debug_port_2
-add wave -noupdate /top_feedforward_tb/dut_top_feedforward/o_debug_port_3
 add wave -noupdate /top_feedforward_tb/dut_top_feedforward/sl_led_fifo_full_latched
 add wave -noupdate /top_feedforward_tb/dut_top_feedforward/slv_fifo_wr_valid_qubit_flags
 add wave -noupdate /top_feedforward_tb/dut_top_feedforward/sl_usb_fifo_empty
@@ -87,7 +84,6 @@ add wave -noupdate /top_feedforward_tb/dut_top_feedforward/sl_inemul_valid
 add wave -noupdate /top_feedforward_tb/dut_top_feedforward/slv_cdcc_rd_valid_to_fsm
 add wave -noupdate /top_feedforward_tb/dut_top_feedforward/slv_cdcc_rd_qubits_to_fsm_delayed
 add wave -noupdate /top_feedforward_tb/dut_top_feedforward/sl_feedfwd_success_flag
-add wave -noupdate /top_feedforward_tb/dut_top_feedforward/sl_feedfwd_success_done
 add wave -noupdate /top_feedforward_tb/dut_top_feedforward/slv_alpha_to_math
 add wave -noupdate /top_feedforward_tb/dut_top_feedforward/slv_sx_sz_to_math
 add wave -noupdate /top_feedforward_tb/dut_top_feedforward/slv_actual_qubit
@@ -119,7 +115,6 @@ add wave -noupdate /top_feedforward_tb/dut_top_feedforward/slv_photon_1h
 add wave -noupdate /top_feedforward_tb/dut_top_feedforward/slv_photon_1v
 add wave -noupdate /top_feedforward_tb/dut_top_feedforward/inst_fsm_feedforward/clk
 add wave -noupdate /top_feedforward_tb/dut_top_feedforward/inst_fsm_feedforward/rst
-add wave -noupdate /top_feedforward_tb/dut_top_feedforward/inst_fsm_feedforward/qubits_sampled_valid
 add wave -noupdate /top_feedforward_tb/dut_top_feedforward/inst_fsm_feedforward/qubits_sampled
 add wave -noupdate /top_feedforward_tb/dut_top_feedforward/inst_fsm_feedforward/o_feedforward_pulse
 add wave -noupdate /top_feedforward_tb/dut_top_feedforward/inst_fsm_feedforward/o_unsuccessful_qubits
@@ -130,7 +125,20 @@ add wave -noupdate /top_feedforward_tb/dut_top_feedforward/inst_fsm_feedforward/
 add wave -noupdate /top_feedforward_tb/dut_top_feedforward/inst_fsm_feedforward/actual_qubit
 add wave -noupdate /top_feedforward_tb/dut_top_feedforward/inst_fsm_feedforward/time_stamp_counter_overflow
 add wave -noupdate /top_feedforward_tb/dut_top_feedforward/inst_fsm_feedforward/eom_ctrl_pulse_ready
-add wave -noupdate /top_feedforward_tb/dut_top_feedforward/inst_fsm_feedforward/slv_state_feedforward
+add wave -noupdate /top_feedforward_tb/dut_top_feedforward/inst_fsm_feedforward/qubits_sampled_valid
+add wave -noupdate /top_feedforward_tb/dut_top_feedforward/inst_fsm_feedforward/slv_new_main_cntr
+add wave -noupdate -color Gold -expand -subitemconfig {/top_feedforward_tb/dut_top_feedforward/inst_fsm_feedforward/slv_state_feedforward(3) {-color Gold -height 15} /top_feedforward_tb/dut_top_feedforward/inst_fsm_feedforward/slv_state_feedforward(2) {-color Gold -height 15} /top_feedforward_tb/dut_top_feedforward/inst_fsm_feedforward/slv_state_feedforward(1) {-color Gold -height 15} /top_feedforward_tb/dut_top_feedforward/inst_fsm_feedforward/slv_state_feedforward(0) {-color Gold -height 15}} /top_feedforward_tb/dut_top_feedforward/inst_fsm_feedforward/slv_state_feedforward
+add wave -noupdate /top_feedforward_tb/dut_top_feedforward/sl_actual_qubit_valid
+add wave -noupdate /top_feedforward_tb/dut_top_feedforward/slv_feedforward_pulse
+add wave -noupdate /top_feedforward_tb/dut_top_feedforward/slv_feedfwd_eom_pulse
+add wave -noupdate -expand /top_feedforward_tb/dut_top_feedforward/slv_feedfwd_eom_pulse_delayed
+add wave -noupdate -color {Medium Violet Red} /top_feedforward_tb/dut_top_feedforward/inst_fsm_feedforward/sl_feedfwd_success_flag
+add wave -noupdate -color {Orange Red} /top_feedforward_tb/dut_top_feedforward/o_eom_ctrl_pulse
+add wave -noupdate /top_feedforward_tb/dut_top_feedforward/o_debug_port_1
+add wave -noupdate -color {Medium Violet Red} /top_feedforward_tb/dut_top_feedforward/o_debug_port_2
+add wave -noupdate -color {Cornflower Blue} /top_feedforward_tb/dut_top_feedforward/o_debug_port_3
+add wave -noupdate /top_feedforward_tb/dut_top_feedforward/sl_feedfwd_start
+add wave -noupdate /top_feedforward_tb/dut_top_feedforward/slv_feedfwd_start
 add wave -noupdate /top_feedforward_tb/dut_top_feedforward/inst_fsm_feedforward/slv_state_feedforward_two_qubits
 add wave -noupdate /top_feedforward_tb/dut_top_feedforward/inst_fsm_feedforward/int_state_feedfwd
 add wave -noupdate /top_feedforward_tb/dut_top_feedforward/inst_fsm_feedforward/actual_state_feedfwd
@@ -138,7 +146,6 @@ add wave -noupdate /top_feedforward_tb/dut_top_feedforward/inst_fsm_feedforward/
 add wave -noupdate /top_feedforward_tb/dut_top_feedforward/inst_fsm_feedforward/eom_ctrl_pulse_ready_p1
 add wave -noupdate /top_feedforward_tb/dut_top_feedforward/inst_fsm_feedforward/eom_ctrl_pulse_fedge_latched
 add wave -noupdate /top_feedforward_tb/dut_top_feedforward/inst_fsm_feedforward/slv_o_feedforward_pulse
-add wave -noupdate /top_feedforward_tb/dut_top_feedforward/inst_fsm_feedforward/s_feedfwd_success_flag
 add wave -noupdate /top_feedforward_tb/dut_top_feedforward/inst_fsm_feedforward/slv_unsuccessful_qubits
 add wave -noupdate /top_feedforward_tb/dut_top_feedforward/inst_fsm_feedforward/slv_unsuccessful_qubits_two_qubits
 add wave -noupdate /top_feedforward_tb/dut_top_feedforward/inst_fsm_feedforward/slv_qubits_sampled
@@ -149,7 +156,6 @@ add wave -noupdate /top_feedforward_tb/dut_top_feedforward/inst_fsm_feedforward/
 add wave -noupdate /top_feedforward_tb/dut_top_feedforward/inst_fsm_feedforward/slv_qubit_buffer_2d
 add wave -noupdate /top_feedforward_tb/dut_top_feedforward/inst_fsm_feedforward/slv_time_stamp_buffer_2d
 add wave -noupdate /top_feedforward_tb/dut_top_feedforward/inst_fsm_feedforward/flag_invalid_qubit_id
-add wave -noupdate /top_feedforward_tb/dut_top_feedforward/inst_fsm_feedforward/slv_counter_skip_qubits
 add wave -noupdate /top_feedforward_tb/dut_top_feedforward/inst_fsm_feedforward/slv_main_counter_bin
 add wave -noupdate /top_feedforward_tb/dut_top_feedforward/inst_fsm_feedforward/int_main_counter_bin
 add wave -noupdate /top_feedforward_tb/dut_top_feedforward/inst_fsm_feedforward/slv_main_counter_bin_incr
@@ -158,9 +164,8 @@ add wave -noupdate /top_feedforward_tb/dut_top_feedforward/inst_fsm_feedforward/
 add wave -noupdate /top_feedforward_tb/dut_top_feedforward/inst_fsm_feedforward/int_main_counter_gray
 add wave -noupdate /top_feedforward_tb/dut_top_feedforward/inst_fsm_feedforward/slv_main_counter_galois
 add wave -noupdate /top_feedforward_tb/dut_top_feedforward/inst_fsm_feedforward/slv_main_counter_galois_feedback
-add wave -noupdate /top_feedforward_tb/dut_top_feedforward/inst_fsm_feedforward/slv_new_main_cntr
 add wave -noupdate /top_feedforward_tb/dut_top_feedforward/inst_fsm_feedforward/slv_new_main_galois_cntr_two_qubits
-add wave -noupdate /top_feedforward_tb/dut_top_feedforward/inst_fsm_feedforward/slv_new_main_galois_cntr_2d
+add wave -noupdate -expand /top_feedforward_tb/dut_top_feedforward/inst_fsm_feedforward/slv_new_main_galois_cntr_2d
 add wave -noupdate /top_feedforward_tb/dut_top_feedforward/inst_csv_readout/wr_rst
 add wave -noupdate /top_feedforward_tb/dut_top_feedforward/inst_csv_readout/rd_rst
 add wave -noupdate /top_feedforward_tb/dut_top_feedforward/inst_csv_readout/wr_sys_clk
@@ -244,36 +249,16 @@ add wave -noupdate /top_feedforward_tb/dut_top_feedforward/dsp_clk
 add wave -noupdate /top_feedforward_tb/dut_top_feedforward/s_stable_channels_to_cdcc
 add wave -noupdate /top_feedforward_tb/dut_top_feedforward/slv_cdcc_rd_qubits_to_fsm
 add wave -noupdate /top_feedforward_tb/dut_top_feedforward/inst_fsm_feedforward/int_state_feedfwd_two_qubits
-add wave -noupdate /top_feedforward_tb/dut_top_feedforward/inst_fsm_feedforward/sl_feedfwd_success_flag
-add wave -noupdate /top_feedforward_tb/dut_top_feedforward/inst_fsm_feedforward/sl_feedfwd_success_done
 add wave -noupdate /top_feedforward_tb/dut_top_feedforward/sl_feedfwd_success_done_transferred
-add wave -noupdate /top_feedforward_tb/dut_top_feedforward/inst_reg_delay_eom_pulse/CLK_HZ
-add wave -noupdate /top_feedforward_tb/dut_top_feedforward/inst_reg_delay_eom_pulse/RST_VAL
-add wave -noupdate /top_feedforward_tb/dut_top_feedforward/inst_reg_delay_eom_pulse/DATA_WIDTH
-add wave -noupdate /top_feedforward_tb/dut_top_feedforward/inst_reg_delay_eom_pulse/DELAY_CYCLES
-add wave -noupdate /top_feedforward_tb/dut_top_feedforward/inst_reg_delay_eom_pulse/DELAY_NS
-add wave -noupdate /top_feedforward_tb/dut_top_feedforward/inst_reg_delay_eom_pulse/clk
-add wave -noupdate /top_feedforward_tb/dut_top_feedforward/inst_reg_delay_eom_pulse/i_data
-add wave -noupdate /top_feedforward_tb/dut_top_feedforward/inst_reg_delay_eom_pulse/o_data
-add wave -noupdate /top_feedforward_tb/dut_top_feedforward/inst_reg_delay_eom_pulse/slv_buffer_reg_2d
-add wave -noupdate /top_feedforward_tb/dut_top_feedforward/inst_reg_delay_eom_pulse/CLK_PERIOD_NS
-add wave -noupdate /top_feedforward_tb/dut_top_feedforward/inst_reg_delay_eom_pulse/TIME_DELAY_PERIODS
-add wave -noupdate /top_feedforward_tb/dut_top_feedforward/inst_reg_delay_eom_pulse/DELAY_CYCLES_CALCULATED
 add wave -noupdate /top_feedforward_tb/dut_top_feedforward/sl_rst_eval_clk
 add wave -noupdate /top_feedforward_tb/dut_top_feedforward/sl_rst_readout_clk
 add wave -noupdate /top_feedforward_tb/dut_top_feedforward/sl_rst_dsp_clk
 add wave -noupdate -expand /top_feedforward_tb/dut_top_feedforward/eom_ctrl_pulse_coincidence
 add wave -noupdate /top_feedforward_tb/dut_top_feedforward/eom_ctrl_pulse_coincidence(0)
-add wave -noupdate -color Yellow -expand -subitemconfig {/top_feedforward_tb/dut_top_feedforward/input_pads(3) {-color Yellow -height 15} /top_feedforward_tb/dut_top_feedforward/input_pads(2) {-color Yellow -height 15} /top_feedforward_tb/dut_top_feedforward/input_pads(1) {-color Yellow -height 15} /top_feedforward_tb/dut_top_feedforward/input_pads(0) {-color Yellow -height 15}} /top_feedforward_tb/dut_top_feedforward/input_pads
+add wave -noupdate -color Yellow -expand -subitemconfig {/top_feedforward_tb/dut_top_feedforward/input_pads(7) {-color Yellow -height 15} /top_feedforward_tb/dut_top_feedforward/input_pads(6) {-color Yellow -height 15} /top_feedforward_tb/dut_top_feedforward/input_pads(5) {-color Yellow -height 15} /top_feedforward_tb/dut_top_feedforward/input_pads(4) {-color Yellow -height 15} /top_feedforward_tb/dut_top_feedforward/input_pads(3) {-color Yellow -height 15} /top_feedforward_tb/dut_top_feedforward/input_pads(2) {-color Yellow -height 15} /top_feedforward_tb/dut_top_feedforward/input_pads(1) {-color Yellow -height 15} /top_feedforward_tb/dut_top_feedforward/input_pads(0) {-color Yellow -height 15}} /top_feedforward_tb/dut_top_feedforward/input_pads
 add wave -noupdate -expand -subitemconfig {/top_feedforward_tb/slv_cdcc_rd_qubits_to_fsm(1) {-color Red -height 15}} /top_feedforward_tb/slv_cdcc_rd_qubits_to_fsm
 add wave -noupdate -color {Cadet Blue} /top_feedforward_tb/dut_top_feedforward/inst_fsm_feedforward/actual_qubit_valid
-add wave -noupdate -color {Orange Red} /top_feedforward_tb/dut_top_feedforward/o_eom_ctrl_pulse
-add wave -noupdate /top_feedforward_tb/dut_top_feedforward/sl_actual_qubit_valid
-add wave -noupdate /top_feedforward_tb/dut_top_feedforward/slv_feedforward_pulse
-add wave -noupdate /top_feedforward_tb/dut_top_feedforward/slv_feedfwd_eom_pulse
-add wave -noupdate /top_feedforward_tb/dut_top_feedforward/slv_feedfwd_eom_pulse_delayed
 add wave -noupdate -divider Queue
-add wave -noupdate /top_feedforward_tb/dut_top_feedforward/inst_fsm_feedforward/feedfwd_success_done
 add wave -noupdate /top_feedforward_tb/dut_top_feedforward/slv_qubit_buffer_to_transfer_rd_valid
 add wave -noupdate -expand /top_feedforward_tb/dut_top_feedforward/slv_time_stamp_buffer_to_transfer_rd_valid
 add wave -noupdate /top_feedforward_tb/dut_top_feedforward/slv_alpha_buffer_to_transfer_rd_valid
@@ -289,8 +274,9 @@ add wave -noupdate -expand /top_feedforward_tb/dut_top_feedforward/slv_time_stam
 add wave -noupdate /top_feedforward_tb/dut_top_feedforward/slv_alpha_buffer_to_transfer_2d
 add wave -noupdate /top_feedforward_tb/dut_top_feedforward/slv_modulo_buffer_to_transfer_2d
 add wave -noupdate /top_feedforward_tb/dut_top_feedforward/slv_random_buffer_to_transfer_2d
+add wave -noupdate /top_feedforward_tb/dut_top_feedforward/inst_fsm_feedforward/MAX_PERIODS_DIFF_CORR
 TreeUpdate [SetDefaultTree]
-WaveRestoreCursors {{Cursor 1} {88562 ps} 0}
+WaveRestoreCursors {{Cursor 1} {1286486 ps} 0}
 quietly wave cursor active 1
 configure wave -namecolwidth 549
 configure wave -valuecolwidth 164
@@ -306,4 +292,4 @@ configure wave -griddelta 40
 configure wave -timeline 0
 configure wave -timelineunits ns
 update
-WaveRestoreZoom {8704538 ps} {15860288 ps}
+WaveRestoreZoom {0 ps} {53823105 ps}

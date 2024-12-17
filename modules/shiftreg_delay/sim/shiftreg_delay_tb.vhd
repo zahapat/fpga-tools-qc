@@ -1,4 +1,4 @@
-    -- reg_delay_tb.vhd: Test file for component "delay.vhd"
+    -- shiftreg_delay_tb.vhd: Test file for component "delay.vhd"
 
     library ieee;
     use ieee.std_logic_1164.all;
@@ -10,10 +10,10 @@
     use std.textio.all;
     use std.env.finish;
 
-    entity reg_delay_tb is
-    end reg_delay_tb;
+    entity shiftreg_delay_tb is
+    end shiftreg_delay_tb;
 
-    architecture sim of reg_delay_tb is
+    architecture sim of shiftreg_delay_tb is
 
         -- Clocks
         constant CLK_HZ : natural := 250e6;
@@ -22,8 +22,8 @@
         -- Generics
         constant RST_VAL : std_logic := '1';
         constant DATA_WIDTH : positive := 10;
-        constant DELAY_CYCLES : natural := 12; -- If you specify DELAY_CYCLES (is greater than zero), then DELAY_NS value will be ignored
-        constant DELAY_NS : natural := 2;      -- This value should be a multiple of clock period for precise results
+        constant DELAY_CYCLES : natural := 0; -- If you specify DELAY_CYCLES (is greater than zero), then DELAY_NS value will be ignored
+        constant DELAY_NS : natural := 0;      -- This value should be a multiple of clock period for precise results
 
         -- Signals
         signal clk : std_logic := '1';
@@ -51,7 +51,7 @@
         clk <= not clk after CLK_PERIOD / 2;
 
         -- DUT instance
-        dut_reg_delay : entity lib_src.reg_delay(rtl)
+        dut_shiftreg_delay : entity lib_src.shiftreg_delay(rtl)
         generic map (
             RST_VAL => RST_VAL,
             DATA_WIDTH => DATA_WIDTH,

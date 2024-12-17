@@ -45,10 +45,13 @@
             INT_WHOLE_DIGITS_CNT_PHOTON_6H_DELAY : integer := INT_WHOLE_DIGITS_CNT_PHOTON_6H_DELAY;
             INT_WHOLE_DIGITS_CNT_PHOTON_6V_DELAY : integer := INT_WHOLE_DIGITS_CNT_PHOTON_6V_DELAY;
 
-            INT_DISCARD_QUBITS_TIME_NS      : integer := INT_DISCARD_QUBITS_TIME_NS;           -- Stop feedforward for a given time
-            INT_CTRL_PULSE_HIGH_DURATION_NS : integer := INT_CTRL_PULSE_HIGH_DURATION_NS; -- EOM Control Pulse Design & Delay
-            INT_CTRL_PULSE_DEAD_DURATION_NS : integer := INT_CTRL_PULSE_DEAD_DURATION_NS; -- EOM Control Pulse Design & Delay
-            INT_CTRL_PULSE_EXTRA_DELAY_NS   : integer := INT_CTRL_PULSE_EXTRA_DELAY_NS;   -- EOM Control Pulse Design & Delay
+            INT_CTRL_PULSE_HIGH_DURATION_NS  : integer := INT_CTRL_PULSE_HIGH_DURATION_NS;  -- EOM Control Pulse On Duration
+            INT_CTRL_PULSE_DEAD_DURATION_NS  : integer := INT_CTRL_PULSE_DEAD_DURATION_NS;  -- EOM Control Pulse Off Duration (minimal)
+            INT_CTRL_PULSE_EXTRA_DELAY_Q2_NS : integer := INT_CTRL_PULSE_EXTRA_DELAY_Q2_NS; -- EOM Control Pulse Delay to catch qubit 2
+            INT_CTRL_PULSE_EXTRA_DELAY_Q3_NS : integer := INT_CTRL_PULSE_EXTRA_DELAY_Q3_NS; -- EOM Control Pulse Design to catch qubit 3
+            INT_CTRL_PULSE_EXTRA_DELAY_Q4_NS : integer := INT_CTRL_PULSE_EXTRA_DELAY_Q4_NS; -- EOM Control Pulse Design to catch qubit 4
+            INT_CTRL_PULSE_EXTRA_DELAY_Q5_NS : integer := INT_CTRL_PULSE_EXTRA_DELAY_Q5_NS; -- EOM Control Pulse Design to catch qubit 5
+            INT_CTRL_PULSE_EXTRA_DELAY_Q6_NS : integer := INT_CTRL_PULSE_EXTRA_DELAY_Q6_NS; -- EOM Control Pulse Design to catch qubit 6
 
             INT_FEEDFWD_PROGRAMMING : integer := INT_FEEDFWD_PROGRAMMING;
 
@@ -308,7 +311,9 @@
         signal slv_feedforward_pulse       : std_logic_vector(0 downto 0) := (others => '0');
         signal slv_feedforward_pulse_trigger : std_logic_vector(0 downto 0) := (others => '0');
         signal sl_feedfwd_success_flag     : std_logic := '0';
-        signal sl_feedfwd_success_done     : std_logic := '0';
+        signal slv_feedfwd_success_flag    : std_logic_vector(0 downto 0) := (others => '0');
+        signal sl_feedfwd_start            : std_logic := '0';
+        signal slv_feedfwd_start           : std_logic_vector(0 downto 0) := (others => '0');
         signal slv_alpha_to_math           : std_logic_vector(1 downto 0) := (others => '0');
         signal slv_sx_sz_to_math           : std_logic_vector(1 downto 0) := (others => '0');
         signal sl_actual_qubit_valid       : std_logic := '0';
@@ -323,7 +328,10 @@
         signal sl_math_data_valid      : std_logic := '0';
 
         signal slv_feedfwd_eom_pulse         : std_logic_vector(0 downto 0) := (others => '0');
-        signal slv_feedfwd_eom_pulse_delayed : std_logic_vector(0 downto 0) := (others => '0');       
+        signal slv_feedfwd_eom_pulse_en      : std_logic_vector(0 downto 0) := (others => '0');
+        signal slv_feedfwd_eom_pulse_delayed : std_logic_vector(INT_QUBITS_CNT-2 downto 0) := (others => '0');
+        signal slv_feedfwd_eom_pulse_delayed_ored : std_logic_vector(0 downto 0) := (others => '0');
+        signal slv_feedfwd_eom_pulse_delayed_ored_ff : std_logic_vector(0 downto 0) := (others => '0');
         signal eom_ctrl_pulse_ready          : std_logic_vector(0 downto 0) := (others => '0');
         signal eom_ctrl_pulse_ready_delayed  : std_logic_vector(0 downto 0) := (others => '0');
         signal eom_ctrl_pulse_busy           : std_logic_vector(0 downto 0) := (others => '0');
@@ -604,6 +612,32 @@
             correct_periods(REAL_CLK_ACQ_HZ,PHOTON_1H_DELAY_NS,PHOTON_1V_DELAY_NS)
         );
 
+
+        -- And gate to multiple signals
+        function or_all_bits_in_slv (
+            slv_signal : std_logic_vector; -- min 2 bit wide slv
+            SLV_WIDTH : positive
+        ) return std_logic is
+            variable v_slv_signal : std_logic_vector(SLV_WIDTH-1 downto 0) := (others => '0');
+            variable v_sl_output : std_logic := '0';
+        begin
+            v_slv_signal(SLV_WIDTH-1 downto 0) := slv_signal(SLV_WIDTH-1 downto 0);
+            v_sl_output := v_slv_signal(SLV_WIDTH-1);
+            for i in SLV_WIDTH-2 downto 0 loop
+                v_sl_output := v_sl_output or v_slv_signal(i);
+            end loop;
+            return v_sl_output;
+        end function;
+
+
+        type t_delays_before_eom_2d is array (6-2 downto 0) of natural;
+        signal INT_CTRL_PULSE_EXTRA_DELAY_QX_NS : t_delays_before_eom_2d := (
+            INT_CTRL_PULSE_EXTRA_DELAY_Q6_NS,
+            INT_CTRL_PULSE_EXTRA_DELAY_Q5_NS,
+            INT_CTRL_PULSE_EXTRA_DELAY_Q4_NS,
+            INT_CTRL_PULSE_EXTRA_DELAY_Q3_NS,
+            INT_CTRL_PULSE_EXTRA_DELAY_Q2_NS  -- index 0
+        );
 
     begin
 
@@ -1305,6 +1339,7 @@
                 BYPASS => CDCC_BYPASS,
                 ASYNC_FLOPS_CNT => 2,
                 FLOPS_BEFORE_CROSSING_CNT => 1,
+                -- FLOPS_BEFORE_CROSSING_CNT => 2,
                 WR_READY_DEASSERTED_CYCLES => 4
             )
             port map (
@@ -1322,6 +1357,7 @@
                 BYPASS => CDCC_BYPASS,
                 ASYNC_FLOPS_CNT => 2,
                 FLOPS_BEFORE_CROSSING_CNT => 1,
+                -- FLOPS_BEFORE_CROSSING_CNT => 2,
                 WR_READY_DEASSERTED_CYCLES => 4
             )
             port map (
@@ -1358,8 +1394,7 @@
             PHOTON_5H_DELAY_NS      => PHOTON_5H_DELAY_NS,
             PHOTON_5V_DELAY_NS      => PHOTON_5V_DELAY_NS,
             PHOTON_6H_DELAY_NS      => PHOTON_6H_DELAY_NS,
-            PHOTON_6V_DELAY_NS      => PHOTON_6V_DELAY_NS,
-            DISCARD_QUBITS_TIME_NS  => INT_DISCARD_QUBITS_TIME_NS
+            PHOTON_6V_DELAY_NS      => PHOTON_6V_DELAY_NS
         )
         port map (
             clk                       => dsp_clk,
@@ -1374,7 +1409,7 @@
             o_unsuccessful_qubits     => slv_photon_losses_to_cdcc(INT_QUBITS_CNT-2 downto 0),
 
             feedfwd_success_flag      => sl_feedfwd_success_flag,
-            feedfwd_success_done      => sl_feedfwd_success_done,
+            feedfwd_start             => sl_feedfwd_start,
             qubit_buffer              => slv_qubit_buffer_2d,
             time_stamp_buffer         => slv_time_stamp_buffer_2d,
 
@@ -1418,14 +1453,14 @@
         ------------------------------------------------
         -- CDCC Data transfer to slower readout clock domain
         -- Success Flag Transfer
-        inst_shiftreg_queue_success_done : entity lib_src.shiftreg_queue_shifter(rtl)
+        inst_shiftreg_queue_success_flag : entity lib_src.shiftreg_queue_shifter(rtl)
         generic map (
             REAL_CLK_HZ => REAL_CLK_DSP_HZ,
             INT_DATA_WIDTH => 1,
             INT_QUEUE_DEPTH => 3
         ) port map (
             clk => dsp_clk, -- clock
-            i_wr_data_valid => sl_feedfwd_success_done, -- Write request and Input to queue
+            i_wr_data_valid => sl_feedfwd_success_flag, -- Write request and Input to queue
             i_wr_data     => (others => '0'), 
             i_rd_valid    => sl_feedfwd_success_done_to_transfer_rd_valid,-- Read request and Output from queue
             o_rd_data     => open,
@@ -1440,7 +1475,7 @@
             o_data_loss => open -- to LED - should never be asserted
         );
 
-        -- #TODO This causes metavalue
+
         inst_nff_cdcc_success_done_test : entity lib_src.nff_cdcc(rtl)
         generic map (
             BYPASS => false,
@@ -1462,7 +1497,7 @@
             rd_data  => open
         );
 
-        -- inst_nff_cdcc_success_done : entity lib_src.nff_cdcc(rtl)
+        -- inst_nff_cdcc_success_flag : entity lib_src.nff_cdcc(rtl)
         -- generic map (
         --     BYPASS => false,
         --     ASYNC_FLOPS_CNT => 2,
@@ -1473,7 +1508,7 @@
         -- port map (
         --     -- Write ports
         --     clk_write => dsp_clk,
-        --     wr_en     => sl_feedfwd_success_done,
+        --     wr_en     => sl_feedfwd_success_flag,
         --     wr_data   => (others => '0'),
         --     wr_ready  => open,
 
@@ -1535,7 +1570,7 @@
                 INT_QUEUE_DEPTH => 3
             ) port map (
                 clk => dsp_clk, -- clock
-                i_wr_data_valid => sl_feedfwd_success_done, -- Write request and Input to queue
+                i_wr_data_valid => sl_feedfwd_success_flag, -- Write request and Input to queue
                 i_wr_data     => slv_qubit_buffer_2d(i), 
                 i_rd_valid    => slv_qubit_buffer_to_transfer_rd_valid(i),-- Read request and Output from queue
                 o_rd_data     => slv_qubit_buffer_to_transfer_2d(i),
@@ -1583,7 +1618,7 @@
             --     port map (
             --         -- Write ports
             --         clk_write => dsp_clk,
-            --         wr_en     => sl_feedfwd_success_done,
+            --         wr_en     => sl_feedfwd_success_flag,
             --         wr_data   => slv_qubit_buffer_2d(i),
             --         wr_ready  => open,
 
@@ -1604,7 +1639,7 @@
                 INT_QUEUE_DEPTH => 3
             ) port map (
                 clk => dsp_clk, -- clock
-                i_wr_data_valid => sl_feedfwd_success_done, -- Write request and Input to queue
+                i_wr_data_valid => sl_feedfwd_success_flag, -- Write request and Input to queue
                 i_wr_data => slv_time_stamp_buffer_2d(i), 
                 i_rd_valid => slv_time_stamp_buffer_to_transfer_rd_valid(i),-- Read request and Output from queue
                 o_rd_data => slv_time_stamp_buffer_to_transfer_2d(i),
@@ -1652,7 +1687,7 @@
             -- port map (
             --     -- Write ports
             --     clk_write => dsp_clk,
-            --     wr_en     => sl_feedfwd_success_done,
+            --     wr_en     => sl_feedfwd_success_flag,
             --     wr_data   => slv_time_stamp_buffer_2d(i),
             --     wr_ready  => open,
 
@@ -1687,6 +1722,45 @@
             BUSY          => eom_ctrl_pulse_busy
         );
 
+        -- Feedforward start flag
+        inst_pulse_gen_feedfwd_start_flag : entity lib_src.pulse_gen(rtl)
+        generic map (
+            RST_VAL                => RST_VAL,
+            DATA_WIDTH             => 1,
+            REAL_CLK_HZ            => REAL_CLK_DSP_HZ,
+            PULSE_DURATION_HIGH_NS => 5,
+            PULSE_DURATION_LOW_NS  => 5
+        )
+        port map (
+            CLK           => dsp_clk,
+            RST           => '0',
+            PULSE_TRIGGER => sl_feedfwd_start,
+            IN_DATA       => "1",
+            PULSES_OUT    => slv_feedfwd_start,
+            READY         => open,
+            BUSY          => open
+        );
+
+        -- Feedforward success flag
+        inst_pulse_gen_feedfwd_success_flag : entity lib_src.pulse_gen(rtl)
+        generic map (
+            RST_VAL                => RST_VAL,
+            DATA_WIDTH             => 1,
+            REAL_CLK_HZ            => REAL_CLK_DSP_HZ,
+            PULSE_DURATION_HIGH_NS => 5,
+            PULSE_DURATION_LOW_NS  => 5
+        )
+        port map (
+            CLK           => dsp_clk,
+            RST           => '0',
+            PULSE_TRIGGER => sl_feedfwd_success_flag,
+            IN_DATA       => "1",
+            PULSES_OUT    => slv_feedfwd_success_flag,
+            READY         => open,
+            BUSY          => open
+        );
+
+
         -- Coincidence detection trigger
         inst_pulse_gen_coincidence_flag : entity lib_src.pulse_gen(rtl)
         generic map (
@@ -1713,18 +1787,41 @@
         -- FEEDFORWARD Data Path: Coarse Delay Line
         -------------------------------------------
         -- EOM Trigger pulse delay
+        gen_reg_delays_before_eom : for i in 0 to INT_QUBITS_CNT-2 generate
+            -- inst_reg_delay_eom_pulse : entity lib_src.reg_delay(rtl)
+            inst_shiftreg_delay_eom_pulse : entity lib_src.shiftreg_delay(rtl)
+            generic map (
+                CLK_HZ => REAL_CLK_DSP_HZ, -- NEW
+                RST_VAL => RST_VAL,
+                DATA_WIDTH => 1,
+                DELAY_CYCLES => 0, -- Keep DELAY_CYCLES zero to allow DELAY_NS value to be used for the delay calculation
+                DELAY_NS => INT_CTRL_PULSE_EXTRA_DELAY_QX_NS(i) -- This value should be a multiple of clock period for precise results
+            )
+            port map (
+                clk    => dsp_clk,
+                i_en   => state_feedfwd(i+1),
+                i_data => slv_feedfwd_eom_pulse,
+                o_data => slv_feedfwd_eom_pulse_delayed(i downto i)
+            );
+        end generate;
+
+        -- One extra delay line for multigate OR
+        slv_feedfwd_eom_pulse_delayed_ored(0) <= 
+            or_all_bits_in_slv(slv_feedfwd_eom_pulse_delayed, slv_feedfwd_eom_pulse_delayed'length);
         inst_reg_delay_eom_pulse : entity lib_src.reg_delay(rtl)
         generic map (
             CLK_HZ => REAL_CLK_DSP_HZ, -- NEW
             RST_VAL => RST_VAL,
             DATA_WIDTH => 1,
-            DELAY_CYCLES => 0, -- Keep DELAY_CYCLES zero to allow DELAY_NS value to be used for the delay calculation
-            DELAY_NS => INT_CTRL_PULSE_EXTRA_DELAY_NS -- This value should be a multiple of clock period for precise results
+            -- DELAY_CYCLES => 3, -- Keep DELAY_CYCLES zero to allow DELAY_NS value to be used for the delay calculation
+            DELAY_CYCLES => 3, -- Keep DELAY_CYCLES zero to allow DELAY_NS value to be used for the delay calculation
+            DELAY_NS => 0 -- This value should be a multiple of clock period for precise results
         )
         port map (
             clk    => dsp_clk,
-            i_data => slv_feedfwd_eom_pulse,
-            o_data => slv_feedfwd_eom_pulse_delayed
+            i_en   => '1',
+            i_data => slv_feedfwd_eom_pulse_delayed_ored,
+            o_data => slv_feedfwd_eom_pulse_delayed_ored_ff
         );
 
 
@@ -1735,13 +1832,15 @@
             RST_VAL => RST_VAL,
             DATA_WIDTH => 1,
             DELAY_CYCLES => 0, -- Keep DELAY_CYCLES zero to allow DELAY_NS value to be the base for the delay calculation
-            DELAY_NS => INT_CTRL_PULSE_EXTRA_DELAY_NS -- This value should be a multiple of clock period for precise results
+            DELAY_NS => INT_CTRL_PULSE_EXTRA_DELAY_Q2_NS -- This value should be a multiple of clock period for precise results
         )
         port map (
             clk    => dsp_clk,
+            i_en   => '1',
             i_data => eom_ctrl_pulse_ready,
             o_data => eom_ctrl_pulse_ready_delayed
         );
+
 
         inst_reg_delay_pulse_gen_busy : entity lib_src.reg_delay(rtl)
         generic map (
@@ -1749,10 +1848,11 @@
             RST_VAL => RST_VAL,
             DATA_WIDTH => 1,
             DELAY_CYCLES => 0, -- Keep DELAY_CYCLES zero to allow DELAY_NS value to be the base for the delay calculation
-            DELAY_NS => INT_CTRL_PULSE_EXTRA_DELAY_NS -- This value should be a multiple of clock period for precise results
+            DELAY_NS => INT_CTRL_PULSE_EXTRA_DELAY_Q2_NS -- This value should be a multiple of clock period for precise results
         )
         port map (
             clk    => dsp_clk,
+            i_en   => '1',
             i_data => eom_ctrl_pulse_busy,
             o_data => eom_ctrl_pulse_busy_delayed
         );
@@ -1771,7 +1871,7 @@
         )
         port map (
             clk      => dsp_clk,
-            data_in  => slv_feedfwd_eom_pulse_delayed,
+            data_in  => slv_feedfwd_eom_pulse_delayed_ored_ff,
             data_out => slv_eom_ctrl_pulse(0 downto 0)
         );
 
@@ -1792,12 +1892,12 @@
         )
         port map (
             clk      => dsp_clk,
-            data_in  => slv_feedfwd_eom_pulse_delayed,
+            data_in  => slv_feedfwd_eom_pulse_delayed_ored,
             data_out => slv_debug_port_1(0 downto 0)
         );
 
         -- +1 clk cycle delay
-        -- TIME TAGGER TRIGGER
+        -- FEEDFORWARD SUCCESS
         o_debug_port_2 <= slv_debug_port_2(0);
         inst_xilinx_obuf_debug2 : entity lib_src.xilinx_obufs(rtl)
         generic map (
@@ -1805,12 +1905,12 @@
         )
         port map (
             clk      => dsp_clk,
-            data_in  => eom_ctrl_pulse_coincidence(0 downto 0),
+            data_in  => slv_feedfwd_success_flag(0 downto 0),
             data_out => slv_debug_port_2(0 downto 0)
         );
 
         -- +1 clk cycle delay
-        -- TIME TAGGER TRIGGER -> OSCILLOSCOPE
+        -- FEEDFORWARD START
         o_debug_port_3 <= slv_debug_port_3(0);
         inst_xilinx_obuf_debug3 : entity lib_src.xilinx_obufs(rtl)
         generic map (
@@ -1818,7 +1918,7 @@
         )
         port map (
             clk      => dsp_clk,
-            data_in  => eom_ctrl_pulse_coincidence(0 downto 0),
+            data_in  => slv_feedfwd_start(0 downto 0),
             data_out => slv_debug_port_3(0 downto 0)
         );
 

@@ -19,8 +19,6 @@
 
             -- Gflow generics
             RST_VAL                : std_logic := '1';
-            CLK_SYS_HZ             : natural := 100e6;
-            CLK_SAMPL_HZ           : natural := 250e6;
 
             INT_QUBITS_CNT         : positive := INT_QUBITS_CNT;
 
@@ -49,7 +47,14 @@
             INT_ALL_DIGITS_PHOTON_6H_DELAY_NS    : integer := INT_ALL_DIGITS_PHOTON_6H_DELAY_NS;
             INT_ALL_DIGITS_PHOTON_6V_DELAY_NS    : integer := INT_ALL_DIGITS_PHOTON_6V_DELAY_NS;
             INT_WHOLE_DIGITS_CNT_PHOTON_6H_DELAY : integer := INT_WHOLE_DIGITS_CNT_PHOTON_6H_DELAY;
-            INT_WHOLE_DIGITS_CNT_PHOTON_6V_DELAY : integer := INT_WHOLE_DIGITS_CNT_PHOTON_6V_DELAY
+            INT_WHOLE_DIGITS_CNT_PHOTON_6V_DELAY : integer := INT_WHOLE_DIGITS_CNT_PHOTON_6V_DELAY;
+            INT_CTRL_PULSE_HIGH_DURATION_NS  : integer := INT_CTRL_PULSE_HIGH_DURATION_NS;  -- EOM Control Pulse On Duration
+            INT_CTRL_PULSE_DEAD_DURATION_NS  : integer := INT_CTRL_PULSE_DEAD_DURATION_NS;  -- EOM Control Pulse Off Duration (minimal)
+            INT_CTRL_PULSE_EXTRA_DELAY_Q2_NS : integer := INT_CTRL_PULSE_EXTRA_DELAY_Q2_NS; -- EOM Control Pulse Delay to catch qubit 2
+            INT_CTRL_PULSE_EXTRA_DELAY_Q3_NS : integer := INT_CTRL_PULSE_EXTRA_DELAY_Q3_NS; -- EOM Control Pulse Design to catch qubit 3
+            INT_CTRL_PULSE_EXTRA_DELAY_Q4_NS : integer := INT_CTRL_PULSE_EXTRA_DELAY_Q4_NS; -- EOM Control Pulse Design to catch qubit 4
+            INT_CTRL_PULSE_EXTRA_DELAY_Q5_NS : integer := INT_CTRL_PULSE_EXTRA_DELAY_Q5_NS; -- EOM Control Pulse Design to catch qubit 5
+            INT_CTRL_PULSE_EXTRA_DELAY_Q6_NS : integer := INT_CTRL_PULSE_EXTRA_DELAY_Q6_NS -- EOM Control Pulse Design to catch qubit 6
         );
         port (
 
@@ -299,13 +304,14 @@
             INT_WHOLE_DIGITS_CNT_PHOTON_6H_DELAY => INT_WHOLE_DIGITS_CNT_PHOTON_6H_DELAY,
             INT_WHOLE_DIGITS_CNT_PHOTON_6V_DELAY => INT_WHOLE_DIGITS_CNT_PHOTON_6V_DELAY,
 
-            -- Stop feedforward for a given time
-            INT_DISCARD_QUBITS_TIME_NS => INT_DISCARD_QUBITS_TIME_NS,
-
             -- PCD Control Pulse Design & Delay
             INT_CTRL_PULSE_HIGH_DURATION_NS => INT_CTRL_PULSE_HIGH_DURATION_NS,
             INT_CTRL_PULSE_DEAD_DURATION_NS => INT_CTRL_PULSE_DEAD_DURATION_NS,
-            INT_CTRL_PULSE_EXTRA_DELAY_NS   => INT_CTRL_PULSE_EXTRA_DELAY_NS
+            INT_CTRL_PULSE_EXTRA_DELAY_Q2_NS => INT_CTRL_PULSE_EXTRA_DELAY_Q2_NS,
+            INT_CTRL_PULSE_EXTRA_DELAY_Q3_NS => INT_CTRL_PULSE_EXTRA_DELAY_Q3_NS,
+            INT_CTRL_PULSE_EXTRA_DELAY_Q4_NS => INT_CTRL_PULSE_EXTRA_DELAY_Q4_NS,
+            INT_CTRL_PULSE_EXTRA_DELAY_Q5_NS => INT_CTRL_PULSE_EXTRA_DELAY_Q5_NS,
+            INT_CTRL_PULSE_EXTRA_DELAY_Q6_NS => INT_CTRL_PULSE_EXTRA_DELAY_Q6_NS
         )
         port map (
             -- External 200MHz oscillator

@@ -104,7 +104,7 @@ public:
 
         // m_u32SegmentSize = 64 * m_u32BlockSize; original
         
-        m_u32SegmentSize = 8 * m_u32BlockSize;
+        m_u32SegmentSize = 32 * m_u32BlockSize;
         m_u32TransferSize = 1 * m_u32SegmentSize;  // DO NOT CHANGE
         m_u32TransferSizeCount = 1; // DO NOT CHANGE
 

@@ -1,12 +1,12 @@
 
-SIMULATION REPORT          Generated on Wed Dec 04 12:26:18 2024
+SIMULATION REPORT          Generated on Tue Dec 17 16:08:40 2024
 
 
 Design simulated: C:/Git/zahapat/fpga-tools-qc/simulator/vivado_precompiled_ver/2020_2/unisim.glbl_vhd(glbl_vhd_v) C:/Git/zahapat/fpga-tools-qc/simulator/xil_iplib_verilog.glbl C:/Git/zahapat/fpga-tools-qc/simulator/lib_sim.top_feedforward_tb(sim)
-Number of signals/nets in design: 6374189
-Number of processes in design: 8785
-Number of instances from user libraries in design: 398
-Number of executable statements in design: 126775
+Number of signals/nets in design: 6381895
+Number of processes in design: 12826
+Number of instances from user libraries in design: 440
+Number of executable statements in design: 132340
 
 Simulator Parameters:
 
@@ -47,13 +47,13 @@ List of Design units used:
     Library: C:/Git/zahapat/fpga-tools-qc/simulator/vivado_precompiled_ver/2020_2/secureip
     Source File: C:/Xilinx/Vivado/2020.2/data/secureip/iserdese2/iserdese2_002.vp
     Timescale: 1ps / 1ps
-    Occurrences: 4
+    Occurrences: 8
 
     Module: ISERDESE2_WRAP , acc : <novopt>
     Library: C:/Git/zahapat/fpga-tools-qc/simulator/vivado_precompiled_ver/2020_2/secureip
     Source File: C:/Xilinx/Vivado/2020.2/data/secureip/iserdese2/iserdese2_001.vp
     Timescale: 1ps / 1ps
-    Occurrences: 4
+    Occurrences: 8
 
     Package Body: std_logic_arith
     Library: C:/intelFPGA/20.1/modelsim_ase/ieee
@@ -360,25 +360,25 @@ List of Design units used:
     Library: C:/Git/zahapat/fpga-tools-qc/simulator/lib_src
     Source File: C:/Git/zahapat/fpga-tools-qc/modules/xilinx_sdr_sampler/hdl/xilinx_sdr_sampler.vhd
     Source File: C:/Xilinx/Vivado/2020.2/data/vhdl/src/unisims/unisim_retarget_VCOMP.vhdp
-    Occurrences: 4
+    Occurrences: 8
 
     Entity: ibuf , acc : <novopt>
     Architecture: ibuf_v
     Library: C:/Git/zahapat/fpga-tools-qc/simulator/vivado_precompiled_ver/2020_2/unisim
     Source File: C:/Xilinx/Vivado/2020.2/data/vhdl/src/unisims/primitive/IBUF.vhd
-    Occurrences: 4
+    Occurrences: 8
 
     Entity: idelaye2 , acc : <novopt>
     Architecture: idelaye2_v
     Library: C:/Git/zahapat/fpga-tools-qc/simulator/vivado_precompiled_ver/2020_2/unisim
     Source File: C:/Xilinx/Vivado/2020.2/data/vhdl/src/unisims/primitive/IDELAYE2.vhd
-    Occurrences: 4
+    Occurrences: 8
 
     Entity: iserdese2 , acc : <novopt>
     Architecture: iserdese2_v
     Library: C:/Git/zahapat/fpga-tools-qc/simulator/vivado_precompiled_ver/2020_2/unisim
     Source File: C:/Xilinx/Vivado/2020.2/data/vhdl/src/unisims/secureip/ISERDESE2.vhd
-    Occurrences: 4
+    Occurrences: 8
 
     Entity: reset , acc : <novopt>
     Architecture: rtl
@@ -409,13 +409,13 @@ List of Design units used:
     Architecture: rtl
     Library: C:/Git/zahapat/fpga-tools-qc/simulator/lib_src
     Source File: C:/Git/zahapat/fpga-tools-qc/modules/delay_compensation/hdl/delay_compensation.vhd
-    Occurrences: 2
+    Occurrences: 4
 
     Entity: nff_cdcc_flag , acc : <novopt>
     Architecture: rtl
     Library: C:/Git/zahapat/fpga-tools-qc/simulator/lib_src
     Source File: C:/Git/zahapat/fpga-tools-qc/modules/nff_cdcc_flag/hdl/nff_cdcc_flag.vhd
-    Occurrences: 5
+    Occurrences: 11
 
     Entity: fsm_feedforward , acc : <novopt>
     Architecture: rtl
@@ -434,25 +434,31 @@ List of Design units used:
     Library: C:/Git/zahapat/fpga-tools-qc/simulator/lib_src
     Source File: C:/Git/zahapat/fpga-tools-qc/modules/shiftreg_queue_shifter/hdl/shiftreg_queue_shifter.vhd
     Source File: C:/Xilinx/Vivado/2020.2/data/vhdl/src/unisims/unisim_retarget_VCOMP.vhdp
-    Occurrences: 6
+    Occurrences: 10
 
     Entity: nff_cdcc , acc : <novopt>
     Architecture: rtl
     Library: C:/Git/zahapat/fpga-tools-qc/simulator/lib_src
     Source File: C:/Git/zahapat/fpga-tools-qc/modules/nff_cdcc/hdl/nff_cdcc.vhd
-    Occurrences: 6
+    Occurrences: 10
 
     Entity: nff_cdcc_cntr , acc : <novopt>
     Architecture: rtl
     Library: C:/Git/zahapat/fpga-tools-qc/simulator/lib_src
     Source File: C:/Git/zahapat/fpga-tools-qc/modules/nff_cdcc_cntr/hdl/nff_cdcc_cntr.vhd
-    Occurrences: 4
+    Occurrences: 8
 
     Entity: pulse_gen , acc : <novopt>
     Architecture: rtl
     Library: C:/Git/zahapat/fpga-tools-qc/simulator/lib_src
     Source File: C:/Git/zahapat/fpga-tools-qc/modules/pulse_gen/hdl/pulse_gen.vhd
-    Occurrences: 2
+    Occurrences: 4
+
+    Entity: shiftreg_delay , acc : <novopt>
+    Architecture: rtl
+    Library: C:/Git/zahapat/fpga-tools-qc/simulator/lib_src
+    Source File: C:/Git/zahapat/fpga-tools-qc/modules/shiftreg_delay/hdl/shiftreg_delay.vhd
+    Occurrences: 3
 
     Entity: reg_delay , acc : <novopt>
     Architecture: rtl

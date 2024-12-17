@@ -37,6 +37,8 @@
 ./modules/nff_cdcc_flag/hdl/nff_cdcc_flag.vhd
 ./modules/nff_cdcc_cntr/sim/nff_cdcc_cntr_tb.vhd
 ./modules/nff_cdcc_cntr/hdl/nff_cdcc_cntr.vhd
+./modules/shiftreg_delay/sim/shiftreg_delay_tb.vhd
+./modules/shiftreg_delay/hdl/shiftreg_delay.vhd
 ./packages/global_sim/signals_pack_tb.vhd
 ./packages/global_sim/types_pack_tb.vhd
 ./packages/global_sim/const_pack_tb.vhd

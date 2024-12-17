@@ -330,6 +330,19 @@ if {[check_inst_present_in_design "inst_top_feedforward/gen_nff_cdcc_sysclk[0].$
     set_max_delay ${ff2_domain2_max_delay_paranoid} -from [get_cells inst_top_feedforward/gen_nff_cdcc_sysclk[*].${inst_name}/gen_if_clocks_different.slv_wr_en_event_asyncff_reg[0]] -to [get_cells inst_top_feedforward/gen_nff_cdcc_sysclk[*].${inst_name}/gen_if_clocks_different.slv_wr_en_event_asyncff_reg[1]];
 }
 
+# set inst_name "inst_nff_cdcc_cntcross_samplclk_bit1"
+# if {[check_inst_present_in_design "inst_top_feedforward/gen_nff_cdcc_sysclk[0].${inst_name}" ""] == 1} {
+#     set_max_delay -datapath_only ${ff1_cdc_1to2_max_delay} -from [get_cells inst_top_feedforward/gen_nff_cdcc_sysclk[*].${inst_name}/gen_if_clocks_different.slv_wr_en_event_to_cross_reg[2]] -to [get_cells inst_top_feedforward/gen_nff_cdcc_sysclk[*].${inst_name}/gen_if_clocks_different.slv_wr_en_event_asyncff_reg[0]];
+#     set_max_delay ${ff2_domain2_max_delay_paranoid} -from [get_cells inst_top_feedforward/gen_nff_cdcc_sysclk[*].${inst_name}/gen_if_clocks_different.slv_wr_en_event_asyncff_reg[0]] -to [get_cells inst_top_feedforward/gen_nff_cdcc_sysclk[*].${inst_name}/gen_if_clocks_different.slv_wr_en_event_asyncff_reg[1]];
+# }
+
+
+# set inst_name "inst_nff_cdcc_cntcross_samplclk_bit2"
+# if {[check_inst_present_in_design "inst_top_feedforward/gen_nff_cdcc_sysclk[0].${inst_name}" ""] == 1} {
+#     set_max_delay -datapath_only ${ff1_cdc_1to2_max_delay} -from [get_cells inst_top_feedforward/gen_nff_cdcc_sysclk[*].${inst_name}/gen_if_clocks_different.slv_wr_en_event_to_cross_reg[2]] -to [get_cells inst_top_feedforward/gen_nff_cdcc_sysclk[*].${inst_name}/gen_if_clocks_different.slv_wr_en_event_asyncff_reg[0]];
+#     set_max_delay ${ff2_domain2_max_delay_paranoid} -from [get_cells inst_top_feedforward/gen_nff_cdcc_sysclk[*].${inst_name}/gen_if_clocks_different.slv_wr_en_event_asyncff_reg[0]] -to [get_cells inst_top_feedforward/gen_nff_cdcc_sysclk[*].${inst_name}/gen_if_clocks_different.slv_wr_en_event_asyncff_reg[1]];
+# }
+
 
 # Constraining 300->200 MHz domain crossing
 set inst_name "inst_nff_cdcc_success_done"

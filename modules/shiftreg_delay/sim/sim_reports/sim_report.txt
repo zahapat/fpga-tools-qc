@@ -1,12 +1,12 @@
 
-SIMULATION REPORT          Generated on Tue Dec 17 15:34:39 2024
+SIMULATION REPORT          Generated on Tue Dec 17 15:56:32 2024
 
 
-Design simulated: C:/Git/zahapat/fpga-tools-qc/simulator/vivado_precompiled_ver/2020_2/unisim.glbl_vhd(glbl_vhd_v) C:/Git/zahapat/fpga-tools-qc/simulator/xil_iplib_verilog.glbl C:/Git/zahapat/fpga-tools-qc/simulator/lib_sim.reg_delay_tb(sim)
-Number of signals/nets in design: 210
-Number of processes in design: 28
+Design simulated: C:/Git/zahapat/fpga-tools-qc/simulator/vivado_precompiled_ver/2020_2/unisim.glbl_vhd(glbl_vhd_v) C:/Git/zahapat/fpga-tools-qc/simulator/xil_iplib_verilog.glbl C:/Git/zahapat/fpga-tools-qc/simulator/lib_sim.shiftreg_delay_tb(sim)
+Number of signals/nets in design: 100
+Number of processes in design: 16
 Number of instances from user libraries in design: 9
-Number of executable statements in design: 1481
+Number of executable statements in design: 1477
 
 Simulator Parameters:
 
@@ -74,15 +74,15 @@ List of Design units used:
     Source File: C:/Xilinx/Vivado/2020.2/data/vhdl/src/unisims/primitive/GLBL_VHD.vhd
     Occurrences: 1
 
-    Entity: reg_delay_tb , acc : <novopt>
+    Entity: shiftreg_delay_tb , acc : <novopt>
     Architecture: sim
     Library: C:/Git/zahapat/fpga-tools-qc/simulator/lib_sim
-    Source File: C:/Git/zahapat/fpga-tools-qc/modules/reg_delay/sim/reg_delay_tb.vhd
+    Source File: C:/Git/zahapat/fpga-tools-qc/modules/shiftreg_delay/sim/shiftreg_delay_tb.vhd
     Occurrences: 1
 
-    Entity: reg_delay , acc : <novopt>
+    Entity: shiftreg_delay , acc : <novopt>
     Architecture: rtl
     Library: C:/Git/zahapat/fpga-tools-qc/simulator/lib_src
-    Source File: C:/Git/zahapat/fpga-tools-qc/modules/reg_delay/hdl/reg_delay.vhd
+    Source File: C:/Git/zahapat/fpga-tools-qc/modules/shiftreg_delay/hdl/shiftreg_delay.vhd
     Occurrences: 1
 
