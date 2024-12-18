@@ -1813,7 +1813,6 @@
             CLK_HZ => REAL_CLK_DSP_HZ, -- NEW
             RST_VAL => RST_VAL,
             DATA_WIDTH => 1,
-            -- DELAY_CYCLES => 3, -- Keep DELAY_CYCLES zero to allow DELAY_NS value to be used for the delay calculation
             DELAY_CYCLES => 3, -- Keep DELAY_CYCLES zero to allow DELAY_NS value to be used for the delay calculation
             DELAY_NS => 0 -- This value should be a multiple of clock period for precise results
         )

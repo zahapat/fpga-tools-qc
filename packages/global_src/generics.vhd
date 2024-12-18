@@ -32,7 +32,7 @@ package generics is
     constant INT_CTRL_PULSE_DEAD_DURATION_NS : integer := 10;
     constant INT_CTRL_PULSE_EXTRA_DELAY_Q2_NS : integer := 40;
     constant INT_CTRL_PULSE_EXTRA_DELAY_Q3_NS : integer := 37;
-    constant INT_CTRL_PULSE_EXTRA_DELAY_Q4_NS : integer := 0;
+    constant INT_CTRL_PULSE_EXTRA_DELAY_Q4_NS : integer := 2;
     constant INT_CTRL_PULSE_EXTRA_DELAY_Q5_NS : integer := 20;
     constant INT_CTRL_PULSE_EXTRA_DELAY_Q6_NS : integer := 20;
     constant INT_FEEDFWD_PROGRAMMING : integer := 01101011;

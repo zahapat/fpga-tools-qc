@@ -55,7 +55,8 @@ EXTRA ?= none
 
 
 # Vivado Version [sim.mk and vivado.mk targets]
-VIVADO_VERSION ?= 2020.2
+# VIVADO_VERSION ?= 2020.2
+VIVADO_VERSION ?= 2021.2
 
 
 # [make src] Actual top module you are working with
@@ -171,27 +172,33 @@ GEN26_VAL ?= 3
 
 # Control Pulse High Duration (Nanoseconds)
 GEN27_NAME ?= INT_CTRL_PULSE_HIGH_DURATION_NS
-GEN27_VAL ?= 50
+GEN27_VAL ?= 25
 
 # Control Pulse Low Duration (Nanoseconds)
 GEN28_NAME ?= INT_CTRL_PULSE_DEAD_DURATION_NS
-GEN28_VAL ?= 50
+GEN28_VAL ?= 10
 
 # Control Pulse Delay Duration to catch qubit 2 (Nanoseconds)
 GEN29_NAME ?= INT_CTRL_PULSE_EXTRA_DELAY_Q2_NS
 # GEN29_VAL ?= 47
+# GEN29_VAL ?= 45
+# GEN29_VAL ?= 42
 GEN29_VAL ?= 40
 
 # Control Pulse Delay Duration to catch qubit 3 (Nanoseconds)
 GEN30_NAME ?= INT_CTRL_PULSE_EXTRA_DELAY_Q3_NS
 # GEN30_VAL ?= 45
+# GEN30_VAL ?= 42
+# GEN30_VAL ?= 40
 GEN30_VAL ?= 37
 
 # Control Pulse Delay Duration to catch qubit 4 (Nanoseconds)
 GEN32_NAME ?= INT_CTRL_PULSE_EXTRA_DELAY_Q4_NS
 # GEN32_VAL ?= 10
-# GEN32_VAL ?= 2
-GEN32_VAL ?= 0
+# GEN32_VAL ?= 7
+# GEN32_VAL ?= 5
+GEN32_VAL ?= 2
+# GEN32_VAL ?= 0
 
 # Control Pulse Delay Duration to catch qubit 5 (Nanoseconds)
 GEN33_NAME ?= INT_CTRL_PULSE_EXTRA_DELAY_Q5_NS

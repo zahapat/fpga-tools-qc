@@ -276,7 +276,7 @@ add wave -noupdate /top_feedforward_tb/dut_top_feedforward/slv_modulo_buffer_to_
 add wave -noupdate /top_feedforward_tb/dut_top_feedforward/slv_random_buffer_to_transfer_2d
 add wave -noupdate /top_feedforward_tb/dut_top_feedforward/inst_fsm_feedforward/MAX_PERIODS_DIFF_CORR
 TreeUpdate [SetDefaultTree]
-WaveRestoreCursors {{Cursor 1} {1286486 ps} 0}
+WaveRestoreCursors {{Cursor 1} {1218250 ps} 0}
 quietly wave cursor active 1
 configure wave -namecolwidth 549
 configure wave -valuecolwidth 164

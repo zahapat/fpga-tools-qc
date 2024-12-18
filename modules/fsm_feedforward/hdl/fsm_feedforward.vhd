@@ -578,10 +578,17 @@
         constant MAX_PERIODS_DIFF_CORR : t_periods_q_corr_2d := (
             0, -- qubit 6
             0, -- qubit 5
+            -- Current best configuration
             -- 0, -- qubit 4 -- 0 is the best
+            -- +1, -- qubit 3 +1 is the best, -1 worst, 0 reacts only to some photons
+            -- -1, -- qubit 2 -1 performs the best
+
+            --  Experiment
             +1, -- qubit 4
-            +1, -- qubit 3 +1 is the best, -1 worst, 0 reacts only to some photons
-            -1, -- qubit 2 -1 performs the best
+            +1, -- qubit 3
+            0, -- Qubit 2
+
+            -- Always 0
             0 -- index 0, qubit 1 (never used)
         );
         -- constant MAX_PERIODS_DIFF_CORR : t_periods_q_corr_2d := (
@@ -682,38 +689,17 @@
                             sl_feedfwd_start <= qubits_sampled_valid(0); -- On Both
                         end if;
 
-                        -- BEFORE
-                        -- Forward the given pulse defined in INT_FEEDFWD_PROGRAMMING
-                        -- if slv_qubits_sampled(0) = '1' then
-                        --     -- Horizontal
-                        --     slv_o_feedforward_pulse(0) <= SLV_FEEDFWD_PROGRAMMING(QUBITS_CNT*2-1);
-                        --     slv_o_feedforward_pulse_trigger(0) <= '1';
-                        --     sl_feedfwd_start <= '1';
-                        -- elsif slv_qubits_sampled(1) = '1' then
-                        --     -- Vertical
-                        --     slv_o_feedforward_pulse(0) <= SLV_FEEDFWD_PROGRAMMING(QUBITS_CNT*2-2);
-                        --     slv_o_feedforward_pulse_trigger(0) <= '1';
-                        --     sl_feedfwd_start <= '1';
-                        -- end if;
-
                         -- Sample the actual qubit measurement for readout and analysis
                         slv_actual_qubit <= slv_qubits_sampled(1 downto 0);
                         slv_qubit_buffer_2d(0) <= slv_qubits_sampled(1 downto 0);
 
-                        -- Detect Qubit 1 and proceed to Qubit 2
-                        -- Reset: Instead of resetting every signal in the FSM, the approach is
-                        -- to prevent the FSM from proceeding from state 1 to next states
-                        -- The reset capabilities:
-                        --      - Prevents FSM to react to input when on state 1
-                        -- Detect Qubit 1 and proceed to Qubit 2
-                        -- if qubits_sampled_valid(0) = '1' then
+                        -- Sample timestamp
                         slv_time_stamp_buffer_2d(0) -- Higher bits of the counter (to count beyond ~0.8s)
                             <= std_logic_vector(uns_actual_time_stamp_counter(uns_actual_time_stamp_counter'high downto 28));
                         slv_time_stamp_buffer_2d(1)
                             <= std_logic_vector(uns_actual_time_stamp_counter(st_transaction_data_max_width));
-                        -- end if;
                             
-                            -- Next state
+                        -- Next state
                         actual_qubit_valid <= qubits_sampled_valid(0);
                         slv_state_feedforward(0) <= not qubits_sampled_valid(0); -- NEW
                         slv_state_feedforward(1) <= qubits_sampled_valid(0); -- NEW
@@ -727,20 +713,20 @@
                     for i in 1 to QUBITS_CNT-2 loop
                         if slv_state_feedforward(QUBIT_ID(i)) = '1' then
 
-                            -- if slv_qubits_sampled(QUBIT_ID(i)*2+1) = '1' then
-                            --     -- Horizontal
-                            --     slv_o_feedforward_pulse(0) <= SLV_FEEDFWD_PROGRAMMING((QUBITS_CNT-i)*2-1);
-                            -- elsif slv_qubits_sampled(QUBIT_ID(i)*2) = '1' then
-                            --     -- Vertical
-                            --     slv_o_feedforward_pulse(0) <= SLV_FEEDFWD_PROGRAMMING((QUBITS_CNT-i)*2-2);
-                            -- end if;
-
                             slv_actual_qubit <= slv_qubits_sampled(QUBIT_ID(i)*2+1 downto QUBIT_ID(i)*2);
                             slv_qubit_buffer_2d(QUBIT_ID(i)) <= slv_qubits_sampled(QUBIT_ID(i)*2+1 downto QUBIT_ID(i)*2);
 
                             -- If the counter has reached the max delay, don't ask and reset it and assess the next state
                             v_int_precalculate_delay_qx_1(QUBIT_ID(i)) := MAX_PERIODS_DIFF(QUBIT_ID(i)) + MAX_PERIODS_DIFF_CORR(QUBIT_ID(i)); -- NEW CORR
                             if slv_new_main_galois_cntr_2d(QUBIT_ID(i)) = int_to_slvgalois(v_int_precalculate_delay_qx_1(QUBIT_ID(i)), MAX_PERIODS_DIFF_MAXDELAY_BITWIDTH, INT_PRIM_POL_DIFF) then -- NEW CORR
+
+                                if qubits_sampled_valid(QUBIT_ID(i)) = '1' then
+                                    report "Qubit " & integer'image(QUBIT_ID(i)) & ": " 
+                                        & "XX | XX | " & integer'image(slv_new_main_cntr);
+                                else 
+                                    report "Qubit " & integer'image(QUBIT_ID(i)) & ": " 
+                                        & "lost at " & integer'image(slv_new_main_cntr);
+                                end if;
 
                                 -- Forward the given pulse defined in INT_FEEDFWD_PROGRAMMING
                                 -- If 'Horizontal' Coincidence
@@ -758,22 +744,6 @@
                                 -- Always reset in the last coincidence window time slot
                                 slv_new_main_cntr <= 0; -- NEW
                                 slv_new_main_galois_cntr_2d(QUBIT_ID(i+1)) <= int_to_slvgalois(0, MAX_PERIODS_DIFF_MAXDELAY_BITWIDTH, INT_PRIM_POL_DIFF); -- NEW
-
-                            --     if qubits_sampled_valid(QUBIT_ID(i)) = '1' then
-                            --         actual_qubit_valid <= '1';
-                            --         slv_time_stamp_buffer_2d(QUBIT_ID(i)+1) 
-                            --             <= std_logic_vector(uns_actual_time_stamp_counter(st_transaction_data_max_width));
-
-                            --         slv_state_feedforward(i) <= '0'; -- NEW
-                            --         slv_state_feedforward(i+1) <= '1'; -- NEW
-                            --     else
-                            --         -- Go back to Qubit 1 state
-                            --         slv_state_feedforward(i) <= '0'; -- NEW
-                            --         slv_state_feedforward(0) <= '1'; -- NEW
-
-                            --         slv_unsuccessful_qubits(QUBIT_ID(i)) <= '1';
-                            --     end if;
-                            -- end if;
 
                                 actual_qubit_valid <= qubits_sampled_valid(QUBIT_ID(i));
                                 slv_time_stamp_buffer_2d(QUBIT_ID(i)+1) 
@@ -797,6 +767,11 @@
                                 v_int_precalculate_delay_qx_2(QUBIT_ID(i)) := MAX_PERIODS_DIFF(QUBIT_ID(i)) -1 -u + MAX_PERIODS_DIFF_CORR(QUBIT_ID(i)); -- NEW CORR
                                 if slv_new_main_galois_cntr_2d(QUBIT_ID(i)) = int_to_slvgalois(v_int_precalculate_delay_qx_2(QUBIT_ID(i)), MAX_PERIODS_DIFF_MAXDELAY_BITWIDTH, INT_PRIM_POL_DIFF) then -- NEW CORR
 
+                                    if qubits_sampled_valid(QUBIT_ID(i)) = '1' then
+                                        report "Qubit " & integer'image(QUBIT_ID(i)) & ": " 
+                                            & "XX | " & integer'image(slv_new_main_cntr) & " | XX ";
+                                    end if;
+
                                     -- Forward the given pulse defined in INT_FEEDFWD_PROGRAMMING
                                     -- If 'Horizontal' Coincidence
                                     if SLV_FEEDFWD_PROGRAMMING((QUBITS_CNT-i)*2-2) = '1' and SLV_FEEDFWD_PROGRAMMING((QUBITS_CNT-i)*2-1) = '0' then
@@ -809,23 +784,46 @@
                                         slv_o_feedforward_pulse(0) <= qubits_sampled_valid(QUBIT_ID(i));
                                     end if;
 
-                                    -- Detect Qubit 3 earlier and proceed to Qubit 4
-                                    -- if qubits_sampled_valid(QUBIT_ID(i)) = '1' then
-                                    --     -- Leave the state early, reset counter, sample time stamp
-                                    --     actual_qubit_valid <= '1';
-                                    --     slv_time_stamp_buffer_2d(QUBIT_ID(i)+1) 
-                                    --         <= std_logic_vector(uns_actual_time_stamp_counter(st_transaction_data_max_width));
+                                    -- Leave the state early, reset counter, sample time stamp
+                                    actual_qubit_valid <= qubits_sampled_valid(QUBIT_ID(i));
+                                    slv_time_stamp_buffer_2d(QUBIT_ID(i)+1) 
+                                        <= std_logic_vector(uns_actual_time_stamp_counter(st_transaction_data_max_width));
 
-                                    --     -- Next state logic
-                                    --     slv_state_feedforward(i) <= '0';
-                                    --     slv_state_feedforward(i+1) <= '1';
+                                    -- Next state logic
+                                    slv_state_feedforward(i) <= not qubits_sampled_valid(QUBIT_ID(i)); -- Stay in this state if not coincidence, leave on coincidence
+                                    slv_state_feedforward(i+1) <= qubits_sampled_valid(QUBIT_ID(i)); -- Enable next state on coincidence, keep disabled otherwise
 
-                                    --     -- Reset counters only if valid
-                                    --     slv_new_main_cntr <= 0;
-                                    --     slv_new_main_galois_cntr_2d(QUBIT_ID(i+1)) <= int_to_slvgalois(0, MAX_PERIODS_DIFF_MAXDELAY_BITWIDTH, INT_PRIM_POL_DIFF);
+                                    -- Reset counters only if valid
+                                    if qubits_sampled_valid(QUBIT_ID(i)) = '1' then
+                                        slv_new_main_cntr <= 0;
+                                        slv_new_main_galois_cntr_2d(QUBIT_ID(i+1)) <= int_to_slvgalois(0, MAX_PERIODS_DIFF_MAXDELAY_BITWIDTH, INT_PRIM_POL_DIFF);
+                                    end if;
 
-                                    -- end if;
+                                end if;
+                            end loop;
 
+
+                            -- Look for detection before the last counter iteration (counter the data skew)
+                            for u in 1 to 1 loop
+                                v_int_precalculate_delay_qx_3(QUBIT_ID(i)) := MAX_PERIODS_DIFF(QUBIT_ID(i)) -1 -u + MAX_PERIODS_DIFF_CORR(QUBIT_ID(i)); -- NEW CORR
+                                if slv_new_main_galois_cntr_2d(QUBIT_ID(i)) = int_to_slvgalois(v_int_precalculate_delay_qx_3(QUBIT_ID(i)), MAX_PERIODS_DIFF_MAXDELAY_BITWIDTH, INT_PRIM_POL_DIFF) then -- NEW CORR
+
+                                    if qubits_sampled_valid(QUBIT_ID(i)) = '1' then
+                                        report "Qubit " & integer'image(QUBIT_ID(i)) & ":" 
+                                            & integer'image(slv_new_main_cntr) & " | XX | XX ";
+                                    end if;
+
+                                    -- Forward the given pulse defined in INT_FEEDFWD_PROGRAMMING
+                                    -- If 'Horizontal' Coincidence
+                                    if SLV_FEEDFWD_PROGRAMMING((QUBITS_CNT-i)*2-2) = '1' and SLV_FEEDFWD_PROGRAMMING((QUBITS_CNT-i)*2-1) = '0' then
+                                        slv_o_feedforward_pulse(0) <= slv_qubits_sampled(QUBIT_ID(i)*2+1);
+                                    -- If 'Vertical' Coincidence
+                                    elsif SLV_FEEDFWD_PROGRAMMING((QUBITS_CNT-i)*2-2) = '0' and SLV_FEEDFWD_PROGRAMMING((QUBITS_CNT-i)*2-1) = '1' then
+                                        slv_o_feedforward_pulse(0) <= slv_qubits_sampled(QUBIT_ID(i)*2);
+                                    -- If 'Any channel' Coincidence
+                                    elsif SLV_FEEDFWD_PROGRAMMING((QUBITS_CNT-i)*2-2) = '1' and SLV_FEEDFWD_PROGRAMMING((QUBITS_CNT-i)*2-1) = '1' then
+                                        slv_o_feedforward_pulse(0) <= qubits_sampled_valid(QUBIT_ID(i));
+                                    end if;
 
                                     -- Leave the state early, reset counter, sample time stamp
                                     actual_qubit_valid <= qubits_sampled_valid(QUBIT_ID(i));
@@ -860,9 +858,11 @@
                         if slv_new_main_galois_cntr_2d(QUBITS_CNT-1) = int_to_slvgalois(v_int_precalculate_delay_qx_1(QUBITS_CNT-1), MAX_PERIODS_DIFF_MAXDELAY_BITWIDTH, INT_PRIM_POL_DIFF) then -- NEW CORR
 
                             if qubits_sampled_valid(QUBITS_CNT-1) = '1' then
-                                report  "XX | XX | " & integer'image(slv_new_main_cntr);
+                                report "Qubit " & integer'image(QUBITS_CNT-1) & ":            " 
+                                    & "XX | XX | " & integer'image(slv_new_main_cntr);
                             else 
-                                report  "Photon 4 lost at " & integer'image(slv_new_main_cntr);
+                                report "Qubit " & integer'image(QUBITS_CNT-1) & ":            " 
+                                    & "lost at " & integer'image(slv_new_main_cntr);
                             end if;
 
                             -- Detect Qubit 4 and proceed to Qubit 1 state, save time stamp, no need to reset counters (will reset on Qubit 1 detection)
@@ -885,7 +885,6 @@
                             end if;
 
                             slv_unsuccessful_qubits(QUBITS_CNT-1) <= not qubits_sampled_valid(QUBITS_CNT-1);
-
                         end if;
 
                         
@@ -895,7 +894,8 @@
                             if slv_new_main_galois_cntr_2d(QUBITS_CNT-1) = int_to_slvgalois(v_int_precalculate_delay_qx_2(QUBITS_CNT-1), MAX_PERIODS_DIFF_MAXDELAY_BITWIDTH, INT_PRIM_POL_DIFF) then -- NEW CORR
 
                                 if qubits_sampled_valid(QUBITS_CNT-1) = '1' then
-                                    report  "XX | " & integer'image(slv_new_main_cntr) & " | XX ";
+                                    report "Qubit " & integer'image(QUBITS_CNT-1) & ":            " 
+                                        & "XX | " & integer'image(slv_new_main_cntr) & " | XX ";
                                 end if;
 
                                 -- Detect Qubit 4 earlier and proceed to Qubit 1 state
@@ -927,7 +927,8 @@
                             if slv_new_main_galois_cntr_2d(QUBITS_CNT-1) = int_to_slvgalois(v_int_precalculate_delay_qx_3(QUBITS_CNT-1), MAX_PERIODS_DIFF_MAXDELAY_BITWIDTH, INT_PRIM_POL_DIFF) then -- NEW CORR
 
                                 if qubits_sampled_valid(QUBITS_CNT-1) = '1' then
-                                    report integer'image(slv_new_main_cntr) & " | XX | XX ";
+                                    report "Qubit " & integer'image(QUBITS_CNT-1) & ":            " 
+                                        & integer'image(slv_new_main_cntr) & " | XX | XX ";
                                 end if;
 
                                 -- Detect Qubit 4 earlier and proceed to Qubit 1 state

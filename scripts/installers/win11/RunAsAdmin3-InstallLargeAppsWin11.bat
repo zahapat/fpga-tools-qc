@@ -6,5 +6,5 @@
 @REM This installation includes: Desktop development with C++:
 @REM     Microsoft.VisualStudio.Workload.NativeDesktop
 @REM winget install --id=Microsoft.VisualStudio.2022.Community  -e
-winget install --id Microsoft.VisualStudio.2022.Community -silent -e --override -quiet "--add Microsoft.VisualStudio.Workload.NativeDesktop" "--add Microsoft.VisualStudio.Component.VC.CMake.Project" "--add Microsoft.VisualStudio.Component.Windows11SDK.22000" "--add Microsoft.VisualStudio.Component.VC.Tools.x86.x64" --includeRecommended
+winget install --id Microsoft.VisualStudio.2022.Community --silent -e --override -quiet --custom "--add Microsoft.VisualStudio.Workload.NativeDesktop --add Microsoft.VisualStudio.Component.VC.CMake.Project --add Microsoft.VisualStudio.Component.Windows11SDK.22000 --add Microsoft.VisualStudio.Component.VC.Tools.x86.x64" --accept-source-agreements --accept-package-agreements --disable-interactivity
 pause

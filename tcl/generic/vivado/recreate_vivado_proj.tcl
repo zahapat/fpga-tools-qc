@@ -476,7 +476,7 @@ set precompile_lib_outdir "${orig_proj_dir}/simulator/vivado_precompiled_ver/${v
 
 # Create directories
 if {![file exists $precompile_lib_outdir]} {
-    exec mkdir $precompile_lib_outdir
+    exec mkdir -p $precompile_lib_outdir
     puts "TCL: Generate & Compile Xilinx Simulation Libraries \(Verilog\) for ModelSim"
     if {[ catch {
         compile_simlib \
