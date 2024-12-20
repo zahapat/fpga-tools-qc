@@ -1,4 +1,4 @@
-    -- fsm_feedforward.vhd: Feed-forward controller
+    -- fsm_flowambiguity.vhd: Feed-forward controller
 
     library ieee;
     use ieee.std_logic_1164.all;
@@ -11,7 +11,7 @@
     library lib_src;
     use lib_src.types_pack.all;
 
-    entity fsm_feedforward is
+    entity fsm_flowambiguity is
         generic (             -- Qubit #:         1 2 3 4
                               -- Polarization:    HVHVHVHV
             INT_FEEDFWD_PROGRAMMING  : integer := 01110101; -- Change the behaviour of the feedforward operation
@@ -51,18 +51,21 @@
             qubit_buffer : out t_qubit_buffer_2d;
             time_stamp_buffer : out t_time_stamp_buffer_2d;
 
-            -- state_feedfwd : out natural range 0 to QUBITS_CNT-1;
-            state_feedfwd : out std_logic_vector(QUBITS_CNT-1 downto 0); -- NEW
+            state_feedfwd : out std_logic_vector(QUBITS_CNT-1 downto 0);
             actual_qubit_valid : out std_logic;
             actual_qubit : out std_logic_vector(1 downto 0);
+            o_sx_next : out std_logic_vector(1 downto 0); -- 2 bits
+            -- o_sz_next : out std_logic_vector(0 downto 0); -- 1 bit
+            -- o_sx_prev : out std_logic_vector(1 downto 0); -- 2 bits
+            -- o_sz_prev : out std_logic_vector(0 downto 0); -- 1 bit
 
             time_stamp_counter_overflow : out std_logic;
 
             eom_ctrl_pulse_ready : in std_logic
         );
-    end fsm_feedforward;
+    end fsm_flowambiguity;
 
-    architecture rtl of fsm_feedforward is
+    architecture rtl of fsm_flowambiguity is
 
         -- Binary integer to std_logic_vector preserving bitstring
         impure function int_to_slv_bitpreserve (
@@ -125,7 +128,7 @@
 
             return v_slv_result_reversed;
         end function;
-        constant SLV_FEEDFWD_PROGRAMMING : std_logic_vector := int_to_slv_bitpreserve(INT_FEEDFWD_PROGRAMMING);
+        constant SLV_FEEDFWD_PROGRAMMING : std_logic_vector(QUBITS_CNT*2-1 downto 0) := int_to_slv_bitpreserve(INT_FEEDFWD_PROGRAMMING);
 
 
         -- The main signal that holds the actual qubit state within the cluster
@@ -250,6 +253,10 @@
         -- Data buffers for verification in PC
         signal slv_qubit_buffer_2d      : t_qubit_buffer_2d := (others => (others => '0'));
         signal slv_time_stamp_buffer_2d : t_time_stamp_buffer_2d := (others => (others => '0'));
+
+        -- Flow ambiguity control signal
+        signal slv_o_sx_next : std_logic_vector(o_sx_next'range) := (others => '0');
+        -- signal slv_o_sz_next : std_logic_vector(o_sz_next'range) := (others => '0');
 
         -- This part is necessary to create scalable binary encoding for this controller to determine qubit IDs
         type t_qubits_binary_encoding_2d is array (QUBITS_CNT-1 downto 1) of integer;
@@ -579,14 +586,14 @@
             0, -- qubit 6
             0, -- qubit 5
             -- Current best configuration
-            -- 0, -- qubit 4 -- 0 is the best
-            -- +1, -- qubit 3 +1 is the best, -1 worst, 0 reacts only to some photons
-            -- -1, -- qubit 2 -1 performs the best
+            0, -- qubit 4 -- 0 is the best
+            +1, -- qubit 3 +1 is the best, -1 worst, 0 reacts only to some photons
+            -1, -- qubit 2 -1 performs the best
 
             --  Experiment
-            +1, -- qubit 4
-            +1, -- qubit 3
-            0, -- Qubit 2
+            -- +1, -- qubit 4
+            -- +1, -- qubit 3
+            -- 0, -- Qubit 2
 
             -- Always 0
             0 -- index 0, qubit 1 (never used)
@@ -614,8 +621,11 @@
         o_feedforward_pulse_trigger <= slv_o_feedforward_pulse_trigger;
         o_unsuccessful_qubits <= slv_unsuccessful_qubits xor slv_unsuccessful_qubits_two_qubits; -- Xor will not be implemented but this is to prevent warnings in compilation
         feedfwd_success_flag <= sl_feedfwd_success_flag;
+        feedfwd_start <= sl_feedfwd_start;
         qubit_buffer <= slv_qubit_buffer_2d;
         time_stamp_buffer <= slv_time_stamp_buffer_2d;
+
+        o_sx_next <= slv_o_sx_next;
         -- state_feedfwd <= to_integer(unsigned(std_logic_vector(to_unsigned(actual_state_feedfwd, QUBITS_CNT)) xor std_logic_vector(to_unsigned(actual_state_feedfwd_two_qubits, QUBITS_CNT)))); -- One of them is constantly zero
 
         -- Scalable hardware description of a FSM-like logic: more than 2 qubits
@@ -628,7 +638,7 @@
             slv_main_counter_bin_incr <= std_logic_vector(unsigned(slv_main_counter_bin) + "1");  -- NEW
             int_main_counter_bin_incr <= to_integer(unsigned(slv_main_counter_bin_incr));  -- NEW
 
-            proc_fsm_feedforward : process(clk)
+            proc_fsm_flowambiguity : process(clk)
                 variable v_int_precalculate_delay_qx_1 : t_periods_q_2d := (others => 0);
                 variable v_int_precalculate_delay_qx_2 : t_periods_q_2d := (others => 0);
                 variable v_int_precalculate_delay_qx_3 : t_periods_q_2d := (others => 0);
@@ -703,6 +713,14 @@
                         slv_state_feedforward(0) <= not qubits_sampled_valid(0); -- NEW
                         slv_state_feedforward(1) <= qubits_sampled_valid(0); -- NEW
 
+                        -- For EOM control & encryption
+                        -- b' + Sz(default; for now  Sz=0)
+                        if qubits_sampled_valid(0) = '1' then
+                            slv_o_sx_next(0) <= slv_qubits_sampled(0) xor '0'; -- slv_qubits_sampled(0) = V; slv_qubits_sampled(0) = H
+                            slv_o_sx_next(1) <= slv_qubits_sampled(0) and '0'; -- slv_qubits_sampled(0) = V; slv_qubits_sampled(0) = H
+                        end if;
+
+
                     end if;
 
                     -----------------------------------
@@ -753,6 +771,13 @@
                                 slv_state_feedforward(i) <= '0'; -- Always leave this state
                                 slv_state_feedforward(i+1) <= qubits_sampled_valid(QUBIT_ID(i)); -- Depending on coincidence, enable next state
 
+                                -- For EOM control & encryption
+                                -- b' + Sz(default; for now  Sz=0)
+                                if qubits_sampled_valid(QUBIT_ID(i)) = '1' then
+                                    slv_o_sx_next(0) <= slv_qubits_sampled(QUBIT_ID(i)*2) xor '0'; -- slv_qubits_sampled(0) = V; slv_qubits_sampled(0) = H
+                                    slv_o_sx_next(1) <= slv_qubits_sampled(QUBIT_ID(i)*2) and '0'; -- slv_qubits_sampled(0) = V; slv_qubits_sampled(0) = H
+                                end if;
+
                                 -- Enable Qubit 1 state if not coincidence
                                 if qubits_sampled_valid(QUBIT_ID(i)) = '0' then
                                     slv_state_feedforward(0) <= not qubits_sampled_valid(QUBIT_ID(i)); -- NEW
@@ -792,6 +817,13 @@
                                     slv_state_feedforward(i) <= not qubits_sampled_valid(QUBIT_ID(i)); -- Stay in this state if not coincidence, leave on coincidence
                                     slv_state_feedforward(i+1) <= qubits_sampled_valid(QUBIT_ID(i)); -- Enable next state on coincidence, keep disabled otherwise
 
+                                    -- For EOM control & encryption
+                                    -- b' + Sz(default; for now  Sz=0)
+                                    if qubits_sampled_valid(QUBIT_ID(i)) = '1' then
+                                        slv_o_sx_next(0) <= slv_qubits_sampled(QUBIT_ID(i)*2) xor '0'; -- slv_qubits_sampled(0) = V; slv_qubits_sampled(0) = H
+                                        slv_o_sx_next(1) <= slv_qubits_sampled(QUBIT_ID(i)*2) and '0'; -- slv_qubits_sampled(0) = V; slv_qubits_sampled(0) = H
+                                    end if;
+
                                     -- Reset counters only if valid
                                     if qubits_sampled_valid(QUBIT_ID(i)) = '1' then
                                         slv_new_main_cntr <= 0;
@@ -802,45 +834,6 @@
                             end loop;
 
 
-                            -- Look for detection before the last counter iteration (counter the data skew)
-                            for u in 1 to 1 loop
-                                v_int_precalculate_delay_qx_3(QUBIT_ID(i)) := MAX_PERIODS_DIFF(QUBIT_ID(i)) -1 -u + MAX_PERIODS_DIFF_CORR(QUBIT_ID(i)); -- NEW CORR
-                                if slv_new_main_galois_cntr_2d(QUBIT_ID(i)) = int_to_slvgalois(v_int_precalculate_delay_qx_3(QUBIT_ID(i)), MAX_PERIODS_DIFF_MAXDELAY_BITWIDTH, INT_PRIM_POL_DIFF) then -- NEW CORR
-
-                                    if qubits_sampled_valid(QUBIT_ID(i)) = '1' then
-                                        report "Qubit " & integer'image(QUBIT_ID(i)) & ":" 
-                                            & integer'image(slv_new_main_cntr) & " | XX | XX ";
-                                    end if;
-
-                                    -- Forward the given pulse defined in INT_FEEDFWD_PROGRAMMING
-                                    -- If 'Horizontal' Coincidence
-                                    if SLV_FEEDFWD_PROGRAMMING((QUBITS_CNT-i)*2-2) = '1' and SLV_FEEDFWD_PROGRAMMING((QUBITS_CNT-i)*2-1) = '0' then
-                                        slv_o_feedforward_pulse(0) <= slv_qubits_sampled(QUBIT_ID(i)*2+1);
-                                    -- If 'Vertical' Coincidence
-                                    elsif SLV_FEEDFWD_PROGRAMMING((QUBITS_CNT-i)*2-2) = '0' and SLV_FEEDFWD_PROGRAMMING((QUBITS_CNT-i)*2-1) = '1' then
-                                        slv_o_feedforward_pulse(0) <= slv_qubits_sampled(QUBIT_ID(i)*2);
-                                    -- If 'Any channel' Coincidence
-                                    elsif SLV_FEEDFWD_PROGRAMMING((QUBITS_CNT-i)*2-2) = '1' and SLV_FEEDFWD_PROGRAMMING((QUBITS_CNT-i)*2-1) = '1' then
-                                        slv_o_feedforward_pulse(0) <= qubits_sampled_valid(QUBIT_ID(i));
-                                    end if;
-
-                                    -- Leave the state early, reset counter, sample time stamp
-                                    actual_qubit_valid <= qubits_sampled_valid(QUBIT_ID(i));
-                                    slv_time_stamp_buffer_2d(QUBIT_ID(i)+1) 
-                                        <= std_logic_vector(uns_actual_time_stamp_counter(st_transaction_data_max_width));
-
-                                    -- Next state logic
-                                    slv_state_feedforward(i) <= not qubits_sampled_valid(QUBIT_ID(i)); -- Stay in this state if not coincidence, leave on coincidence
-                                    slv_state_feedforward(i+1) <= qubits_sampled_valid(QUBIT_ID(i)); -- Enable next state on coincidence, keep disabled otherwise
-
-                                    -- Reset counters only if valid
-                                    if qubits_sampled_valid(QUBIT_ID(i)) = '1' then
-                                        slv_new_main_cntr <= 0;
-                                        slv_new_main_galois_cntr_2d(QUBIT_ID(i+1)) <= int_to_slvgalois(0, MAX_PERIODS_DIFF_MAXDELAY_BITWIDTH, INT_PRIM_POL_DIFF);
-                                    end if;
-
-                                end if;
-                            end loop;
                         end if;
                     end loop;
 
@@ -871,6 +864,13 @@
 
                             slv_state_feedforward(QUBITS_CNT-1) <= '0'; -- Always leave this state here
                             slv_state_feedforward(0) <= '1'; -- Always go back to state 1 from here
+
+                            -- For EOM control & encryption
+                            -- b' + Sz(default; for now  Sz=0)
+                            if qubits_sampled_valid(QUBITS_CNT-1) = '1' then
+                                slv_o_sx_next(0) <= slv_qubits_sampled((QUBITS_CNT-1)*2) xor '0'; -- slv_qubits_sampled(0) = V; slv_qubits_sampled(1) = H
+                                slv_o_sx_next(1) <= slv_qubits_sampled((QUBITS_CNT-1)*2) and '0'; -- slv_qubits_sampled(0) = V; slv_qubits_sampled(1) = H
+                            end if;
 
                             -- If 'Horizontal' Coincidence is success on last qubit
                             if SLV_FEEDFWD_PROGRAMMING(0) = '1' and SLV_FEEDFWD_PROGRAMMING(1) = '0' then
@@ -906,38 +906,12 @@
                                 slv_state_feedforward(QUBITS_CNT-1) <= not qubits_sampled_valid(QUBITS_CNT-1); -- NEW
                                 slv_state_feedforward(0) <= qubits_sampled_valid(QUBITS_CNT-1); -- NEW
 
-                                -- If 'Horizontal' Coincidence is success on last qubit
-                                if SLV_FEEDFWD_PROGRAMMING(0) = '1' and SLV_FEEDFWD_PROGRAMMING(1) = '0' then
-                                    sl_feedfwd_success_flag <= slv_qubits_sampled((QUBITS_CNT-1)*2+1);
-                                -- If 'Vertical' Coincidence is success on last qubit
-                                elsif SLV_FEEDFWD_PROGRAMMING(0) = '0' and SLV_FEEDFWD_PROGRAMMING(1) = '1' then
-                                    sl_feedfwd_success_flag <= slv_qubits_sampled((QUBITS_CNT-1)*2);
-                                -- If 'Any channel' Coincidence is success on last qubit
-                                elsif SLV_FEEDFWD_PROGRAMMING(0) = '1' and SLV_FEEDFWD_PROGRAMMING(1) = '1' then
-                                    sl_feedfwd_success_flag <= qubits_sampled_valid(QUBITS_CNT-1);
-                                end if;
-
-                            end if;
-                        end loop;
-
-
-                        for u in 1 to 1 loop
-                            v_int_precalculate_delay_qx_3(QUBITS_CNT-1) := MAX_PERIODS_DIFF(QUBITS_CNT-1) -1 -u + MAX_PERIODS_DIFF_CORR(QUBITS_CNT-1); -- NEW CORR
-                            if slv_new_main_galois_cntr_2d(QUBITS_CNT-1) = int_to_slvgalois(v_int_precalculate_delay_qx_3(QUBITS_CNT-1), MAX_PERIODS_DIFF_MAXDELAY_BITWIDTH, INT_PRIM_POL_DIFF) then -- NEW CORR
-
+                                -- For EOM control & encryption
+                                -- b' + Sz(default; for now  Sz=0)
                                 if qubits_sampled_valid(QUBITS_CNT-1) = '1' then
-                                    report "Qubit " & integer'image(QUBITS_CNT-1) & ":            " 
-                                        & integer'image(slv_new_main_cntr) & " | XX | XX ";
+                                    slv_o_sx_next(0) <= slv_qubits_sampled((QUBITS_CNT-1)*2) xor '0'; -- slv_qubits_sampled(0) = V; slv_qubits_sampled(0) = H
+                                    slv_o_sx_next(1) <= slv_qubits_sampled((QUBITS_CNT-1)*2) and '0'; -- slv_qubits_sampled(0) = V; slv_qubits_sampled(0) = H
                                 end if;
-
-                                -- Detect Qubit 4 earlier and proceed to Qubit 1 state
-                                -- Leave the state early, reset counter, sample time stamp
-                                actual_qubit_valid <= qubits_sampled_valid(QUBITS_CNT-1);
-                                slv_time_stamp_buffer_2d(QUBITS_CNT)
-                                    <= std_logic_vector(uns_actual_time_stamp_counter(st_transaction_data_max_width));
-
-                                slv_state_feedforward(QUBITS_CNT-1) <= not qubits_sampled_valid(QUBITS_CNT-1); -- NEW
-                                slv_state_feedforward(0) <= qubits_sampled_valid(QUBITS_CNT-1); -- NEW
 
                                 -- If 'Horizontal' Coincidence is success on last qubit
                                 if SLV_FEEDFWD_PROGRAMMING(0) = '1' and SLV_FEEDFWD_PROGRAMMING(1) = '0' then
@@ -952,6 +926,9 @@
 
                             end if;
                         end loop;
+
+
+                    
                     end if;
 
                     ---------------------------

@@ -1,13 +1,13 @@
-./modules/top_feedforward/sim/top_feedforward_tb.vhd
-./modules/top_feedforward/hdl/top_feedforward.vhd
+./modules/top_flowambiguity/sim/top_flowambiguity_tb.vhd
+./modules/top_flowambiguity/hdl/top_flowambiguity.vhd
 ./modules/clock_synthesizer/sim/clock_synthesizer_tb.sv
 ./modules/clock_synthesizer/hdl/clock_synthesizer.sv
 ./modules/reset/sim/reset_tb.vhd
 ./modules/reset/hdl/reset.vhd
 ./modules/csv_readout/sim/csv_readout_tb.vhd
 ./modules/csv_readout/hdl/csv_readout.vhd
-./modules/fsm_feedforward/sim/fsm_feedforward_tb.vhd
-./modules/fsm_feedforward/hdl/fsm_feedforward.vhd
+./modules/fsm_flowambiguity/sim/fsm_flowambiguity_tb.vhd
+./modules/fsm_flowambiguity/hdl/fsm_flowambiguity.vhd
 ./modules/lfsr_bitgen/sim/lfsr_bitgen_tb.vhd
 ./modules/lfsr_bitgen/hdl/lfsr_bitgen.vhd
 ./modules/shiftreg_queue_shifter/sim/shiftreg_queue_shifter_tb.vhd

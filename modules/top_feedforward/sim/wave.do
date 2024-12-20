@@ -127,6 +127,8 @@ add wave -noupdate /top_feedforward_tb/dut_top_feedforward/inst_fsm_feedforward/
 add wave -noupdate /top_feedforward_tb/dut_top_feedforward/inst_fsm_feedforward/eom_ctrl_pulse_ready
 add wave -noupdate /top_feedforward_tb/dut_top_feedforward/inst_fsm_feedforward/qubits_sampled_valid
 add wave -noupdate /top_feedforward_tb/dut_top_feedforward/inst_fsm_feedforward/slv_new_main_cntr
+add wave -noupdate -color Yellow -height 15 /top_feedforward_tb/dut_top_feedforward/input_pads(7)
+add wave -noupdate -color Yellow -expand -subitemconfig {/top_feedforward_tb/dut_top_feedforward/input_pads(7) {-color Yellow -height 15} /top_feedforward_tb/dut_top_feedforward/input_pads(6) {-color Yellow -height 15} /top_feedforward_tb/dut_top_feedforward/input_pads(5) {-color Yellow -height 15} /top_feedforward_tb/dut_top_feedforward/input_pads(4) {-color Yellow -height 15} /top_feedforward_tb/dut_top_feedforward/input_pads(3) {-color Yellow -height 15} /top_feedforward_tb/dut_top_feedforward/input_pads(2) {-color Yellow -height 15} /top_feedforward_tb/dut_top_feedforward/input_pads(1) {-color Yellow -height 15} /top_feedforward_tb/dut_top_feedforward/input_pads(0) {-color Yellow -height 15}} /top_feedforward_tb/dut_top_feedforward/input_pads
 add wave -noupdate -color Gold -expand -subitemconfig {/top_feedforward_tb/dut_top_feedforward/inst_fsm_feedforward/slv_state_feedforward(3) {-color Gold -height 15} /top_feedforward_tb/dut_top_feedforward/inst_fsm_feedforward/slv_state_feedforward(2) {-color Gold -height 15} /top_feedforward_tb/dut_top_feedforward/inst_fsm_feedforward/slv_state_feedforward(1) {-color Gold -height 15} /top_feedforward_tb/dut_top_feedforward/inst_fsm_feedforward/slv_state_feedforward(0) {-color Gold -height 15}} /top_feedforward_tb/dut_top_feedforward/inst_fsm_feedforward/slv_state_feedforward
 add wave -noupdate /top_feedforward_tb/dut_top_feedforward/sl_actual_qubit_valid
 add wave -noupdate /top_feedforward_tb/dut_top_feedforward/slv_feedforward_pulse
@@ -135,8 +137,8 @@ add wave -noupdate -expand /top_feedforward_tb/dut_top_feedforward/slv_feedfwd_e
 add wave -noupdate -color {Medium Violet Red} /top_feedforward_tb/dut_top_feedforward/inst_fsm_feedforward/sl_feedfwd_success_flag
 add wave -noupdate -color {Orange Red} /top_feedforward_tb/dut_top_feedforward/o_eom_ctrl_pulse
 add wave -noupdate /top_feedforward_tb/dut_top_feedforward/o_debug_port_1
-add wave -noupdate -color {Medium Violet Red} /top_feedforward_tb/dut_top_feedforward/o_debug_port_2
 add wave -noupdate -color {Cornflower Blue} /top_feedforward_tb/dut_top_feedforward/o_debug_port_3
+add wave -noupdate -color {Medium Violet Red} /top_feedforward_tb/dut_top_feedforward/o_debug_port_2
 add wave -noupdate /top_feedforward_tb/dut_top_feedforward/sl_feedfwd_start
 add wave -noupdate /top_feedforward_tb/dut_top_feedforward/slv_feedfwd_start
 add wave -noupdate /top_feedforward_tb/dut_top_feedforward/inst_fsm_feedforward/slv_state_feedforward_two_qubits
@@ -255,7 +257,6 @@ add wave -noupdate /top_feedforward_tb/dut_top_feedforward/sl_rst_readout_clk
 add wave -noupdate /top_feedforward_tb/dut_top_feedforward/sl_rst_dsp_clk
 add wave -noupdate -expand /top_feedforward_tb/dut_top_feedforward/eom_ctrl_pulse_coincidence
 add wave -noupdate /top_feedforward_tb/dut_top_feedforward/eom_ctrl_pulse_coincidence(0)
-add wave -noupdate -color Yellow -expand -subitemconfig {/top_feedforward_tb/dut_top_feedforward/input_pads(7) {-color Yellow -height 15} /top_feedforward_tb/dut_top_feedforward/input_pads(6) {-color Yellow -height 15} /top_feedforward_tb/dut_top_feedforward/input_pads(5) {-color Yellow -height 15} /top_feedforward_tb/dut_top_feedforward/input_pads(4) {-color Yellow -height 15} /top_feedforward_tb/dut_top_feedforward/input_pads(3) {-color Yellow -height 15} /top_feedforward_tb/dut_top_feedforward/input_pads(2) {-color Yellow -height 15} /top_feedforward_tb/dut_top_feedforward/input_pads(1) {-color Yellow -height 15} /top_feedforward_tb/dut_top_feedforward/input_pads(0) {-color Yellow -height 15}} /top_feedforward_tb/dut_top_feedforward/input_pads
 add wave -noupdate -expand -subitemconfig {/top_feedforward_tb/slv_cdcc_rd_qubits_to_fsm(1) {-color Red -height 15}} /top_feedforward_tb/slv_cdcc_rd_qubits_to_fsm
 add wave -noupdate -color {Cadet Blue} /top_feedforward_tb/dut_top_feedforward/inst_fsm_feedforward/actual_qubit_valid
 add wave -noupdate -divider Queue
@@ -274,9 +275,13 @@ add wave -noupdate -expand /top_feedforward_tb/dut_top_feedforward/slv_time_stam
 add wave -noupdate /top_feedforward_tb/dut_top_feedforward/slv_alpha_buffer_to_transfer_2d
 add wave -noupdate /top_feedforward_tb/dut_top_feedforward/slv_modulo_buffer_to_transfer_2d
 add wave -noupdate /top_feedforward_tb/dut_top_feedforward/slv_random_buffer_to_transfer_2d
-add wave -noupdate /top_feedforward_tb/dut_top_feedforward/inst_fsm_feedforward/MAX_PERIODS_DIFF_CORR
+add wave -noupdate -expand /top_feedforward_tb/dut_top_feedforward/inst_fsm_feedforward/MAX_PERIODS_DIFF_CORR
+add wave -noupdate /top_feedforward_tb/dut_top_feedforward/slv_sx_sz_to_math
+add wave -noupdate /top_feedforward_tb/dut_top_feedforward/inst_fsm_feedforward/INT_FEEDFWD_PROGRAMMING
+add wave -noupdate -expand /top_feedforward_tb/dut_top_feedforward/inst_fsm_feedforward/SLV_FEEDFWD_PROGRAMMING
+add wave -noupdate -expand /top_feedforward_tb/dut_top_feedforward/inst_fsm_feedforward/QUBIT_ID
 TreeUpdate [SetDefaultTree]
-WaveRestoreCursors {{Cursor 1} {1218250 ps} 0}
+WaveRestoreCursors {{Cursor 1} {5962500 ps} 0}
 quietly wave cursor active 1
 configure wave -namecolwidth 549
 configure wave -valuecolwidth 164
@@ -292,4 +297,4 @@ configure wave -griddelta 40
 configure wave -timeline 0
 configure wave -timelineunits ns
 update
-WaveRestoreZoom {0 ps} {53823105 ps}
+WaveRestoreZoom {46081099 ps} {51532680 ps}
