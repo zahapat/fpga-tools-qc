@@ -9,6 +9,27 @@
 typedef unsigned int UINT32;
 
 class guiBackendObj {
+
+    // Declare Variables for Shared Memory and Semaphores
+    HANDLE shm_handle_runff;
+    bool* shm_runff;
+    HANDLE sem_producer_runff;
+    HANDLE sem_consumer_runff;
+    bool sampled_shm_runff;
+
+    // Performance Optimization, event-based operation
+    bool sampled_shm_runff_p1;
+    bool first_run;
+
+    HANDLE shm_handle_rand;
+    int* shm_rand;
+    HANDLE sem_producer_rand;
+    HANDLE sem_consumer_rand;
+    int sampled_shm_rand;
+    UINT32 uint32_sampled_shm_rand;
+
+
+
     // Shared variables among threads
     unsigned char* dataBufferRead;
     bool thr1_to_thr2_stop_request;
@@ -80,7 +101,8 @@ public:
         bool program_only=false,
         int qubits_count=4, 
         double float_run_time_seconds=5, 
-        char* bitfile_name="bitfile.bit"
+        // char* bitfile_name="bitfile.bit"
+        std::string bitfile_name="bitfile.bit"
     ) : ready_new_value{false} {
 
         std::cout << "guiBackendObj: Constructor started" << std::endl;
@@ -89,7 +111,12 @@ public:
         this->program_only = program_only;
         this->qubits_count = qubits_count;
         this->float_run_time_seconds = float_run_time_seconds;
-        this->bitfile_name = bitfile_name;
+
+        // Create a vector of characters from the bitfile_name string
+        // Add the null terminator at the end
+        std::vector<char> modifiable_string(bitfile_name.begin(), bitfile_name.end());
+        modifiable_string.push_back('\0');
+        this->bitfile_name = modifiable_string.data();
 
         // Open the device, optionally selecting the one with the specified okBoardOnSerial.
         // "" = do not check for serial port. Pick the one device connected to the PC.
@@ -111,19 +138,19 @@ public:
 
         // Clear content of the output files and add headers
         // Header CSV file 1
-        outFile1.open("outputFile1.csv", std::ofstream::out | std::ofstream::trunc);
+        outFile1.open("all_flows_details.csv", std::ofstream::out | std::ofstream::trunc);
         for (int i = 1; i <= qubits_count; i++){
             outFile1 << "photon_q" << i << ",";
         }
         outFile1 << ",";
 
         for (int i = 1; i <= qubits_count; i++){
-            outFile1 << "alpha_q" << i << ",";
+            outFile1 << "sx_q" << i << ",";
         }
         outFile1 << ",";
 
         for (int i = 1; i <= qubits_count; i++){
-            outFile1 << "mod_q" << i << ",";
+            outFile1 << "sz_q" << i << ",";
         }
         outFile1 << ",";
 
@@ -136,12 +163,14 @@ public:
         for (int i = 1; i <= qubits_count; i++){
             outFile1 << "timestamp_q" << i << ",";
         }
-        outFile1 << ",@time" << std::endl;
+
+        outFile1 << ",@time";
+        outFile1 << ",time_ovflw" << std::endl;
         // outFile1.close();
 
 
         // Header CSV file 2
-        outFile2.open("outputFile2.csv", std::ofstream::out | std::ofstream::trunc);
+        outFile2.open("coincidence_patterns.csv", std::ofstream::out | std::ofstream::trunc);
         for (int i = 0; i < pow(2, qubits_count); i++){
             // Bitset width must be known at compile time
             if (qubits_count == 1) {outFile2 << std::bitset<1>(i) << ",";}
@@ -151,12 +180,14 @@ public:
             else if (qubits_count == 5) {outFile2 << std::bitset<5>(i) << ",";}
             else if (qubits_count == 6) {outFile2 << std::bitset<6>(i) << ",";}
         }
-        outFile2 << ",@time" << std::endl;
+
+        outFile2 << ",@time";
+        outFile2 << ",time_ovflw" << std::endl;
         // outFile2.close();
 
 
         // Header CSV file 3
-        outFile3.open("outputFile3.csv", std::ofstream::out | std::ofstream::trunc);
+        outFile3.open("all_counters.csv", std::ofstream::out | std::ofstream::trunc);
         for (int i = 1; i <= qubits_count*2; i++){
             outFile3 << "chann_" << i << ",";
         }
@@ -165,7 +196,9 @@ public:
         for (int i = 2; i <= qubits_count; i++){
             outFile3 << "loss_q" << i << ",";
         }
-        outFile3 << ",@time" << std::endl;
+
+        outFile3 << ",@time";
+        outFile3 << ",time_ovflw" << std::endl;
         // outFile3.close();
 
     }
@@ -180,17 +213,52 @@ public:
         std::cout << "guiBackendObj: Destructing" << std::endl;
     }
 
+    // Open shared memory instance
+    HANDLE connect_shmem(const char* shm_name);
+
+    // Get pointer to boolean type data in a given named shared memory
+    bool* get_bool_shmemdata(HANDLE hMapFile);
+
+    // Get pointer to integer type data in a given named shared memory
+    int* get_int_shmemdata(HANDLE shm_handle);
+
+    // Get pointer to any data type in a given named shared memory
+    template <typename A>
+    A* get_shmemdata(HANDLE shm_handle);
+
+    // Connect a semaphore for handshaking
+    HANDLE connect_semaphore(const char* semaphore_name);
+
+    // Connect named shared memory and get a pointer to any data type addr instance
+    template <typename B>
+    std::tuple<HANDLE, B*> get_anytype_shared_memory(const char* name);
+
+    // Semaphore: Open named producer and consumer semaphore
+    template <typename C>
+    std::tuple<HANDLE, HANDLE> connect_semaphores_handshaking(const char* name_producer, const char* name_consumer, HANDLE shm_handle, C shared_memptr);
+
+    // Get raw data from shared memory instance, perform handshaking on producer and consumer side
+    template <typename D>
+    D get_sharedmem_data_handshake(HANDLE consumer_semaphore, HANDLE producer_semaphore, D* sharedmem_data, DWORD timeout_milliseconds);
+
+    // Connect named shared memory instance and producer & consumer semaphores for handshaking
+    template <typename E>
+    std::tuple<HANDLE, E*, HANDLE, HANDLE, bool> initialize_shm_and_sem(const char* shm_name, const char* producer_semaphore_name, const char* consumer_semaphore_name);
+
+    // Read the content of the shared memory
+    int rx_sharedmem_dummy();
+
     // Configure the FPGA with the given configuration bitfile.
     bool initializeFPGA(okCFrontPanel* okDevice, char* bitfile);
 
-    // ...
+    // Main processing of the received data from the FPGA
     std::tuple<int, int> processReceivedData(std::tuple<int, int> col_and_file_id, unsigned char* pucBuffer, UINT32 bufferSize);
 
-    // ...
+    // Print the 32-bit transaction into console
     void printEntireTransaction(std::bitset<32> uns32b);
 
     // Performs read only operation form the FPGA
-    bool Read(unsigned char* pBufferRead_thread1, okCFrontPanel* okDevice, UINT32 m_u32TransferSizeCount);
+    bool Read_PipeOut(unsigned char* pBufferRead_thread1, okCFrontPanel* okDevice, UINT32 m_u32TransferSizeCount);
 
     // This thread reads data from the FPGA
     int thread1_acquire();

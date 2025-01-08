@@ -298,6 +298,10 @@ params_to_csv: $(CURRENT_DESIGN_ARTIFACTS_DIR)/../$(CSV_LIST_ALL_DESIGNS)
 	fi
 
 
+simulate:
+	@$(MAKE) generics reset src sim_gui
+
+
 # "Build over Loop": Building hardware using a loop by assigning a loop variable 'i' to the desired generic parameter
 # Example: make loop LOOP_VALS="50 75 100" GEN_NUM=28 
 #    Note: GEN28_NAME is INT_CTRL_PULSE_DEAD_DURATION_NS
@@ -557,6 +561,9 @@ build_sim_crc:
 # -------------------------------------------------------------
 #  git.mk targets
 # -------------------------------------------------------------
+# TODO
+gunstage:
+    @$(MAKE) -f $(GIT_MAKEFILE) $@
 gupdate_ownrepo:
 	@$(MAKE) -f $(GIT_MAKEFILE) $@
 gp:

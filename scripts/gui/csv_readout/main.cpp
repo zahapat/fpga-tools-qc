@@ -18,6 +18,8 @@
 #include <algorithm>
 #include <cmath>
 
+#include <windows.h>
+
 #if defined(__QNX__)
     #include <stdint.h>
     #include <sys/syspage.h>
@@ -56,6 +58,269 @@ typedef unsigned int UINT32;
 
 using ms = std::chrono::milliseconds;
 
+
+// Connect a named shared memory
+HANDLE guiBackendObj::connect_shmem(const char* shmem_name) {
+    HANDLE shm_handle = OpenFileMapping(
+        FILE_MAP_ALL_ACCESS, 
+        FALSE, 
+        shmem_name
+    );
+    if (shm_handle == nullptr) {
+        std::cerr << "Could not map existing shared memory object. Error code: " << GetLastError() << ". Return nullptr." << std::endl;
+    }
+    return shm_handle;
+}
+
+
+// Get pointer to any data type in a given named shared memory
+template <typename A>
+A* guiBackendObj::get_shmemdata(HANDLE shm_handle) {
+    A* sharedmem_data = static_cast<A*>(
+        MapViewOfFile(
+            shm_handle, 
+            FILE_MAP_ALL_ACCESS, 
+            0, 
+            0, 
+            sizeof(A)
+        ));
+    if (sharedmem_data == nullptr) {
+        std::cerr << "Could not map view of file. Error code: " << GetLastError() << ". Return nullptr." << std::endl;
+    }
+    return sharedmem_data;
+}
+
+template bool* guiBackendObj::get_shmemdata<bool>(HANDLE shm_handle);
+template int* guiBackendObj::get_shmemdata<int>(HANDLE shm_handle);
+
+
+// Connect a semaphore for handshaking
+HANDLE guiBackendObj::connect_semaphore(const char* semaphore_name) {
+    HANDLE semaphore_handle = OpenSemaphore(
+        SYNCHRONIZE | SEMAPHORE_MODIFY_STATE, 
+        FALSE, 
+        semaphore_name
+    );
+    if (semaphore_handle == nullptr) {
+        std::cerr << "Could not open semaphore: " << semaphore_name << ". Error code: " << GetLastError() << ". Return nullptr." << std::endl;
+    }
+    return semaphore_handle;
+}
+
+
+
+// Connect named shared memory and get a pointer to any data type addr instance
+template <typename B>
+std::tuple<HANDLE, B*> guiBackendObj::get_anytype_shared_memory(const char* name){
+    // Memmap: Open named shared memory
+    HANDLE shm_handle = guiBackendObj::connect_shmem(name);
+
+    // Memmap: Get the named memory maped content instance
+    B* shared_dataptr = get_shmemdata<B>(shm_handle);
+
+    // If not created, wait until success, press F to cancel
+    while (shm_handle == nullptr | shared_dataptr == nullptr) {
+        shm_handle = connect_shmem(name);
+        shared_dataptr = get_shmemdata<B>(shm_handle);
+        if (GetAsyncKeyState(70) & 0x8000) {
+            std::cout << "Consumer: Exit key 'F' has been pressed. Break." << std::endl;
+            CloseHandle(shm_handle);
+            break;
+        }
+        Sleep(1000);
+        std::cout << "Consumer: Waiting for producer to create shared memory named: " << name << ". Press 'F' to cancel." << std::endl;
+    }
+
+    return {shm_handle, shared_dataptr};
+}
+
+template std::tuple<HANDLE, bool*> guiBackendObj::get_anytype_shared_memory<bool>(const char* name);
+template std::tuple<HANDLE, int*> guiBackendObj::get_anytype_shared_memory<int>(const char* name);
+
+
+
+// Semaphore: Open named producer and consumer semaphore
+template <typename C>
+std::tuple<HANDLE, HANDLE> guiBackendObj::connect_semaphores_handshaking(const char* name_producer, const char* name_consumer, HANDLE shm_handle, C shared_memptr){
+    HANDLE producer_semaphore = guiBackendObj::connect_semaphore(name_producer);
+    while (producer_semaphore == nullptr) {
+        if (GetAsyncKeyState(70) & 0x8000) {
+            std::cout << "Consumer: Exit key 'F' has been pressed. Break." << std::endl;
+            UnmapViewOfFile(shared_memptr);
+            CloseHandle(shm_handle);
+            return {nullptr, nullptr};
+        }
+        Sleep(1000);
+        std::cout << "Consumer: Waiting for producer semaphore: " << name_producer << " to be created. Press 'F' to cancel." << std::endl;
+    }
+
+    // Semaphore: Open named consumer semaphore, wait until established
+    HANDLE consumer_semaphore = guiBackendObj::connect_semaphore(name_consumer);
+    while (consumer_semaphore == nullptr) {
+        if (GetAsyncKeyState(70) & 0x8000) {
+            std::cout << "Consumer: Exit key 'F' has been pressed. Break." << std::endl;
+            CloseHandle(consumer_semaphore);
+            UnmapViewOfFile(shared_memptr);
+            CloseHandle(shm_handle);
+            return {nullptr, nullptr};
+        }
+        Sleep(1000);
+        std::cout << "Consumer: Waiting for consumer semaphore: " << name_consumer << " to be created. Press 'F' to cancel." << std::endl;
+    }
+
+    return {producer_semaphore, consumer_semaphore};
+}
+
+template std::tuple<HANDLE, HANDLE> guiBackendObj::connect_semaphores_handshaking<bool*>(const char* name_producer, const char* name_consumer, HANDLE shm_handle, bool* shared_memptr);
+template std::tuple<HANDLE, HANDLE> guiBackendObj::connect_semaphores_handshaking<int*>(const char* name_producer, const char* name_consumer, HANDLE shm_handle, int* shared_memptr);
+
+
+// Get raw data from shared memory instance, perform handshaking on producer and consumer side
+template <typename D>
+D guiBackendObj::get_sharedmem_data_handshake(HANDLE consumer_semaphore, HANDLE producer_semaphore, D* sharedmem_data, DWORD timeout_milliseconds) {
+    // timeout_milliseconds: The time-out interval, in milliseconds. 
+    //                       - If se to a nonzero value, the function 
+    //                       waits until the object is signaled or the 
+    //                       interval elapses. 
+    //                       - If set to 0, the function does not enter 
+    //                       a wait state if the object is not signaled; 
+    //                       it always returns immediately. 
+    //                       - If set to INFINITE, the function will 
+    //                       return only when the object is signaled.
+    // try {}
+    // catch {}
+    // WaitForSingleObject(consumer_semaphore, INFINITE);  // Wait for producer signal
+    WaitForSingleObject(consumer_semaphore, timeout_milliseconds);  // Wait for producer signal
+    D sampled_data = *sharedmem_data; // RE-DECLARING THE sampled_data CAN AFFECT PERFORMANCE, BUT GETTING VARIABLE FROM THE OUTSIDE OF THIS FUNCTION RESULTED IN RACE CONDITION
+    // std::cout << "Consumer: Feedforward enabled " << (sampled_data ? "True" : "False") << std::endl;
+    ReleaseSemaphore(producer_semaphore, 1, nullptr);  // Signal to producer
+    return sampled_data;
+}
+
+template bool guiBackendObj::get_sharedmem_data_handshake<bool>(HANDLE consumer_semaphore, HANDLE producer_semaphore, bool* sharedmem_data, DWORD timeout_milliseconds);
+template int guiBackendObj::get_sharedmem_data_handshake<int>(HANDLE consumer_semaphore, HANDLE producer_semaphore, int* sharedmem_data, DWORD timeout_milliseconds);
+
+
+// Connect named shared memory instance and producer & consumer semaphores for handshaking
+template <typename E>
+std::tuple<HANDLE, E*, HANDLE, HANDLE, bool> guiBackendObj::initialize_shm_and_sem(const char* shm_name, const char* producer_semaphore_name, const char* consumer_semaphore_name) {
+
+    // Declare Variables
+    HANDLE shm_handle;
+    E* shared_dataptr;
+    HANDLE producer_semaphore;
+    HANDLE consumer_semaphore;
+
+    // Memmap: Open named shared memory, exit on nullptr
+    std::tie(shm_handle, shared_dataptr) = get_anytype_shared_memory<E>(shm_name);
+    if (shm_handle == nullptr | shared_dataptr == nullptr) {
+        std::cerr << "Named shared memory " << shm_name << " was not mapped." << std::endl;
+        return {nullptr,nullptr,nullptr,nullptr,false};
+    }
+
+    // Semaphore: Open named producer and consumer semaphore
+    std::tie(producer_semaphore, consumer_semaphore) = guiBackendObj::connect_semaphores_handshaking<E*>(
+        producer_semaphore_name,
+        consumer_semaphore_name,
+        shm_handle,
+        shared_dataptr
+    );
+    if (producer_semaphore == nullptr | consumer_semaphore == nullptr){
+        std::cerr << "Named semaphores of " << shm_name << " were not mapped." << std::endl;
+        return {nullptr,nullptr,nullptr,nullptr,false};
+    }
+
+    return {shm_handle, shared_dataptr, producer_semaphore, consumer_semaphore, true};
+}
+
+template std::tuple<HANDLE, bool*, HANDLE, HANDLE, bool> guiBackendObj::initialize_shm_and_sem<bool>(const char* shm_name, const char* producer_semaphore_name, const char* consumer_semaphore_name);
+template std::tuple<HANDLE, int*, HANDLE, HANDLE, bool> guiBackendObj::initialize_shm_and_sem<int>(const char* shm_name, const char* producer_semaphore_name, const char* consumer_semaphore_name);
+
+
+
+// Read the content of the shared memory
+int guiBackendObj::rx_sharedmem_dummy()
+{
+
+    // Declare Variables
+    HANDLE shm_handle_runff;
+    bool* shared_bool;
+    HANDLE producer_semaphore_runff;
+    HANDLE consumer_semaphore_runff;
+    bool sample_shared_bool;
+
+    HANDLE shm_handle_rand;
+    int* shared_int;
+    HANDLE producer_semaphore_rand;
+    HANDLE consumer_semaphore_rand;
+    int sample_shared_int;
+
+    bool init_status = true; // Set to true = initialization OK, false = Error
+
+    // Performance Optimization, event-based operation
+    bool sample_shared_bool_p1 = false;
+    bool first_run = true;
+
+    // Connect Shared Memory and Semaphores: Feedforward Control Bit ***
+    if (init_status = true) {
+        std::tie(shm_handle_runff, shared_bool, producer_semaphore_runff, consumer_semaphore_runff, init_status) =
+        initialize_shm_and_sem<bool>(
+            "Global/runff_sharedmem",
+            "Global/producer_semaphore_runff",
+            "Global/consumer_semaphore_runff"
+        );
+    }
+
+    // Connect Shared Memory and Semaphores: Random Bit String
+    if (init_status = true) {
+        std::tie(shm_handle_rand, shared_int, producer_semaphore_rand, consumer_semaphore_rand, init_status) =
+        initialize_shm_and_sem<int>(
+            "Global/rand_sharedmem",
+            "Global/producer_semaphore_rand",
+            "Global/consumer_semaphore_rand"
+        );
+    }
+
+
+
+    // Main Loop: After successful initialization, perform the protocol
+    while (init_status = true) {
+
+        // Stop the infinite loop by pressing "F" button
+        if (GetAsyncKeyState(70) & 0x8000) {
+            std::cout << "Consumer: Exit key 'F' has been pressed. Break." << std::endl;
+            break;
+        }
+
+        // 1. Enable / Pause Feedforward, notify Python via semaphores,
+        // Test if event occurred, allowing the below condition to be executed
+        if (first_run = false) {
+            sample_shared_bool = get_sharedmem_data_handshake<bool>(consumer_semaphore_runff, producer_semaphore_runff, shared_bool, 0);
+        } else {
+            sample_shared_bool = get_sharedmem_data_handshake<bool>(consumer_semaphore_runff, producer_semaphore_runff, shared_bool, INFINITE);
+            sample_shared_bool_p1 = !sample_shared_bool; // Artificially trigger the below condition
+            first_run = false;
+        }
+
+        // Run this only on event
+        if (sample_shared_bool_p1 != sample_shared_bool){
+            std::cout << "Consumer: Feedforward enabled " << (sample_shared_bool ? "True" : "False") << std::endl;
+
+            // 2. Wait for new random bit from Python on Pause feedforward and forward it to Opal Kelly API, then allow Python to proceed using handshaking
+            if (sample_shared_bool == false) {
+                // sample_shared_int = get_sharedmem_data_handshake<int>(consumer_semaphore_rand, producer_semaphore_rand, shared_int, 0);
+                sample_shared_int = get_sharedmem_data_handshake<int>(consumer_semaphore_rand, producer_semaphore_rand, shared_int, INFINITE);
+                std::cout << "Consmuer: Received random number is " << sample_shared_int << std::endl;
+            }
+        }
+
+        // Update the event detector
+        sample_shared_bool_p1 = sample_shared_bool;
+
+    }
+
+    return 0;
+}
 
 
 
@@ -106,7 +371,7 @@ std::tuple<int, int> guiBackendObj::processReceivedData(std::tuple<int, int> col
 {
 
     // CSV file line creation plan (corresponds with file ./modules/csv_readout/hdl/csv_readout.vhd)
-    // readout_data_32b(3 downto 0) = x"F"    : Print out the line buffer
+    // readout_data_32b(3 downto 0) = x"F"    : Print out the line buffer, FPGA time overflow
     // readout_data_32b(3 downto 0) = x"E"    : Extra Comma Delimiter
     // readout_data_32b(3 downto 0) = x"1"    : Event-based data group 1/5 (Photons H/V)
     // readout_data_32b(3 downto 0) = x"2"    : Event-based data group 2/5 (Alpha)
@@ -116,7 +381,7 @@ std::tuple<int, int> guiBackendObj::processReceivedData(std::tuple<int, int> col
     // readout_data_32b(3 downto 0) = x"6"    : Regular reporting group 1/1 (Coincidence patterns)
     // readout_data_32b(3 downto 0) = x"7"    : Regular reporting group 1/2 (Photon Counting per channel)
     // readout_data_32b(3 downto 0) = x"8"    : Regular reporting group 2/2 (Photon Losses in coincidence window)
-    // readout_data_32b(3 downto 0) = x"9"    : Regular reporting 4 (Available)
+    // readout_data_32b(3 downto 0) = x"9"    : FPGA Time
     // readout_data_32b(3 downto 0) = x"A"    : Regular reporting 5 (Available)
     // readout_data_32b(3 downto 0) = x"B"    : Regular reporting 6 (Available)
     // readout_data_32b(3 downto 0) = x"C"    : Regular reporting 7 (Available)
@@ -144,7 +409,7 @@ std::tuple<int, int> guiBackendObj::processReceivedData(std::tuple<int, int> col
 
         // Create the CSV line based on the received lower 4 bits stored in 'command_parsed'
         switch(command) {
-            case 15: // x"F" Print out the line buffer to outFile1/2
+            case 15: // x"F" Print out the line buffer to outFile1/2, FPGA time overflow (match with active output file)
                 if (actual_file_csv3){
                     outFile3 << "," << std::to_string(data) << std::endl;
                     actual_file_csv3 = false; // NEW
@@ -220,6 +485,20 @@ std::tuple<int, int> guiBackendObj::processReceivedData(std::tuple<int, int> col
                 actual_file_csv3 = true; // NEW
                 break;
             
+            case 9:  // x"9" FPGA time (match with active output file)
+                if (actual_file_csv3){
+                    outFile3 << "," << std::to_string(data) << std::endl;
+                }
+
+                if (actual_file_csv2){
+                    outFile2 << "," << std::to_string(data) << std::endl;
+                }
+
+                if (actual_file_csv1){
+                    outFile1 << "," << std::to_string(data) << std::endl;
+                }
+                break;
+            
             default:
                 // Regular reporting 4 (Available)
                 // Regular reporting 5 (Available)
@@ -277,7 +556,7 @@ void guiBackendObj::printEntireTransaction(std::bitset<32> uns32b)
 
 
 
-bool guiBackendObj::Read(unsigned char* dataBufferRead_thread1, okCFrontPanel* okDevice, UINT32 m_u32TransferSizeCount)
+bool guiBackendObj::Read_PipeOut(unsigned char* dataBufferRead_thread1, okCFrontPanel* okDevice, UINT32 m_u32TransferSizeCount)
 {
 
     // unsigned char* dataBufferRead_thread1;
@@ -346,7 +625,37 @@ int guiBackendObj::thread1_acquire()
 
     std::cout << "thread1_acquire: Entered" << std::endl;
 
-    // Initialize timer
+    rx_sharedmem_dummy();
+
+    // Initilize temrination request for switching it later
+    bool thread1_stop_request = false;
+
+    // If set to true = initialization OK, false = Error
+    bool shm_init_status = true;
+
+    // Connect Shared Memory (bool) and Semaphores: Feedforward Control Bit ***
+    if (shm_init_status = true) {
+        std::tie(shm_handle_runff, shm_runff, sem_producer_runff, sem_consumer_runff, shm_init_status) =
+        initialize_shm_and_sem<bool>(
+            "Global/runff_sharedmem",
+            "Global/producer_semaphore_runff",
+            "Global/consumer_semaphore_runff"
+        );
+    }
+
+    // Connect Shared Memory (int) and Semaphores: Random Bit String
+    if (shm_init_status = true) {
+        std::tie(shm_handle_rand, shm_rand, sem_producer_rand, sem_consumer_rand, shm_init_status) =
+        initialize_shm_and_sem<int>(
+            "Global/rand_sharedmem",
+            "Global/producer_semaphore_rand",
+            "Global/consumer_semaphore_rand"
+        );
+    }
+
+    thread1_stop_request = !shm_init_status;
+
+    // Initialize timer (up to 1.8446744e+19 ns ~ 584.56 years without overflow)
     std::chrono::duration<double> float_time_difference = std::chrono::duration<double>(0.0);
     const auto time_start = std::chrono::high_resolution_clock::now();
 
@@ -354,10 +663,7 @@ int guiBackendObj::thread1_acquire()
     std::cout << "thread1_acquire: Verification: program_only = " << program_only << std::endl;
     std::cout << "thread1_acquire: Verification: qubits_count = " << qubits_count << std::endl;
     std::cout << "thread1_acquire: Verification: float_run_time_seconds = " << float_run_time_seconds << std::endl;
-    std::cout << "thread1_acquire: Verification: bitfile_name = " << bitfile_name << std::endl;
-
-    // Initilize temrination request for switching it later
-    bool thread1_stop_request = false;
+    std::cout << "thread1_acquire: Verification: bitfile_name = " << this->bitfile_name << std::endl;
 
 
     // Establish connection with the device given by okBoardOnSerial (if "", then gets one device)
@@ -389,21 +695,21 @@ int guiBackendObj::thread1_acquire()
     // Program the FPGA, gracefully terminate the program if initializeFPGA is unsuccessful
     if (!thread1_stop_request){
         try {
-            if (false == initializeFPGA(okDevice, bitfile_name)) {
-                std::cout << "thread1_acquire: Target FPGA '" << okDevice << "' could not be initialized with the given bitfile: '" << bitfile_name << "'" << std::endl;
+            if (false == initializeFPGA(okDevice, this->bitfile_name)) {
+                std::cout << "thread1_acquire: Target FPGA '" << okDevice << "' could not be initialized with the given bitfile: '" << this->bitfile_name << "'" << std::endl;
                 throw std::runtime_error("thread1_acquire: RUNTIME ERROR: An error occurred while programming the FPGA.");
                 thread1_stop_request = true;
             } 
             else {
-                std::cout << "thread1_acquire: Target FPGA '" << okDevice << "' has been programmed successfully with bitfile: '" << bitfile_name << "'" << std::endl;
+                std::cout << "thread1_acquire: Target FPGA '" << okDevice << "' has been programmed successfully with bitfile: '" << this->bitfile_name << "'" << std::endl;
             }
         }
         catch (const std::runtime_error &e) {
-            std::cout << "thread1_acquire: runtime_error handler: " << e.what() << " Bitfile used: '" << bitfile_name << "'" << std::endl;
+            std::cout << "thread1_acquire: runtime_error handler: " << e.what() << " Bitfile used: '" << this->bitfile_name << "'" << std::endl;
             thread1_stop_request = true;
         }
         catch (...) {
-            std::cout << "thread1_acquire: Exception handler: FPGA initialization was unsuccessful using the bitfile: '" << bitfile_name << "'" << std::endl;
+            std::cout << "thread1_acquire: Exception handler: FPGA initialization was unsuccessful using the bitfile: '" << this->bitfile_name << "'" << std::endl;
             thread1_stop_request = true;
         }
     }
@@ -443,11 +749,58 @@ int guiBackendObj::thread1_acquire()
             thread1_stop_request = true;
         }
 
+        // Terminate readout if 'F' key has been hit. Virtual-Key Codes: 0x46 = 70 = F key
+        if (GetAsyncKeyState(70) & 0x8000) {
+            std::cout << "thread1_acquire: Exit key 'F' has been pressed. Readout stopped @" << std::chrono::duration_cast<std::chrono::nanoseconds>(float_time_difference).count()/1e9 << " sec." << std::endl;
+            // Will notify thread 2
+            thread1_stop_request = true;
+        }
+
+
+        // *** TX Part (To FPGA) ***
+        // TODO: MAKE 'sampled_shm_runff' Non-Blockable!
+        // 1. Enable / Pause Feedforward, notify Python via handshaking
+        // Test if event occurred, allowing the below condition to be executed
+        if (first_run = false) {
+            sampled_shm_runff = get_sharedmem_data_handshake<bool>(sem_consumer_runff, sem_producer_runff, shm_runff, 0);
+        } else {
+            // Wait for an infinite amount of time for feedforward control signal
+            sampled_shm_runff = get_sharedmem_data_handshake<bool>(sem_consumer_runff, sem_producer_runff, shm_runff, INFINITE);
+            sampled_shm_runff_p1 = !sampled_shm_runff; // Artificially trigger the below condition
+            first_run = false;
+        }
+
+        // This will trigger only on event, otherwise proceed to RX part
+        if (sampled_shm_runff_p1 != sampled_shm_runff){
+            std::cout << "Consumer: Feedforward enabled " << (sampled_shm_runff ? "True" : "False") << std::endl;
+
+            // 2. Wait for new random bit from Python on Pause feedforward and forward it to Opal Kelly API, then allow Python to proceed using handshaking
+            if (sampled_shm_runff == false) {
+                // Send Disable Feedforward bit
+                okDevice->ActivateTriggerIn(0x40, 0x00);
+
+                // Update Random bits
+                uint32_sampled_shm_rand = (UINT32)get_sharedmem_data_handshake<int>(sem_consumer_rand, sem_producer_rand, shm_rand, INFINITE);
+                std::cout << "Consmuer: Received random number is " << sampled_shm_rand << std::endl;
+                okDevice->SetWireInValue(0x03, uint32_sampled_shm_rand);
+                okDevice->UpdateWireIns();
+
+            } else {
+                // Send Enable Feedforward bit
+                okDevice->ActivateTriggerIn(0x40, 0x01);
+            }
+        }
+
+        // Update the event detector
+        sampled_shm_runff_p1 = sampled_shm_runff;
+
+
+        // *** RX (From FPGA) ***
         // Stop Condition 2: Perform Read and scan for errors
         if (!thread1_stop_request) {
             // Read per 1x TransferSize blocks of processed_data, scan for errors and notify thread 2 later if stop condition is asserted
             // Note: The FIFO must not be empty while performing this operation
-            thread1_stop_request = Read(dataBufferRead, okDevice, 1);
+            thread1_stop_request = Read_PipeOut(dataBufferRead, okDevice, 1);
 
             if (thread1_stop_request)
                 std::cout << "thread1_acquire: [Read]: An error occurred while performing Read operation. Exit." << std::endl;

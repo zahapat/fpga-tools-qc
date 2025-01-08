@@ -24,7 +24,7 @@
             wr_sys_clk : in std_logic;
 
             -- Data Signals
-            wr_channels_detections : t_photon_counter_2d;
+            wr_channels_detections : in t_photon_counter_2d;
             wr_photon_losses : in std_logic_vector(INT_QUBITS_CNT-2 downto 0);
             wr_valid_feedfwd_success_done : in std_logic;
             wr_data_qubit_buffer : in t_qubit_buffer_2d;
@@ -79,7 +79,7 @@
 
         -- Actual time counter
         constant ACTUAL_TIME_COUNTER_WIDTH : natural := INT_DATA_SPACE_IN_CHANNEL;
-        signal slv_time_now : std_logic_vector(ACTUAL_TIME_COUNTER_WIDTH-1 downto 0) := (others => '0');
+        signal slv_time_now : std_logic_vector(2*ACTUAL_TIME_COUNTER_WIDTH-1 downto 0) := (others => '0');
         signal slv_time_feedfwd_sample_request : std_logic_vector(slv_time_now'range) := (others => '0');
         signal slv_time_periodic_sample_request : std_logic_vector(slv_time_now'range) := (others => '0');
         signal slv_time_periodic_sample_request_2 : std_logic_vector(slv_time_now'range) := (others => '0');
@@ -105,14 +105,18 @@
 
         -- Regular monitoring counter 1
         constant PERIODIC_REPORT_CLK_PERIODS : natural := natural(REGULAR_SAMPLER_SECONDS * CLK_HZ);
-        signal int_periodic_report_counter : integer range 0 to PERIODIC_REPORT_CLK_PERIODS-1 := 0;
+        constant PERIODIC_REPORT_CLK_BITS : natural := integer(ceil(log2(real(PERIODIC_REPORT_CLK_PERIODS+1))));
+        signal int_periodic_report_counter : integer := 0;
+        signal slv_periodic_report_counter : std_logic_vector((2*INT_DATA_SPACE_IN_CHANNEL)-1 downto 0) := (others => '0');
         signal sl_periodic_report_flag : std_logic := '0';
         signal sl_readout_request_periodic : std_logic := '0';
         signal sl_periodic_report_sample_request : std_logic_vector((INT_QUBITS_CNT**2)-1 downto 0) := (others => '0');
 
         -- Regular monitoring counter 1
         constant PERIODIC_REPORT_CLK_PERIODS_2 : natural := natural(REGULAR_SAMPLER_SECONDS_2 * CLK_HZ);
-        signal int_periodic_report_counter_2 : integer range 0 to PERIODIC_REPORT_CLK_PERIODS_2-1 := 0;
+        constant PERIODIC_REPORT_CLK_BITS_2 : natural := integer(ceil(log2(real(PERIODIC_REPORT_CLK_PERIODS_2+1))));
+        signal int_periodic_report_counter_2 : integer := 0;
+        signal slv_periodic_report_counter_2 : std_logic_vector((2*INT_DATA_SPACE_IN_CHANNEL)-1 downto 0) := (others => '0');
         signal sl_periodic_report_flag_2 : std_logic := '0';
         signal sl_readout_request_periodic_2 : std_logic := '0';
         signal sl_periodic_report_sample_request_2 : std_logic_vector((INT_QUBITS_CNT*2)-1 downto 0) := (others => '0');
@@ -134,7 +138,8 @@
         signal slv_higher_bits_qubit_buffer : std_logic_vector(INT_QUBITS_CNT-1 downto 0) := (others => '0');
 
         -- All channels detections accumulator
-        constant ALL_CH_DETECTIONS_ACC_WIDTH : positive := 16; -- 65536 counts max
+        -- constant ALL_CH_DETECTIONS_ACC_WIDTH : positive := 16; -- 65536 counts max
+        constant ALL_CH_DETECTIONS_ACC_WIDTH : positive := 28; -- 65536 counts max
         type t_all_channels_detections_2d is array(INT_QUBITS_CNT*2-1 downto 0) of std_logic_vector(ALL_CH_DETECTIONS_ACC_WIDTH-1 downto 0);
         signal slv_all_channels_detections_2d : t_all_channels_detections_2d := (others => (others => '0'));
         signal sl_overflow_counter : std_logic := '0';
@@ -156,7 +161,7 @@
         signal slv_flow_alpha_buffer_sampled : std_logic_vector(2*INT_QUBITS_CNT-1 downto 0) := (others => '0');
         signal slv_flow_modulo_buffer_sampled : std_logic_vector(2*INT_QUBITS_CNT-1 downto 0) := (others => '0');
         signal slv_flow_random_buffer_sampled : std_logic_vector(1*INT_QUBITS_CNT-1 downto 0) := (others => '0');
-        signal slv_flow_timestamp_buffer_sampled : std_logic_vector(28*(INT_QUBITS_CNT+1)-1 downto 0) := (others => '0');
+        signal slv_flow_timestamp_buffer_sampled : std_logic_vector(INT_DATA_SPACE_IN_CHANNEL*(INT_QUBITS_CNT+1)-1 downto 0) := (others => '0');
 
         -- Shifters for data outflow
         signal slv_combinations_counters_shreg : std_logic_vector(COINCIDENCE_PATTERN_ACC_WIDTH*(INT_QUBITS_CNT**2)-1 downto 0) := (others => '0');
@@ -189,7 +194,10 @@
             SEND_GFLOW_ALPHA,
             SEND_GFLOW_MODULO,
             SEND_GFLOW_RANDOM,
-            SEND_FEEDFWD_TIMESTAMP
+            SEND_FEEDFWD_TIMESTAMP,
+            SEND_FEEDFWD_TIMESTAMP_OVERFLOW,
+            SEND_PERIODIC1_TIMESTAMP_OVERFLOW,
+            SEND_PERIODIC2_TIMESTAMP_OVERFLOW
         );
         signal state_fifo_readout : t_state_write_data_transac := SCAN_READOUT_REQUESTS;
 
@@ -211,17 +219,17 @@
         -- x"2" = SEND_GFLOW_ALPHA      (continues the x"1")
         -- x"3" = SEND_GFLOW_MODULO     (continues the x"2")
         -- x"4" = SEND_GFLOW_RANDOM     (continues the x"3")
-        -- x"5" = SEND_FEEDFWD_TIMESTAMP  (continues the x"4", readout end)
+        -- x"5" = SEND_FEEDFWD_TIMESTAMP (continues the x"4")
         -- x"6" = SEND_COINCIDENCES     (periodical readout)
         -- x"7" = SEND_CH_DETECTIONS    (periodical readout)
         -- x"8" = SEND_PHOTON_LOSSES    (periodical readout)
-        -- x"9" = available
+        -- x"9" = FPGA time (match with active output file)
         -- x"A" = available
         -- x"B" = available
         -- x"C" = available
         -- x"D" = available
         -- x"E" = EXTRA COMMA DELIMITER
-        -- x"F" = ENTER (PRINT LINE)
+        -- x"F" = ENTER (PRINT LINE), FPGA time overflow
 
 
         -----------------
@@ -320,15 +328,18 @@
             begin
                 if rising_edge(wr_sys_clk) then
                     -- Delay last bit to detect counter overflow (falling edge)
-                    slv_last_bit_p1(i) <= wr_channels_detections(i)(8-1);
+                    slv_last_bit_p1(i) <= wr_channels_detections(i)(0);
 
                     -- Increment on last bit overflow (falling edge of the MSB), append counter's bits into lower bits to form the wider counter for readout
-                    if slv_last_bit_p1(i) = '1' and wr_channels_detections(i)(8-1) = '0' then
-                        slv_all_channels_detections_2d(i)(ALL_CH_DETECTIONS_ACC_WIDTH-1 downto 8) 
-                            <= std_logic_vector(unsigned(slv_all_channels_detections_2d(i)(ALL_CH_DETECTIONS_ACC_WIDTH-1 downto 8)) + "1");
-                    end if;
+                    if sl_periodic_report_sample_request_2(i) = '1' then
+                        slv_all_channels_detections_2d(i)(ALL_CH_DETECTIONS_ACC_WIDTH-1 downto 1) 
+                            <= (others => '0');
+                        slv_all_channels_detections_2d(i)(0) <= slv_last_bit_p1(i) and not wr_channels_detections(i)(0);
 
-                    slv_all_channels_detections_2d(i)(8-1 downto 0) <= wr_channels_detections(i)(8-1 downto 0);
+                    elsif slv_last_bit_p1(i) = '1' and wr_channels_detections(i)(0) = '0' then
+                        slv_all_channels_detections_2d(i)(ALL_CH_DETECTIONS_ACC_WIDTH-1 downto 0) 
+                            <= std_logic_vector(unsigned(slv_all_channels_detections_2d(i)(ALL_CH_DETECTIONS_ACC_WIDTH-1 downto 0)) + "1");
+                    end if;
                 end if;
             end process;
         end generate;
@@ -440,7 +451,7 @@
                 -- Sample on sample request
                 if wr_valid_feedfwd_success_done = '1' then -- Sample request signal
                     for i in 0 to INT_QUBITS_CNT loop
-                        slv_flow_timestamp_buffer_shreg((i+1)*28-1 downto i*28)
+                        slv_flow_timestamp_buffer_shreg((i+1)*INT_DATA_SPACE_IN_CHANNEL-1 downto i*INT_DATA_SPACE_IN_CHANNEL)
                             <= wr_data_time_stamp_buffer(i);
                     end loop;
                 end if;
@@ -448,7 +459,7 @@
                 -- Shift right by a certain number of bits on enable
                 if sl_request_read_timestamp_shift_enable = '1' then
                     slv_flow_timestamp_buffer_shreg <= 
-                        slv_shift_right(slv_flow_timestamp_buffer_shreg, 28);
+                        slv_shift_right(slv_flow_timestamp_buffer_shreg, INT_DATA_SPACE_IN_CHANNEL);
                 end if;
             end if;
         end process;
@@ -540,14 +551,19 @@
                 -- Counter to send a value per desired number of seconds
                 if wr_rst = '1' then
                     int_periodic_report_counter <= 0;
+                    slv_periodic_report_counter <= (others => '0');
                     sl_periodic_report_flag <= '0';
                     sl_periodic_report_sample_request <= (others => '0');
                 else
-                    if int_periodic_report_counter = PERIODIC_REPORT_CLK_PERIODS-1 then
+                    if slv_periodic_report_counter(PERIODIC_REPORT_CLK_BITS-1 downto 0) 
+                        = std_logic_vector(to_unsigned(PERIODIC_REPORT_CLK_PERIODS-1, PERIODIC_REPORT_CLK_BITS)) then
+                    -- if int_periodic_report_counter = PERIODIC_REPORT_CLK_PERIODS-1 then
+                        slv_periodic_report_counter <= (others => '0');
                         int_periodic_report_counter <= 0;
                         sl_periodic_report_flag <= '1';
                         sl_periodic_report_sample_request <= (others => '1');
                     else
+                        slv_periodic_report_counter <= std_logic_vector(unsigned(slv_periodic_report_counter) + "1");
                         int_periodic_report_counter <= int_periodic_report_counter + 1;
                         sl_periodic_report_flag <= '0';
                         sl_periodic_report_sample_request <= (others => '0');
@@ -556,15 +572,20 @@
 
                 -- 2nd counter to send a value per desired number of seconds
                 if wr_rst = '1' then
+                    slv_periodic_report_counter_2 <= (others => '0');
                     int_periodic_report_counter_2 <= 0;
                     sl_periodic_report_flag_2 <= '0';
                     sl_periodic_report_sample_request_2 <= (others => '0');
                 else
-                    if int_periodic_report_counter_2 = PERIODIC_REPORT_CLK_PERIODS_2-1 then
+                    if slv_periodic_report_counter_2(PERIODIC_REPORT_CLK_BITS_2-1 downto 0) 
+                        = std_logic_vector(to_unsigned(PERIODIC_REPORT_CLK_PERIODS_2-1, PERIODIC_REPORT_CLK_BITS_2)) then
+                    -- if int_periodic_report_counter_2 = PERIODIC_REPORT_CLK_PERIODS_2-1 then
+                        slv_periodic_report_counter_2 <= (others => '0');
                         int_periodic_report_counter_2 <= 0;
                         sl_periodic_report_flag_2 <= '1';
                         sl_periodic_report_sample_request_2 <= (others => '1');
                     else
+                        slv_periodic_report_counter_2 <= std_logic_vector(unsigned(slv_periodic_report_counter_2) + "1");
                         int_periodic_report_counter_2 <= int_periodic_report_counter_2 + 1;
                         sl_periodic_report_flag_2 <= '0';
                         sl_periodic_report_sample_request_2 <= (others => '0');
@@ -618,12 +639,12 @@
 
                             -- Send enter
                             sl_wr_en_flag_pulsed <= '1'; -- Writing to FIFO shut down
-                            slv_wr_data_stream_32b(31 downto 4) <= slv_time_periodic_sample_request; -- Send TIME information about when data were sampled along with x"F" (end of frame)
-                            slv_wr_data_stream_32b(3 downto 0) <= x"F";
+                            slv_wr_data_stream_32b(31 downto 4) <= slv_time_periodic_sample_request(ACTUAL_TIME_COUNTER_WIDTH-1 downto 0); -- Send TIME information about when data were sampled along with x"9" & x"F" (end of frame)
+                            slv_wr_data_stream_32b(3 downto 0) <= x"9";
 
                             sl_readout_request_periodic <= '0';      -- Job Done
 
-                            state_fifo_readout <= SCAN_READOUT_REQUESTS; -- Coordinate the readout logic
+                            state_fifo_readout <= SEND_PERIODIC1_TIMESTAMP_OVERFLOW; -- Coordinate the readout logic
                             -- No shift request to next FSM state
                         else
                             int_readout_counter <= int_readout_counter + 1;
@@ -676,12 +697,12 @@
 
                             -- Send enter
                             sl_wr_en_flag_pulsed <= '1'; -- Writing to FIFO shut down
-                            slv_wr_data_stream_32b(31 downto 4) <= slv_time_periodic_sample_request_2; -- Send TIME information about when data were sampled along with x"F" (end of frame)
-                            slv_wr_data_stream_32b(3 downto 0) <= x"F";
+                            slv_wr_data_stream_32b(31 downto 4) <= slv_time_periodic_sample_request_2(ACTUAL_TIME_COUNTER_WIDTH-1 downto 0); -- Send TIME information about when data were sampled along with x"9" & x"F" (end of frame)
+                            slv_wr_data_stream_32b(3 downto 0) <= x"9";
 
                             sl_readout_request_periodic_2 <= '0';      -- Job Done
 
-                            state_fifo_readout <= SCAN_READOUT_REQUESTS; -- Coordinate the readout logic
+                            state_fifo_readout <= SEND_PERIODIC2_TIMESTAMP_OVERFLOW; -- Coordinate the readout logic
                             -- No shift request to next FSM state
                         else
                             int_readout_counter <= int_readout_counter + 1;
@@ -820,10 +841,10 @@
 
                             -- Send enter
                             sl_wr_en_flag_pulsed <= '1';
-                            slv_wr_data_stream_32b(31 downto 4) <= slv_time_feedfwd_sample_request; -- Send TIME information about when data were sampled along with x"F" (end of frame)
-                            slv_wr_data_stream_32b(3 downto 0) <= x"F";
+                            slv_wr_data_stream_32b(31 downto 4) <= slv_time_feedfwd_sample_request(ACTUAL_TIME_COUNTER_WIDTH-1 downto 0); -- Send TIME information about when data were sampled along with x"9" (end of frame)
+                            slv_wr_data_stream_32b(3 downto 0) <= x"9";
 
-                            state_fifo_readout <= SCAN_READOUT_REQUESTS; -- Coordinate the readout logic
+                            state_fifo_readout <= SEND_FEEDFWD_TIMESTAMP_OVERFLOW; -- Coordinate the readout logic
                             sl_readout_request_feedfwd <= '0'; -- Job done flag
 
                         else
@@ -832,12 +853,46 @@
                             -- Send data
                             sl_wr_en_flag_pulsed <= '1';
                             slv_wr_data_stream_32b(31 downto 4) -- Define All bits!
-                                <= slv_flow_timestamp_buffer_shreg(28-1 downto 0);
+                                <= slv_flow_timestamp_buffer_shreg(INT_DATA_SPACE_IN_CHANNEL-1 downto 0);
                             slv_wr_data_stream_32b(3 downto 0) <= x"5"; -- Encoded command for the RX readout counterpart
 
                             sl_request_read_timestamp_shift_enable <= '1'; -- Pipe On
 
                         end if;
+
+
+                    when SEND_FEEDFWD_TIMESTAMP_OVERFLOW =>
+
+                        -- Send enter
+                        sl_wr_en_flag_pulsed <= '1';
+                        slv_wr_data_stream_32b(31 downto 4) <= slv_time_feedfwd_sample_request(2*ACTUAL_TIME_COUNTER_WIDTH-1 downto ACTUAL_TIME_COUNTER_WIDTH); -- Send TIME information about when data were sampled along with x"F" (end of frame)
+                        slv_wr_data_stream_32b(3 downto 0) <= x"F";
+
+                        state_fifo_readout <= SCAN_READOUT_REQUESTS; -- Coordinate the readout logic
+                        sl_readout_request_feedfwd <= '0'; -- Job done flag
+
+
+                    when SEND_PERIODIC1_TIMESTAMP_OVERFLOW =>
+
+                        -- Send enter
+                        sl_wr_en_flag_pulsed <= '1';
+                        slv_wr_data_stream_32b(31 downto 4) <= slv_time_periodic_sample_request(2*ACTUAL_TIME_COUNTER_WIDTH-1 downto ACTUAL_TIME_COUNTER_WIDTH); -- Send TIME information about when data were sampled along with x"F" (end of frame)
+                        slv_wr_data_stream_32b(3 downto 0) <= x"F";
+
+                        state_fifo_readout <= SCAN_READOUT_REQUESTS; -- Coordinate the readout logic
+                        sl_readout_request_feedfwd <= '0'; -- Job done flag
+
+
+                    when SEND_PERIODIC2_TIMESTAMP_OVERFLOW =>
+
+                        -- Send enter
+                        sl_wr_en_flag_pulsed <= '1';
+                        slv_wr_data_stream_32b(31 downto 4) <= slv_time_periodic_sample_request_2(2*ACTUAL_TIME_COUNTER_WIDTH-1 downto ACTUAL_TIME_COUNTER_WIDTH); -- Send TIME information about when data were sampled along with x"F" (end of frame)
+                        slv_wr_data_stream_32b(3 downto 0) <= x"F";
+
+                        state_fifo_readout <= SCAN_READOUT_REQUESTS; -- Coordinate the readout logic
+                        sl_readout_request_feedfwd <= '0'; -- Job done flag
+
 
                     when others =>
                         sl_wr_en_flag_pulsed <= '0';
