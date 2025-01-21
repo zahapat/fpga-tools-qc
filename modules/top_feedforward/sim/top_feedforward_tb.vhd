@@ -1147,7 +1147,7 @@
         end process;
 
 
-        -------------
+                -------------
         -- READOUT --
         -------------
         -- Readout
@@ -1208,6 +1208,8 @@
 
             write(v_line_buffer, string'(","));
             write(v_line_buffer, string'("@time"));
+            write(v_line_buffer, string'(","));
+            write(v_line_buffer, string'("time_ovflw"));
             writeline(actual_csv, v_line_buffer);
             file_close(actual_csv);
 
@@ -1220,6 +1222,9 @@
 
             write(v_line_buffer, string'(","));
             write(v_line_buffer, string'("@time"));
+
+            write(v_line_buffer, string'(","));
+            write(v_line_buffer, string'("time_ovflw"));
             writeline(actual_csv, v_line_buffer);
             file_close(actual_csv);
 
@@ -1237,6 +1242,8 @@
 
             write(v_line_buffer, string'(","));
             write(v_line_buffer, string'("@time"));
+            write(v_line_buffer, string'(","));
+            write(v_line_buffer, string'("time_ovflw"));
             writeline(actual_csv, v_line_buffer);
             file_close(actual_csv);
 
@@ -1362,8 +1369,10 @@
                         readout_photon_losses(v_cntr_csv3_column) <= readout_data_32b(16-1+4 downto 4);
                         v_cntr_csv3_column := v_cntr_csv3_column + 1;
 
-                    elsif readout_data_32b(4-1 downto 0) = x"9" then -- Regular reporting
-                        null;
+                    elsif readout_data_32b(4-1 downto 0) = x"9" then -- FPGA Time
+                        write(v_line_buffer, string'(",") );
+                        write(v_line_buffer, string'(
+                            to_string(to_integer(unsigned(readout_data_32b(32-1 downto 4))) ) ));
                     elsif readout_data_32b(4-1 downto 0) = x"A" then -- Regular reporting
                         null;
                     elsif readout_data_32b(4-1 downto 0) = x"B" then -- Regular reporting

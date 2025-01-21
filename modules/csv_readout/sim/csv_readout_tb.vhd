@@ -36,6 +36,7 @@
         constant CLK_HZ : real := 100.0e6;
         constant REGULAR_SAMPLER_SECONDS : real := 1.0e-6;
         constant REGULAR_SAMPLER_SECONDS_2 : real := 2.0e-6;
+        constant INT_NUMBER_OF_GFLOWS : natural := 9;
 
         -- Ports
         signal wr_rst : std_logic := '0'; -- Should be high on device powerup (rst logic)
@@ -50,6 +51,8 @@
         signal wr_data_alpha_buffer : t_alpha_buffer_2d := (others => (others => '0'));
         signal wr_data_modulo_buffer : t_modulo_buffer_2d := (others => (others => '0'));
         signal wr_data_random_buffer : t_random_buffer_2d := (others => (others => '0'));
+        signal wr_data_actual_gflow_buffer : std_logic_vector(
+                integer(ceil(log2(real(INT_NUMBER_OF_GFLOWS+1))))-1 downto 0);
 
         -- Read endpoint signals: slower CLK, faster rate
         signal readout_enable : std_logic := '0';
@@ -90,7 +93,8 @@
             INT_QUBITS_CNT => INT_QUBITS_CNT,
             CLK_HZ => CLK_HZ,
             REGULAR_SAMPLER_SECONDS => REGULAR_SAMPLER_SECONDS,
-            REGULAR_SAMPLER_SECONDS_2 => REGULAR_SAMPLER_SECONDS_2
+            REGULAR_SAMPLER_SECONDS_2 => REGULAR_SAMPLER_SECONDS_2,
+            INT_NUMBER_OF_GFLOWS => INT_NUMBER_OF_GFLOWS
         )
         port map (
             -- Reset, write clock
@@ -107,6 +111,7 @@
             wr_data_alpha_buffer => wr_data_alpha_buffer,
             wr_data_modulo_buffer => wr_data_modulo_buffer,
             wr_data_random_buffer => wr_data_random_buffer,
+            wr_data_actual_gflow_buffer => wr_data_actual_gflow_buffer,
 
             -- Read endpoint signals: slower CLK, faster rate
             readout_clk => clk_rd,
@@ -239,10 +244,10 @@
                     if readout_data_32b(4-1 downto 0) = x"1" then
                         file_open(actual_csv, CSV1_PATH, append_mode);
                         v_line_being_created := '1'; -- Job Started
-                    elsif readout_data_32b(4-1 downto 0) = x"6" then
+                    elsif readout_data_32b(4-1 downto 0) = x"7" then
                         file_open(actual_csv, CSV2_PATH, append_mode);
                         v_line_being_created := '1'; -- Job Started
-                    elsif readout_data_32b(4-1 downto 0) = x"7" then
+                    elsif readout_data_32b(4-1 downto 0) = x"8" then
                         file_open(actual_csv, CSV3_PATH, append_mode);
                         v_line_being_created := '1'; -- Job Started
                     end if;
@@ -302,9 +307,15 @@
                     write(v_line_buffer, string'(",") );
 
                 elsif readout_data_32b(4-1 downto 0) = x"9" then -- Regular reporting 4
-                    null;
+                    write(v_line_buffer, string'(
+                        to_string(to_integer(unsigned(readout_data_32b(32-1 downto 4))) ) ));
+                    write(v_line_buffer, string'(",") );
+
                 elsif readout_data_32b(4-1 downto 0) = x"A" then -- Regular reporting 5
-                    null;
+                    write(v_line_buffer, string'(
+                        to_string(to_integer(unsigned(readout_data_32b(32-1 downto 4))) ) ));
+                    write(v_line_buffer, string'(",") );
+                    
                 elsif readout_data_32b(4-1 downto 0) = x"B" then -- Regular reporting 6
                     null;
                 elsif readout_data_32b(4-1 downto 0) = x"C" then -- Regular reporting 7

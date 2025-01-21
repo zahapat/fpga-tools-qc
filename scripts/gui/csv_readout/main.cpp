@@ -112,6 +112,10 @@ HANDLE guiBackendObj::connect_semaphore(const char* semaphore_name) {
 // Connect named shared memory and get a pointer to any data type addr instance
 template <typename B>
 std::tuple<HANDLE, B*> guiBackendObj::get_anytype_shared_memory(const char* name){
+
+    int timeout_cntr_maxval = 2;
+    int timeout_cntr = 0;
+
     // Memmap: Open named shared memory
     HANDLE shm_handle = guiBackendObj::connect_shmem(name);
 
@@ -126,9 +130,14 @@ std::tuple<HANDLE, B*> guiBackendObj::get_anytype_shared_memory(const char* name
             std::cout << "Consumer: Exit key 'F' has been pressed. Break." << std::endl;
             CloseHandle(shm_handle);
             break;
+        } else if (timeout_cntr == timeout_cntr_maxval) {
+            std::cout << "Consumer: Waiting for producer to create shared memory: Timeout. Break." << std::endl;
+            break;
+            CloseHandle(shm_handle);
         }
         Sleep(1000);
         std::cout << "Consumer: Waiting for producer to create shared memory named: " << name << ". Press 'F' to cancel." << std::endl;
+        timeout_cntr++;
     }
 
     return {shm_handle, shared_dataptr};
@@ -142,10 +151,18 @@ template std::tuple<HANDLE, int*> guiBackendObj::get_anytype_shared_memory<int>(
 // Semaphore: Open named producer and consumer semaphore
 template <typename C>
 std::tuple<HANDLE, HANDLE> guiBackendObj::connect_semaphores_handshaking(const char* name_producer, const char* name_consumer, HANDLE shm_handle, C shared_memptr){
+    int timeout_cntr_maxval = 2;
+    int timeout_cntr = 0;
+
     HANDLE producer_semaphore = guiBackendObj::connect_semaphore(name_producer);
     while (producer_semaphore == nullptr) {
         if (GetAsyncKeyState(70) & 0x8000) {
             std::cout << "Consumer: Exit key 'F' has been pressed. Break." << std::endl;
+            UnmapViewOfFile(shared_memptr);
+            CloseHandle(shm_handle);
+            return {nullptr, nullptr};
+        } else if (timeout_cntr == timeout_cntr_maxval) {
+            std::cout << "Consumer: Waiting for producer semaphore: Timeout. Break." << name_producer << " to be created. Press 'F' to cancel." << std::endl;
             UnmapViewOfFile(shared_memptr);
             CloseHandle(shm_handle);
             return {nullptr, nullptr};
@@ -288,7 +305,7 @@ int guiBackendObj::rx_sharedmem_dummy()
 
         // Stop the infinite loop by pressing "F" button
         if (GetAsyncKeyState(70) & 0x8000) {
-            std::cout << "Consumer: Exit key 'F' has been pressed. Break." << std::endl;
+            std::cout << "Consumer rx_sharedmem_dummy: Exit key 'F' has been pressed. Break." << std::endl;
             break;
         }
 
@@ -373,16 +390,16 @@ std::tuple<int, int> guiBackendObj::processReceivedData(std::tuple<int, int> col
     // CSV file line creation plan (corresponds with file ./modules/csv_readout/hdl/csv_readout.vhd)
     // readout_data_32b(3 downto 0) = x"F"    : Print out the line buffer, FPGA time overflow
     // readout_data_32b(3 downto 0) = x"E"    : Extra Comma Delimiter
-    // readout_data_32b(3 downto 0) = x"1"    : Event-based data group 1/5 (Photons H/V)
-    // readout_data_32b(3 downto 0) = x"2"    : Event-based data group 2/5 (Alpha)
-    // readout_data_32b(3 downto 0) = x"3"    : Event-based data group 3/5 (Modulo)
-    // readout_data_32b(3 downto 0) = x"4"    : Event-based data group 4/5 (Random bit)
-    // readout_data_32b(3 downto 0) = x"5"    : Event-based data group 5/5 (Timestamps)
-    // readout_data_32b(3 downto 0) = x"6"    : Regular reporting group 1/1 (Coincidence patterns)
-    // readout_data_32b(3 downto 0) = x"7"    : Regular reporting group 1/2 (Photon Counting per channel)
-    // readout_data_32b(3 downto 0) = x"8"    : Regular reporting group 2/2 (Photon Losses in coincidence window)
-    // readout_data_32b(3 downto 0) = x"9"    : FPGA Time
-    // readout_data_32b(3 downto 0) = x"A"    : Regular reporting 5 (Available)
+    // readout_data_32b(3 downto 0) = x"1"    : Event-based data group 1/6 (Photons H/V)
+    // readout_data_32b(3 downto 0) = x"2"    : Event-based data group 2/6 (Gflow Number)
+    // readout_data_32b(3 downto 0) = x"3"    : Event-based data group 3/6 (Sx)
+    // readout_data_32b(3 downto 0) = x"4"    : Event-based data group 4/6 (Sz)
+    // readout_data_32b(3 downto 0) = x"5"    : Event-based data group 5/6 (Random bit)
+    // readout_data_32b(3 downto 0) = x"6"    : Event-based data group 6/6 (Timestamps)
+    // readout_data_32b(3 downto 0) = x"7"    : Regular reporting group 1/1 (Coincidence patterns)
+    // readout_data_32b(3 downto 0) = x"8"    : Regular reporting group 1/2 (Photon Counting per channel)
+    // readout_data_32b(3 downto 0) = x"9"    : Regular reporting group 2/2 (Photon Losses in coincidence window)
+    // readout_data_32b(3 downto 0) = x"A"    : FPGA Time
     // readout_data_32b(3 downto 0) = x"B"    : Regular reporting 6 (Available)
     // readout_data_32b(3 downto 0) = x"C"    : Regular reporting 7 (Available)
     // readout_data_32b(3 downto 0) = x"D"    : Regular reporting 8 (Available)
@@ -443,49 +460,55 @@ std::tuple<int, int> guiBackendObj::processReceivedData(std::tuple<int, int> col
                 actual_column_cntr_csv1++;
                 actual_file_csv1 = true; // NEW
                 break;
-
-            case 2:  // x"2" Event-based data group (Alpha) to outFile1
+            
+            case 2:  // x"2" Event-based data group (Actual Gflow Number) to outFile1
                 outFile1 << std::to_string(data) << ",";
                 actual_column_cntr_csv1++;
                 actual_file_csv1 = true; // NEW
                 break;
 
-            case 3:  // x"3" Event-based data group (Modulo) to outFile1
+            case 3:  // x"3" Event-based data group (Sx) to outFile1
                 outFile1 << std::to_string(data) << ",";
                 actual_column_cntr_csv1++;
                 actual_file_csv1 = true; // NEW
                 break;
 
-            case 4:  // x"4" Event-based data group (Random bit) to outFile1
+            case 4:  // x"4" Event-based data group (Sz) to outFile1
                 outFile1 << std::to_string(data) << ",";
                 actual_column_cntr_csv1++;
                 actual_file_csv1 = true; // NEW
                 break;
 
-            case 5:  // x"5" Event-based data group (Timestamps) to outFile1
+            case 5:  // x"5" Event-based data group (Random bit) to outFile1
                 outFile1 << std::to_string(data) << ",";
                 actual_column_cntr_csv1++;
                 actual_file_csv1 = true; // NEW
                 break;
 
-            case 6:  // x"6" Regular reporting group (Coincidence patterns) to outFile2
+            case 6:  // x"6" Event-based data group (Timestamps) to outFile1
+                outFile1 << std::to_string(data) << ",";
+                actual_column_cntr_csv1++;
+                actual_file_csv1 = true; // NEW
+                break;
+
+            case 7:  // x"7" Regular reporting group (Coincidence patterns) to outFile2
                 outFile2 << std::to_string(data) << ",";
                 actual_column_cntr_csv2++;
                 actual_file_csv2 = true; // NEW
                 break;
 
-            case 7:  // x"7" Regular reporting (Photon Channel Counting)
+            case 8:  // x"8" Regular reporting (Photon Channel Counting)
                 outFile3 << std::to_string(data) << ",";
                 actual_file_csv3 = true; // NEW
                 break;
 
-            case 8:  // x"8" Regular reporting (Photon Losses)
+            case 9:  // x"9" Regular reporting (Photon Losses)
                 outFile3 << std::to_string(data) << ",";
                 actual_column_cntr_csv3++;
                 actual_file_csv3 = true; // NEW
                 break;
             
-            case 9:  // x"9" FPGA time (match with active output file)
+            case 10:  // x"A" FPGA time (match with active output file)
                 if (actual_file_csv3){
                     outFile3 << "," << std::to_string(data) << std::endl;
                 }
@@ -500,12 +523,7 @@ std::tuple<int, int> guiBackendObj::processReceivedData(std::tuple<int, int> col
                 break;
             
             default:
-                // Regular reporting 4 (Available)
-                // Regular reporting 5 (Available)
-                // Regular reporting 6 (Available)
-                // Regular reporting 7 (Available)
-                // Regular reporting 8 (Available)
-                std::cout << "Udefined behaviour: cmd out of range (0 to 2^4). Detected cmd: " << command << std::endl;
+                std::cout << "Udefined behaviour: Undefined cmd or cmd out of range (0 to 2^4). Detected cmd: " << command << std::endl;
                 break;
         }
     }
@@ -625,7 +643,7 @@ int guiBackendObj::thread1_acquire()
 
     std::cout << "thread1_acquire: Entered" << std::endl;
 
-    rx_sharedmem_dummy();
+    // rx_sharedmem_dummy();
 
     // Initilize temrination request for switching it later
     bool thread1_stop_request = false;
@@ -758,7 +776,6 @@ int guiBackendObj::thread1_acquire()
 
 
         // *** TX Part (To FPGA) ***
-        // TODO: MAKE 'sampled_shm_runff' Non-Blockable!
         // 1. Enable / Pause Feedforward, notify Python via handshaking
         // Test if event occurred, allowing the below condition to be executed
         if (first_run = false) {
@@ -771,23 +788,31 @@ int guiBackendObj::thread1_acquire()
         }
 
         // This will trigger only on event, otherwise proceed to RX part
+        // Step1: [  ][R3][R2][R1][R0]
+        // Step2: [R3][R2][R1][R0][  ] shift left
+        // Step3: [R3][R2][R1][R0][En] add +1/0
+        // Step4: Send to ActivateTriggerIn
         if (sampled_shm_runff_p1 != sampled_shm_runff){
             std::cout << "Consumer: Feedforward enabled " << (sampled_shm_runff ? "True" : "False") << std::endl;
 
             // 2. Wait for new random bit from Python on Pause feedforward and forward it to Opal Kelly API, then allow Python to proceed using handshaking
             if (sampled_shm_runff == false) {
                 // Send Disable Feedforward bit
-                okDevice->ActivateTriggerIn(0x40, 0x00);
-
                 // Update Random bits
                 uint32_sampled_shm_rand = (UINT32)get_sharedmem_data_handshake<int>(sem_consumer_rand, sem_producer_rand, shm_rand, INFINITE);
                 std::cout << "Consmuer: Received random number is " << sampled_shm_rand << std::endl;
-                okDevice->SetWireInValue(0x03, uint32_sampled_shm_rand);
-                okDevice->UpdateWireIns();
+                uint32_sampled_shm_rand = uint32_sampled_shm_rand << 1;
+                uint32_sampled_shm_rand = uint32_sampled_shm_rand + 0;
+                okDevice->ActivateTriggerIn(0x40, uint32_sampled_shm_rand);
+
+                // okDevice->ActivateTriggerIn(0x40, 0x00);
+                // okDevice->SetWireInValue(0x03, uint32_sampled_shm_rand);
+                // okDevice->UpdateWireIns();
 
             } else {
                 // Send Enable Feedforward bit
-                okDevice->ActivateTriggerIn(0x40, 0x01);
+                uint32_sampled_shm_rand = uint32_sampled_shm_rand + 1;
+                okDevice->ActivateTriggerIn(0x40, uint32_sampled_shm_rand);
             }
         }
 
@@ -977,6 +1002,8 @@ int main(int argc, char** argv)
 
 
     // Declare the Opal Kelly csv_readout class
+    std::string str(bitfile_name);
+    // std::string str_bitfile_name = std::string str(bitfile_name)
     guiBackendObj f(
         program_only=program_only,
         qubits_count=qubits_count,

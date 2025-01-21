@@ -114,9 +114,17 @@ public:
 
         // Create a vector of characters from the bitfile_name string
         // Add the null terminator at the end
-        std::vector<char> modifiable_string(bitfile_name.begin(), bitfile_name.end());
-        modifiable_string.push_back('\0');
-        this->bitfile_name = modifiable_string.data();
+        // std::vector<char> modifiable_string(bitfile_name.begin(), bitfile_name.end());
+
+        std::vector<char> vec(bitfile_name.begin(), bitfile_name.end());
+        vec.push_back('\0'); // Ensure null-termination
+        char* bitfile_name_converted = vec.data(); // Access the underlying array
+        this->bitfile_name = bitfile_name_converted;
+        std::cout << "bitfile_name == " << this->bitfile_name << std::endl;
+
+        // modifiable_string.push_back('\0');
+        // this->bitfile_name = vec.data();
+        // modifiable_string.push_back('\0');
 
         // Open the device, optionally selecting the one with the specified okBoardOnSerial.
         // "" = do not check for serial port. Pick the one device connected to the PC.
@@ -142,6 +150,9 @@ public:
         for (int i = 1; i <= qubits_count; i++){
             outFile1 << "photon_q" << i << ",";
         }
+        outFile1 << ",";
+
+        outFile1 << "gflow" << ",";
         outFile1 << ",";
 
         for (int i = 1; i <= qubits_count; i++){

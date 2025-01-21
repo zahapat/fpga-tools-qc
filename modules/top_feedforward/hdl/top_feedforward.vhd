@@ -78,7 +78,6 @@
 
             -- EOM Trigger + signal valid (for IO delay measuring)
             o_eom_ctrl_pulse : out std_logic;
-            o_photon_1v_before_cdcc : out std_logic;   -- Debug port 1
             o_eom_ctrl_pulsegen_busy : out std_logic;  -- for propagation delay measurements
             o_debug_port_1 : out std_logic;      -- Debug port 1
             o_debug_port_2 : out std_logic;      -- Debug port 2
@@ -631,7 +630,7 @@
 
 
         type t_delays_before_eom_2d is array (6-2 downto 0) of natural;
-        signal INT_CTRL_PULSE_EXTRA_DELAY_QX_NS : t_delays_before_eom_2d := (
+        constant INT_CTRL_PULSE_EXTRA_DELAY_QX_NS : t_delays_before_eom_2d := (
             INT_CTRL_PULSE_EXTRA_DELAY_Q6_NS,
             INT_CTRL_PULSE_EXTRA_DELAY_Q5_NS,
             INT_CTRL_PULSE_EXTRA_DELAY_Q4_NS,
@@ -1255,9 +1254,9 @@
             INT_QUBITS_CNT => INT_QUBITS_CNT,
             CLK_HZ => REAL_CLK_EVAL_HZ,
             -- REGULAR_SAMPLER_SECONDS => 5.0e-6,  -- Change this value to alter the frequency of regular reporting
-            -- REGULAR_SAMPLER_SECONDS_2 => 6.0e-6 -- Change this value to alter the frequency of regular reporting
-            REGULAR_SAMPLER_SECONDS => 1.0e-2,  -- Change this value to alter the frequency of regular reporting
-            REGULAR_SAMPLER_SECONDS_2 => 2.0e-2 -- Change this value to alter the frequency of regular reporting
+            -- REGULAR_SAMPLER_SECONDS_2 => 5.0e-6 -- Change this value to alter the frequency of regular reporting
+            REGULAR_SAMPLER_SECONDS => 1.0,  -- Change this value to alter the frequency of regular reporting
+            REGULAR_SAMPLER_SECONDS_2 => 1.0 -- Change this value to alter the frequency of regular reporting
         ) port map (
             -- Reset
             wr_rst => sl_rst_eval_clk,
@@ -1544,7 +1543,7 @@
             inst_nff_cdcc_cntr_ch_photons : entity lib_src.nff_cdcc_cntr(rtl)
                 generic map (
                     ASYNC_FLOPS_CNT => 2,
-                    CNTR_WIDTH => 8,
+                    CNTR_WIDTH => 1,
                     FLOPS_BEFORE_CROSSING_CNT => 1,
                     WR_READY_DEASSERTED_CYCLES => 3 -- Optional handshake
                 )
@@ -1585,7 +1584,6 @@
                 o_data_loss => open -- to LED - should never be asserted
             );
 
-            -- #TODO This causes metavalue
             inst_nff_cdcc_qubit_buffer_test : entity lib_src.nff_cdcc(rtl)
             generic map (
                 BYPASS => false,

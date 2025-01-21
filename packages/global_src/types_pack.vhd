@@ -10,7 +10,8 @@ use lib_src.generics.all;
 package types_pack is
 
     -- Photon Counter
-    type t_photon_counter_2d is array(MAX_QUBITS_CNT*2-1 downto 0) of std_logic_vector(8-1 downto 0);
+    -- type t_photon_counter_2d is array(MAX_QUBITS_CNT*2-1 downto 0) of std_logic_vector(8-1 downto 0);
+    type t_photon_counter_2d is array(MAX_QUBITS_CNT*2-1 downto 0) of std_logic_vector(1-1 downto 0);
 
     -- Buffers From G-Flow Module
     type t_qubit_buffer_2d is array(MAX_QUBITS_CNT-1 downto 0) of std_logic_vector(2-1 downto 0);
@@ -22,6 +23,9 @@ package types_pack is
     -- Buffers From Math Module
     type t_random_buffer_2d is array(MAX_QUBITS_CNT-1 downto 0) of std_logic_vector(0 downto 0);
     type t_modulo_buffer_2d is array(MAX_QUBITS_CNT-1 downto 0) of std_logic_vector(2-1 downto 0);
+
+    type t_sx_buffer_2d is array(MAX_QUBITS_CNT-1 downto 0) of std_logic_vector(0 downto 0);
+    type t_sz_buffer_2d is array(MAX_QUBITS_CNT-1 downto 0) of std_logic_vector(0 downto 0);
 
 end package;
 

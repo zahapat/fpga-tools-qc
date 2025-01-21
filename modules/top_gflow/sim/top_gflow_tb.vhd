@@ -41,7 +41,10 @@
             SEND_PHOTON_EVERY_LASER_CLK,
             SEND_CLUSTER_THEN_WAIT
         );
-        constant TIME_BETWEEN_CLUSTERS_NS : time := 1000.0 ns;
+        constant WAIT_BEFORE_FIRST_PHOTON_NS : time := 500.0 ns;
+        constant OUTPUT_BOTH_CHANNELS : boolean := false;
+        -- constant TIME_BETWEEN_CLUSTERS_NS : time := 1000.0 ns;
+        constant TIME_BETWEEN_CLUSTERS_NS : time := 100.0 ns;
         signal ctrl_input_emulation_mode : t_input_emulation_mode := SEND_PHOTON_EVERY_LASER_CLK;
         signal ctrl_sim_start : std_logic := '0';
 
@@ -92,9 +95,15 @@
         -- PCD Control Pulse Design & Delay
         constant INT_CTRL_PULSE_HIGH_DURATION_NS : integer := INT_CTRL_PULSE_HIGH_DURATION_NS;
         constant INT_CTRL_PULSE_DEAD_DURATION_NS : integer := INT_CTRL_PULSE_DEAD_DURATION_NS;
-        constant INT_CTRL_PULSE_EXTRA_DELAY_NS   : integer := INT_CTRL_PULSE_EXTRA_DELAY_NS;
+        constant INT_CTRL_PULSE_EXTRA_DELAY_Q2_NS   : integer := INT_CTRL_PULSE_EXTRA_DELAY_Q2_NS;
+        constant INT_CTRL_PULSE_EXTRA_DELAY_Q3_NS   : integer := INT_CTRL_PULSE_EXTRA_DELAY_Q3_NS;
+        constant INT_CTRL_PULSE_EXTRA_DELAY_Q4_NS   : integer := INT_CTRL_PULSE_EXTRA_DELAY_Q4_NS;
+        constant INT_CTRL_PULSE_EXTRA_DELAY_Q5_NS   : integer := INT_CTRL_PULSE_EXTRA_DELAY_Q5_NS;
+        constant INT_CTRL_PULSE_EXTRA_DELAY_Q6_NS   : integer := INT_CTRL_PULSE_EXTRA_DELAY_Q6_NS;
 
-        constant WRITE_ON_VALID     : boolean := true;
+        constant INT_FEEDFWD_PROGRAMMING : integer := 01101011;
+        constant INT_NUMBER_OF_GFLOWS : integer := 9; -- Total number of Gflows
+        constant INT_GFLOW_NUMBER : integer := 0; -- Set to 0 for all Gflows, set to greater than 0 to pick one Gflow
 
         -- I/O Channels
         constant INPUT_PADS_CNT     : positive := 2*INT_QUBITS_CNT;
@@ -106,6 +115,8 @@
         signal led : std_logic_vector(4-1 downto 0);
 
         signal input_pads : std_logic_vector(INPUT_PADS_CNT-1 downto 0) := (others => '0');
+        signal i_enable_feedforward : std_logic := '0';
+        signal i_rand_feedforward : std_logic_vector(INT_QUBITS_CNT-1 downto 0) := (others => '0');
         signal output_pads : std_logic_vector(1 downto 0);
         signal o_eom_ctrl_pulse : std_logic;
         signal o_eom_ctrl_pulsegen_busy : std_logic;
@@ -125,10 +136,12 @@
 
         -- Signal spy
         signal slv_cdcc_rd_qubits_to_fsm : std_logic_vector(2*INT_QUBITS_CNT-1 downto 0);
+        signal slv_input_channels_donttouch : std_logic_vector(2*INT_QUBITS_CNT-1 downto 0);
 
         -- Analysis Sygnals
         type t_natural_arr_allphotons_2d is array(2*INT_QUBITS_CNT-1 downto 0) of natural;
         type t_time_arr_allphotons_2d is array(2*INT_QUBITS_CNT-1 downto 0) of time;
+        type t_time_arr_qubits_2d is array(INT_QUBITS_CNT-1 downto 0) of time;
         type t_natural_arr_qubits_2d is array(INT_QUBITS_CNT-1 downto 0) of natural;
         type t_natural_arr_qubits_allcombinations_2d is array(2**INT_QUBITS_CNT-1 downto 0) of natural;
         signal s_photons_allcombinations_acc : t_natural_arr_qubits_allcombinations_2d := (others => 0);
@@ -138,9 +151,17 @@
         signal s_io_delay_upper_bound_ns : t_time_arr_allphotons_2d;
         signal s_io_delay_lower_bound_ns : t_time_arr_allphotons_2d;
         signal s_io_delay_avg_ns : t_time_arr_allphotons_2d;
-        signal s_i_to_fsm_gflow_delay_lower_bound_ns : t_time_arr_allphotons_2d;
-        signal s_i_to_fsm_gflow_delay_upper_bound_ns : t_time_arr_allphotons_2d;
-        signal s_i_to_fsm_gflow_delay_avg_ns : t_time_arr_allphotons_2d;
+        signal s_i_to_fsm_feedfwd_delay_lower_bound_ns : t_time_arr_allphotons_2d;
+        signal s_i_to_fsm_feedfwd_delay_upper_bound_ns : t_time_arr_allphotons_2d;
+        signal s_i_to_fsm_feedfwd_delay_avg_ns : t_time_arr_allphotons_2d;
+        signal s_i_to_delay_comp_delay_lower_bound_ns : t_time_arr_allphotons_2d;
+        signal s_i_to_delay_comp_delay_upper_bound_ns : t_time_arr_allphotons_2d;
+        signal s_i_to_delay_comp_delay_avg_ns : t_time_arr_allphotons_2d;
+        signal s_i_to_delay_comp_delay_now_ns : t_time_arr_allphotons_2d;
+        signal s_i_to_delay_comp_delay_now_diff_ns : t_time_arr_qubits_2d;
+        signal s_i_to_delay_comp_delay_now_diff_max_ns : t_time_arr_qubits_2d;
+        signal s_i_to_delay_comp_delay_now_diff_min_ns : t_time_arr_qubits_2d;
+        signal s_i_to_delay_comp_delay_now_diff_avg_ns : t_time_arr_qubits_2d;
         signal int_successful_flows_counter : integer := 0;
         signal int_failed_flows_counter : integer := 0;
 
@@ -156,7 +177,11 @@
                                                       -- Zero will create a decimal number: 0.'INT_ALL_DIGITS' (to be converted to 0.4541710)
         ) return real is
         begin
-            return (real(INT_ALL_DIGITS) / (10.0**(floor(log10(abs(real(INT_ALL_DIGITS))))+1.0))) * (0.1**(-1.0*real(INT_WHOLE_DIGITS_COUNT)));
+            if INT_ALL_DIGITS /= 0 then
+                return (real(INT_ALL_DIGITS) / (10.0**(floor(log10(abs(real(INT_ALL_DIGITS))))+1.0))) * (0.1**(-1.0*real(INT_WHOLE_DIGITS_COUNT)));
+            else
+                return 0.0;
+            end if;
         end function;
 
         constant PHOTON_1H_DELAY_ABS_NS : real := abs(int_to_real(INT_ALL_DIGITS_PHOTON_1H_DELAY_NS, INT_WHOLE_DIGITS_CNT_PHOTON_1H_DELAY));
@@ -330,13 +355,13 @@
             writeline(output, str);
             for i in 0 to 2*INT_QUBITS_CNT-1 loop
                 -- Print Upper Bound IO Delay
-                write(str, string'("I-to-FSM Delay (Upper Bound)(channel " & to_string(i) & "): " & time'image(s_i_to_fsm_gflow_delay_upper_bound_ns(i))));
+                write(str, string'("I-to-FSM Delay (Upper Bound)(channel " & to_string(i) & "): " & time'image(s_i_to_fsm_feedfwd_delay_upper_bound_ns(i))));
                 writeline(output, str);
                 if i = 0 then
-                    v_time_upper_bound := s_i_to_fsm_gflow_delay_upper_bound_ns(i);
+                    v_time_upper_bound := s_i_to_fsm_feedfwd_delay_upper_bound_ns(i);
                 else
-                    if v_time_upper_bound < s_i_to_fsm_gflow_delay_upper_bound_ns(i) then
-                        v_time_upper_bound := s_i_to_fsm_gflow_delay_upper_bound_ns(i);
+                    if v_time_upper_bound < s_i_to_fsm_feedfwd_delay_upper_bound_ns(i) then
+                        v_time_upper_bound := s_i_to_fsm_feedfwd_delay_upper_bound_ns(i);
                     end if;
                 end if;
             end loop;
@@ -345,13 +370,13 @@
             writeline(output, str);
             for i in 0 to 2*INT_QUBITS_CNT-1 loop
                 -- Print Lower Bound IO Delay
-                write(str, string'("I-to-FSM Delay (Lower Bound)(channel " & to_string(i) & "): " & time'image(s_i_to_fsm_gflow_delay_lower_bound_ns(i))));
+                write(str, string'("I-to-FSM Delay (Lower Bound)(channel " & to_string(i) & "): " & time'image(s_i_to_fsm_feedfwd_delay_lower_bound_ns(i))));
                 writeline(output, str);
                 if i = 0 then
-                    v_time_lower_bound := s_i_to_fsm_gflow_delay_lower_bound_ns(i);
+                    v_time_lower_bound := s_i_to_fsm_feedfwd_delay_lower_bound_ns(i);
                 else
-                    if v_time_lower_bound > s_i_to_fsm_gflow_delay_lower_bound_ns(i) then
-                        v_time_lower_bound := s_i_to_fsm_gflow_delay_lower_bound_ns(i);
+                    if v_time_lower_bound > s_i_to_fsm_feedfwd_delay_lower_bound_ns(i) then
+                        v_time_lower_bound := s_i_to_fsm_feedfwd_delay_lower_bound_ns(i);
                     end if;
                 end if;
             end loop;
@@ -360,12 +385,12 @@
             writeline(output, str);
             for i in 0 to 2*INT_QUBITS_CNT-1 loop
                 -- Print Lower Bound IO Delay
-                write(str, string'("I-to-FSM Delay (Average)(channel " & to_string(i) & "): " & time'image(s_i_to_fsm_gflow_delay_avg_ns(i))));
+                write(str, string'("I-to-FSM Delay (Average)(channel " & to_string(i) & "): " & time'image(s_i_to_fsm_feedfwd_delay_avg_ns(i))));
                 writeline(output, str);
                 if i = 0 then
-                    v_time_average := s_i_to_fsm_gflow_delay_avg_ns(i);
+                    v_time_average := s_i_to_fsm_feedfwd_delay_avg_ns(i);
                 else
-                    v_time_average := v_time_average + s_i_to_fsm_gflow_delay_avg_ns(i);
+                    v_time_average := v_time_average + s_i_to_fsm_feedfwd_delay_avg_ns(i);
                 end if;
             end loop;
 
@@ -383,7 +408,7 @@
             for i in 0 to INT_QUBITS_CNT-1 loop
                 -- Print Upper Bound IO Delay
                 write(str, string'("I-to-FSM Delay Compensation (Upper Bound)(qubit " & to_string(i) 
-                    & "): " & time'image(abs(s_i_to_fsm_gflow_delay_upper_bound_ns(i*2) - s_i_to_fsm_gflow_delay_upper_bound_ns((i+1)*2-1)))));
+                    & "): " & time'image(abs(s_i_to_fsm_feedfwd_delay_upper_bound_ns(i*2) - s_i_to_fsm_feedfwd_delay_upper_bound_ns((i+1)*2-1)))));
                 writeline(output, str);
             end loop;
 
@@ -392,7 +417,7 @@
             for i in 0 to INT_QUBITS_CNT-1 loop
                 -- Print Upper Bound IO Delay
                 write(str, string'("I-to-FSM Delay Compensation (Lower Bound)(qubit " & to_string(i) 
-                    & "): " & time'image(abs(s_i_to_fsm_gflow_delay_lower_bound_ns(i*2) - s_i_to_fsm_gflow_delay_lower_bound_ns((i+1)*2-1)))));
+                    & "): " & time'image(abs(s_i_to_fsm_feedfwd_delay_lower_bound_ns(i*2) - s_i_to_fsm_feedfwd_delay_lower_bound_ns((i+1)*2-1)))));
                 writeline(output, str);
             end loop;
 
@@ -401,10 +426,43 @@
             for i in 0 to INT_QUBITS_CNT-1 loop
                 -- Print Upper Bound IO Delay
                 write(str, string'("I-to-FSM Delay Compensation (Average)(qubit " & to_string(i) 
-                    & "): " & time'image(abs(s_i_to_fsm_gflow_delay_avg_ns(i*2) - s_i_to_fsm_gflow_delay_avg_ns((i+1)*2-1)))));
+                    & "): " & time'image(abs(s_i_to_fsm_feedfwd_delay_avg_ns(i*2) - s_i_to_fsm_feedfwd_delay_avg_ns((i+1)*2-1)))));
                 writeline(output, str);
             end loop;
 
+
+
+            -- Delay Compensation (after SERDESEes)
+            write(str, string'(""));
+            writeline(output, str);
+            for i in 0 to INT_QUBITS_CNT-1 loop
+                -- Print Upper Bound IO Delay
+                write(str, string'("I-to-DCOMP Delay Compensation (Upper Bound)(qubit " & to_string(i) 
+                    & "): " & time'image(abs(s_i_to_delay_comp_delay_upper_bound_ns(i*2) - s_i_to_fsm_feedfwd_delay_upper_bound_ns((i+1)*2-1)))));
+                writeline(output, str);
+            end loop;
+
+            write(str, string'(""));
+            writeline(output, str);
+            for i in 0 to INT_QUBITS_CNT-1 loop
+                -- Print Upper Bound IO Delay
+                write(str, string'("I-to-DCOMP Delay Compensation (Lower Bound)(qubit " & to_string(i) 
+                    & "): " & time'image(abs(s_i_to_delay_comp_delay_lower_bound_ns(i*2) - s_i_to_fsm_feedfwd_delay_lower_bound_ns((i+1)*2-1)))));
+                writeline(output, str);
+            end loop;
+
+            write(str, string'(""));
+            writeline(output, str);
+            for i in 0 to INT_QUBITS_CNT-1 loop
+                -- Print Upper Bound IO Delay
+                write(str, string'("I-to-DCOMP Delay Compensation (Average)(qubit " & to_string(i) 
+                    & "): " & time'image(abs(s_i_to_delay_comp_delay_avg_ns(i*2) - s_i_to_fsm_feedfwd_delay_avg_ns((i+1)*2-1)))));
+                writeline(output, str);
+            end loop;
+
+
+
+            -- Print out all combinations
             write(str, string'(""));
             writeline(output, str);
             for i in 0 to 2**INT_QUBITS_CNT-1 loop
@@ -426,6 +484,7 @@
 
         -- CSV file 1
         signal readout_photons : t_INT_QUBITS_CNT_x_2b_2d := (others => (others => '0'));
+        signal readout_actual_gflow : std_logic_vector(28-1 downto 0) := (others => '0');
         signal readout_alpha : t_INT_QUBITS_CNT_x_2b_2d := (others => (others => '0'));
         signal readout_random : t_INT_QUBITS_CNT_x_1b_2d := (others => (others => '0'));
         signal readout_modulo : t_INT_QUBITS_CNT_x_2b_2d := (others => (others => '0'));
@@ -483,9 +542,15 @@
             -- PCD Control Pulse Design & Delay
             INT_CTRL_PULSE_HIGH_DURATION_NS => INT_CTRL_PULSE_HIGH_DURATION_NS,
             INT_CTRL_PULSE_DEAD_DURATION_NS => INT_CTRL_PULSE_DEAD_DURATION_NS,
-            INT_CTRL_PULSE_EXTRA_DELAY_NS => INT_CTRL_PULSE_EXTRA_DELAY_NS,
+            INT_CTRL_PULSE_EXTRA_DELAY_Q2_NS => INT_CTRL_PULSE_EXTRA_DELAY_Q2_NS,
+            INT_CTRL_PULSE_EXTRA_DELAY_Q3_NS => INT_CTRL_PULSE_EXTRA_DELAY_Q3_NS,
+            INT_CTRL_PULSE_EXTRA_DELAY_Q4_NS => INT_CTRL_PULSE_EXTRA_DELAY_Q4_NS,
+            INT_CTRL_PULSE_EXTRA_DELAY_Q5_NS => INT_CTRL_PULSE_EXTRA_DELAY_Q5_NS,
+            INT_CTRL_PULSE_EXTRA_DELAY_Q6_NS => INT_CTRL_PULSE_EXTRA_DELAY_Q6_NS,
 
-            WRITE_ON_VALID => WRITE_ON_VALID
+            INT_FEEDFWD_PROGRAMMING => INT_FEEDFWD_PROGRAMMING,
+            INT_NUMBER_OF_GFLOWS    => INT_NUMBER_OF_GFLOWS,                             -- Total number of Gflows
+            INT_GFLOW_NUMBER        => INT_GFLOW_NUMBER                                  -- Set to 0 for all Gflows, set to greater than 0 to pick one Gflow
         )
         port map (
             sys_clk_p => sys_clk_p,                   -- External 200MHz oscillator
@@ -499,6 +564,8 @@
 
             led => led,                               -- Debug LEDs
             input_pads => input_pads,                 -- Inputs from SPCM
+            i_enable_feedforward => i_enable_feedforward, -- Enable/Pause Feedforward FSM
+            i_rand_feedforward => i_rand_feedforward, -- Enable/Pause Feedforward FSM
             o_eom_ctrl_pulse => o_eom_ctrl_pulse,     -- PCD Trigger
             o_eom_ctrl_pulsegen_busy => o_eom_ctrl_pulsegen_busy,
             o_debug_port_1 => o_debug_port_1,                 -- Debug port 1
@@ -519,6 +586,7 @@
         -- Monitors --
         --------------
         slv_cdcc_rd_qubits_to_fsm <= << signal.top_gflow_tb.dut_top_gflow.slv_cdcc_rd_qubits_to_fsm : std_logic_vector >>;
+        slv_input_channels_donttouch <= << signal.top_gflow_tb.dut_top_gflow.slv_input_channels_donttouch : std_logic_vector >>;
         gen_monitors_all_qubits : for q in 0 to INT_QUBITS_CNT-1 generate
             monitor_qubits_transmitted_counter : process
             begin
@@ -530,6 +598,87 @@
                     end if;
                     s_qubits_transmitted_cnt(q) <= s_qubits_transmitted_cnt(q) + 1;
                 end loop;
+            end process;
+
+
+            monitors_measure_delay_compensation_mismatch_at_fsm_feedforward : process
+                variable v_time_start_real : real := 0.0;
+                variable v_time_delta_real : real := 0.0;
+                variable v_time_delta_acc_real : real := 0.0;
+                variable v_time_avg_real : real := 0.0;
+                variable v_cntr_real : real := 0.0;
+
+                variable v_time_start : time := 0.0 ns;
+                variable v_time_delta : time := 0.0 ns;
+                variable v_time_delta_acc : time := 0.0 ns;
+                variable v_time_avg : time := 0.0 ns;
+                variable v_time_lower_bound : time := 0.0 ns;
+                variable v_time_upper_bound : time := 0.0 ns;
+            begin
+
+                -- Wait for real data on any channel, then start analysis to prevent processing system default values
+                if OUTPUT_BOTH_CHANNELS = false then
+                    wait until s_i_to_delay_comp_delay_now_ns(q*2)'event;
+                    wait until s_i_to_delay_comp_delay_now_ns(q*2+1)'event;
+                end if;
+
+                -- Measure after the second measured value only.
+                loop
+                    if OUTPUT_BOTH_CHANNELS = true then
+                        -- Wait on the predefined sequence of the occurrence of signals on input_pads
+                        if PHOTON_V_DELAY_ABS_NS(q) <= PHOTON_H_DELAY_ABS_NS(q) then
+                            wait until s_i_to_delay_comp_delay_now_ns(q*2)'event;
+                            wait until s_i_to_delay_comp_delay_now_ns(q*2+1)'event;
+                        else
+                            wait until s_i_to_delay_comp_delay_now_ns(q*2+1)'event;
+                            wait until s_i_to_delay_comp_delay_now_ns(q*2)'event;
+                        end if;
+                    else
+                        -- If random input, wait on any input_pad signal within a qubit
+                        wait until s_i_to_delay_comp_delay_now_ns(q*2)'event or s_i_to_delay_comp_delay_now_ns(q*2+1)'event;
+                    end if;
+
+                    wait for 0 ns;
+                    wait for 0 ns;
+                    wait for 0 ns;
+                    wait for 0 ns;
+
+                    if ctrl_input_emulation_mode = SEND_CLUSTER_THEN_WAIT then
+                        v_time_delta := abs(s_i_to_delay_comp_delay_now_ns(q*2)-s_i_to_delay_comp_delay_now_ns(q*2+1));
+                        v_cntr_real := v_cntr_real + 1.0;
+                        v_time_delta_real := (real(v_time_delta / 1 ps) / 1000.0); -- base time unit is in ps -> convert to ns
+                        v_time_delta_acc_real := v_time_delta_acc_real + v_time_delta_real;
+                        v_time_avg_real := v_time_delta_acc_real / v_cntr_real;
+
+                        s_i_to_delay_comp_delay_now_diff_ns(q) <= v_time_delta;
+
+                        v_time_avg := v_time_avg_real * 1 ns;
+
+                        -- Measure upper bound delay
+                        if v_cntr_real = 1.0 then
+                            v_time_lower_bound := v_time_delta;
+                        else
+                            if v_time_delta > v_time_upper_bound then
+                                v_time_upper_bound := v_time_delta;
+                            end if;
+                        end if;
+
+                        -- Measure lower bound delay
+                        if v_cntr_real = 1.0 then
+                            v_time_lower_bound := v_time_delta;
+                        else
+                            if v_time_delta < v_time_lower_bound then
+                                v_time_lower_bound := v_time_delta;
+                            end if;
+                        end if;
+
+                        s_i_to_delay_comp_delay_now_diff_max_ns(q) <= v_time_upper_bound;
+                        s_i_to_delay_comp_delay_now_diff_min_ns(q) <= v_time_lower_bound;
+                        s_i_to_delay_comp_delay_now_diff_avg_ns(q) <= v_time_avg;
+
+                    end if;
+                end loop;
+
             end process;
 
         end generate;
@@ -602,8 +751,8 @@
                 end loop;
             end process;
 
-            -- Check if the fsm_gflow module captured the transmitted photons
-            monitors_delay_in_to_fsm_gflow : process
+            -- Check if the fsm_feedforward module captured the transmitted photons
+            monitors_delay_in_to_fsm_feedforward : process
                 variable v_time_start_real : real := 0.0;
                 variable v_time_delta_real : real := 0.0;
                 variable v_time_delta_acc_real : real := 0.0;
@@ -634,12 +783,12 @@
                         v_time_delta := v_time_delta_real * 1 ns;
                         v_time_avg := v_time_avg_real * 1 ns;
 
-                        -- Measure upper bound delay
+                        -- Measure absolute upper bound delay on a channel
                         if v_time_delta > v_time_upper_bound then
                             v_time_upper_bound := v_time_delta;
                         end if;
 
-                        -- Measure lower bound delay
+                        -- Measure absolute lower bound delay on a channel
                         if v_cntr_real = 1.0 then
                             v_time_lower_bound := v_time_delta;
                         else
@@ -648,9 +797,72 @@
                             end if;
                         end if;
 
-                        s_i_to_fsm_gflow_delay_upper_bound_ns(c) <= v_time_upper_bound;
-                        s_i_to_fsm_gflow_delay_lower_bound_ns(c) <= v_time_lower_bound;
-                        s_i_to_fsm_gflow_delay_avg_ns(c) <= v_time_avg;
+                        s_i_to_fsm_feedfwd_delay_upper_bound_ns(c) <= v_time_upper_bound;
+                        s_i_to_fsm_feedfwd_delay_lower_bound_ns(c) <= v_time_lower_bound;
+                        s_i_to_fsm_feedfwd_delay_avg_ns(c) <= v_time_avg;
+                    end if;
+                 end loop;
+            end process;
+
+
+
+            monitors_delay_in_to_delay_compensation : process
+                variable v_time_start_real : real := 0.0;
+                variable v_time_delta_real : real := 0.0;
+                variable v_time_delta_acc_real : real := 0.0;
+                variable v_time_avg_real : real := 0.0;
+                variable v_cntr_real : real := 0.0;
+
+                variable v_time_start : time := 0.0 ns;
+                variable v_time_delta : time := 0.0 ns;
+                variable v_time_delta_acc : time := 0.0 ns;
+                variable v_time_avg : time := 0.0 ns;
+                variable v_time_lower_bound : time := 0.0 ns;
+                variable v_time_upper_bound : time := 0.0 ns;
+            begin
+                loop
+                    if OUTPUT_BOTH_CHANNELS = false then
+                        wait until rising_edge(input_pads(c));
+                        if ctrl_input_emulation_mode = SEND_CLUSTER_THEN_WAIT then
+                            v_time_start_real := real(now / 1 ps) / 1000.0; -- 'now' base time unit is in ps -> convert to ns
+                        end if;
+                    end if;
+
+                    wait until rising_edge(slv_input_channels_donttouch(c));
+                    if ctrl_input_emulation_mode = SEND_CLUSTER_THEN_WAIT then
+                        if OUTPUT_BOTH_CHANNELS = false then
+                            v_time_delta_real := (real(now / 1 ps) / 1000.0) - v_time_start_real; -- 'now' base time unit is in ps -> convert to ns
+                        else
+                            v_time_delta_real := (real(now / 1 ps) / 1000.0); -- 'now' base time unit is in ps -> convert to ns
+                        end if;
+                        v_cntr_real := v_cntr_real + 1.0;
+                        v_time_delta_acc_real := v_time_delta_acc_real + v_time_delta_real;
+                        v_time_avg_real := v_time_delta_acc_real / v_cntr_real;
+
+                        v_time_start := v_time_start_real * 1 ns;
+                        v_time_delta := v_time_delta_real * 1 ns;
+                        v_time_avg := v_time_avg_real * 1 ns;
+
+                        -- Save Time Now for Global Access
+                        s_i_to_delay_comp_delay_now_ns(c) <= v_time_delta;
+
+                        -- Measure absolute upper bound delay on a channel
+                        if v_time_delta > v_time_upper_bound then
+                            v_time_upper_bound := v_time_delta;
+                        end if;
+
+                        -- Measure absolute lower bound delay on a channel
+                        if v_cntr_real = 1.0 then
+                            v_time_lower_bound := v_time_delta;
+                        else
+                            if v_time_delta < v_time_lower_bound then
+                                v_time_lower_bound := v_time_delta;
+                            end if;
+                        end if;
+
+                        s_i_to_delay_comp_delay_upper_bound_ns(c) <= v_time_upper_bound;
+                        s_i_to_delay_comp_delay_lower_bound_ns(c) <= v_time_lower_bound;
+                        s_i_to_delay_comp_delay_avg_ns(c) <= v_time_avg;
                     end if;
                  end loop;
             end process;
@@ -658,16 +870,66 @@
         end generate;
 
         monitor_successful_and_failed_flows_counter : process
-            variable v_prev_state : natural range 0 to INT_QUBITS_CNT-1 := 0;
-            variable v_curr_state : natural range 0 to INT_QUBITS_CNT-1 := 0;
+            variable v_prev_state : natural range 0 to 2**INT_QUBITS_CNT-1 := 0;
+            variable v_curr_state : natural range 0 to 2**INT_QUBITS_CNT-1 := 0;
             variable v_success_flag : std_logic := '0';
+
+            variable v_slv_prev_state : std_logic_vector(INT_QUBITS_CNT-1 downto 0) := std_logic_vector(to_unsigned(1, INT_QUBITS_CNT));
+            variable v_slv_curr_state : std_logic_vector(INT_QUBITS_CNT-1 downto 0) := std_logic_vector(to_unsigned(1, INT_QUBITS_CNT));
+            variable v_xs : std_logic_vector(INT_QUBITS_CNT-1 downto 0) := (others => 'X');
+            variable v_us : std_logic_vector(INT_QUBITS_CNT-1 downto 0) := (others => 'U');
         begin
             loop
-                v_prev_state := << signal.top_gflow_tb.dut_top_gflow.state_gflow : natural range 0 to INT_QUBITS_CNT-1 >>;
+                -- OLD
+                -- v_prev_state := << signal.top_gflow_tb.dut_top_gflow.state_feedfwd : natural range 0 to INT_QUBITS_CNT-1 >>;
 
-                wait until rising_edge(o_eom_ctrl_pulsegen_busy);
-                v_curr_state := << signal.top_gflow_tb.dut_top_gflow.state_gflow : natural range 0 to INT_QUBITS_CNT-1 >>;
-                v_success_flag := << signal.top_gflow_tb.dut_top_gflow.sl_gflow_success_flag : std_logic >>;
+                -- wait until rising_edge(o_eom_ctrl_pulsegen_busy);
+                -- v_curr_state := << signal.top_gflow_tb.dut_top_gflow.state_feedfwd : natural range 0 to INT_QUBITS_CNT-1 >>;
+                -- v_success_flag := << signal.top_gflow_tb.dut_top_gflow.sl_feedfwd_success_flag : std_logic >>;
+
+                -- if v_prev_state > 0 and v_curr_state = 0 and v_success_flag = '0' then
+                --     int_failed_flows_counter <= int_failed_flows_counter + 1;
+                -- end if;
+
+                -- if v_prev_state = INT_QUBITS_CNT-1 and v_curr_state = 0 and v_success_flag = '1' then
+                --     int_successful_flows_counter <= int_successful_flows_counter + 1;
+                -- end if;
+
+                -- NEW
+                v_slv_prev_state := << signal.top_gflow_tb.dut_top_gflow.state_feedfwd : std_logic_vector(INT_QUBITS_CNT-1 downto 0) >>;
+                -- Prevent reading metavalues
+                if v_slv_prev_state = v_xs or v_slv_prev_state = v_us then
+                    for i in 0 to 100 loop
+                        v_slv_prev_state := << signal.top_gflow_tb.dut_top_gflow.state_feedfwd : std_logic_vector(INT_QUBITS_CNT-1 downto 0) >>;
+                        wait for 0 ns;
+                    end loop;
+                end if;
+                v_prev_state := to_integer(unsigned(v_slv_prev_state));
+                if (v_prev_state > 0) then
+                    v_prev_state := integer(ceil(log2(real(v_prev_state))));
+                end if;
+
+
+                -- !!!!!!
+                -- At this time, the fsm feedforward state should be updated
+                -- wait until rising_edge(o_eom_ctrl_pulsegen_busy);
+                wait until falling_edge(<< signal.top_gflow_tb.dut_top_gflow.inst_fsm_gflow.actual_qubit_valid : std_logic >>); -- NEW
+                -- !!!!!!
+
+                v_slv_curr_state := << signal.top_gflow_tb.dut_top_gflow.state_feedfwd : std_logic_vector(INT_QUBITS_CNT-1 downto 0) >>;
+                -- Prevent reading metavalues
+                if v_slv_curr_state = v_xs or v_slv_curr_state = v_us then
+                    for i in 0 to 100 loop
+                        wait for 0 ns;
+                        v_slv_prev_state := << signal.top_gflow_tb.dut_top_gflow.state_feedfwd : std_logic_vector(INT_QUBITS_CNT-1 downto 0) >>;
+                    end loop;
+                end if;
+                v_curr_state := to_integer(unsigned(v_slv_curr_state));
+                if (v_curr_state > 0) then
+                    v_curr_state := integer(ceil(log2(real(v_curr_state))));
+                end if;
+
+                v_success_flag := << signal.top_gflow_tb.dut_top_gflow.sl_feedfwd_success_flag : std_logic >>;
 
                 if v_prev_state > 0 and v_curr_state = 0 and v_success_flag = '0' then
                     int_failed_flows_counter <= int_failed_flows_counter + 1;
@@ -686,7 +948,6 @@
         begin
             -- Wait until the readout line is complete for a completed flow
             wait until readout_csv1_line_done_event'event;
-            report "DEBUG: readout_csv1_line_done_event'event";
 
             wait_deltas(10);
 
@@ -728,8 +989,11 @@
                     wait_deltas(1);
                     s_photon_trans_event(0) <= not s_photon_trans_event(0);
                     wait_deltas(1);
-
-                    input_pads(0) <= s_qubits(0);
+                    if OUTPUT_BOTH_CHANNELS = true then
+                        input_pads(0) <= '1';
+                    else
+                        input_pads(0) <= s_qubits(0);
+                    end if;
                     wait_deltas(1);
                     wait for REALISTIC_DETECTOR_HIGH_TIME_NS;
 
@@ -745,7 +1009,7 @@
                         end if;
                         wait for TIME_BETWEEN_CLUSTERS_NS;
                     end if;
-                    
+
                 end loop;
             else
                 -- If photon V is slower (has smaller delay) ensure 01/10 configuration
@@ -756,7 +1020,11 @@
                     wait_deltas(1);
                     s_qubits(0) <= not(s_photon_value_latched(1));
                     wait_deltas(1);
-                    input_pads(0) <= s_qubits(0);
+                    if OUTPUT_BOTH_CHANNELS = true then
+                        input_pads(0) <= '1';
+                    else
+                        input_pads(0) <= s_qubits(0);
+                    end if;
                     wait_deltas(1);
                     wait for REALISTIC_DETECTOR_HIGH_TIME_NS;
 
@@ -796,8 +1064,11 @@
                     wait_deltas(1);
                     s_photon_trans_event(1) <= not s_photon_trans_event(1);
                     wait_deltas(1);
-
-                    input_pads(1) <= s_qubits(1);
+                    if OUTPUT_BOTH_CHANNELS = true then
+                        input_pads(1) <= '1';
+                    else
+                        input_pads(1) <= s_qubits(1);
+                    end if;
                     wait_deltas(1);
                     wait for REALISTIC_DETECTOR_HIGH_TIME_NS;
 
@@ -824,7 +1095,11 @@
                     wait_deltas(1);
                     s_qubits(1) <= not(s_photon_value_latched(0));
                     wait_deltas(1);
-                    input_pads(1) <= s_qubits(1);
+                    if OUTPUT_BOTH_CHANNELS = true then
+                        input_pads(1) <= '1';
+                    else
+                        input_pads(1) <= s_qubits(1);
+                    end if;
                     wait_deltas(1);
                     wait for REALISTIC_DETECTOR_HIGH_TIME_NS;
 
@@ -872,8 +1147,11 @@
                         wait_deltas(1);
                         s_photon_trans_event(p*2) <= not s_photon_trans_event(p*2);
                         wait_deltas(1);
-
-                        input_pads(p*2) <= s_qubits(p*2);
+                        if OUTPUT_BOTH_CHANNELS = true then
+                            input_pads(p*2) <= '1';
+                        else
+                            input_pads(p*2) <= s_qubits(p*2);
+                        end if;
                         wait_deltas(1);
                         wait for REALISTIC_DETECTOR_HIGH_TIME_NS;
 
@@ -905,7 +1183,11 @@
                         wait_deltas(1);
                         s_qubits(p*2) <= not(s_photon_value_latched((p+1)*2-1));
                         wait_deltas(1);
-                        input_pads(p*2) <= s_qubits(p*2);
+                        if OUTPUT_BOTH_CHANNELS = true then
+                            input_pads(p*2) <= '1';
+                        else
+                            input_pads(p*2) <= s_qubits(p*2);
+                        end if;
                         wait_deltas(1);
                         wait for REALISTIC_DETECTOR_HIGH_TIME_NS;
 
@@ -949,8 +1231,11 @@
                         wait_deltas(1);
                         s_photon_trans_event((p+1)*2-1) <= not s_photon_trans_event((p+1)*2-1);
                         wait_deltas(1);
-
-                        input_pads((p+1)*2-1) <= s_qubits((p+1)*2-1);
+                        if OUTPUT_BOTH_CHANNELS = true then
+                            input_pads((p+1)*2-1) <= '1';
+                        else
+                            input_pads((p+1)*2-1) <= s_qubits((p+1)*2-1);
+                        end if;
                         wait_deltas(1);
                         wait for REALISTIC_DETECTOR_HIGH_TIME_NS;
 
@@ -983,7 +1268,11 @@
                         wait_deltas(1);
                         s_qubits((p+1)*2-1) <= not(s_photon_value_latched(p*2));
                         wait_deltas(1);
-                        input_pads((p+1)*2-1) <= s_qubits((p+1)*2-1);
+                        if OUTPUT_BOTH_CHANNELS = true then
+                            input_pads((p+1)*2-1) <= '1';
+                        else
+                            input_pads((p+1)*2-1) <= s_qubits((p+1)*2-1);
+                        end if;
                         wait_deltas(1);
                         wait for REALISTIC_DETECTOR_HIGH_TIME_NS;
 
@@ -1023,17 +1312,28 @@
             wait until rising_edge(<< signal.top_gflow_tb.dut_top_gflow.mmcm_locked : std_logic >>);
             wait for 500 ns;
 
-
+            
             wait for WAIT_BEFORE_FIRST_PHOTON_NS; -- NEW
             ctrl_input_emulation_mode <= SEND_CLUSTER_THEN_WAIT;
             ctrl_sim_start <= '1';
+            i_enable_feedforward <= '1';
+
+
+            -- Simulate Gflow Duty Cycle
+            for i in 0 to 2**(INT_QUBITS_CNT+1)-1 loop
+                wait for 5 us;
+                i_enable_feedforward <= not i_enable_feedforward;
+
+                -- If feedforward is paused, update the random bit string immediately
+                wait for 0 ns;
+                -- if i_enable_feedforward = '0' then
+                --     i_rand_feedforward <= std_logic_vector(unsigned(i_rand_feedforward) + "1");
+                -- end if;
+            end loop;
 
 
             -- Run timulation for ...
-            wait for 50 us; -- make timer: Duration: 00:00:37
-            -- wait for 500 us; -- make timer: Duration: 00:05:00
-            -- wait for 5000 us; -- make timer: Elapsed time: 1:04:16
-            -- wait for 50000 us; -- make timer: Duration: 07:45:01
+            -- wait for 50 us;
 
             -- ctrl_input_emulation_mode <= SEND_PHOTON_EVERY_LASER_CLK;
 
@@ -1094,13 +1394,16 @@
             end loop;
             write(v_line_buffer, string'(","));
 
+            write(v_line_buffer, string'("gflow" & ","));
+            write(v_line_buffer, string'(","));
+
             for i in 1 to INT_QUBITS_CNT loop
-                write(v_line_buffer, string'("alpha_q" & integer'image(i) & ","));
+                write(v_line_buffer, string'("sx_q" & integer'image(i) & ","));
             end loop;
             write(v_line_buffer, string'(","));
 
             for i in 1 to INT_QUBITS_CNT loop
-                write(v_line_buffer, string'("mod_q" & integer'image(i) & ","));
+                write(v_line_buffer, string'("sz_q" & integer'image(i) & ","));
             end loop;
             write(v_line_buffer, string'(","));
 
@@ -1116,6 +1419,8 @@
 
             write(v_line_buffer, string'(","));
             write(v_line_buffer, string'("@time"));
+            write(v_line_buffer, string'(","));
+            write(v_line_buffer, string'("time_ovflw"));
             writeline(actual_csv, v_line_buffer);
             file_close(actual_csv);
 
@@ -1128,6 +1433,9 @@
 
             write(v_line_buffer, string'(","));
             write(v_line_buffer, string'("@time"));
+
+            write(v_line_buffer, string'(","));
+            write(v_line_buffer, string'("time_ovflw"));
             writeline(actual_csv, v_line_buffer);
             file_close(actual_csv);
 
@@ -1145,6 +1453,8 @@
 
             write(v_line_buffer, string'(","));
             write(v_line_buffer, string'("@time"));
+            write(v_line_buffer, string'(","));
+            write(v_line_buffer, string'("time_ovflw"));
             writeline(actual_csv, v_line_buffer);
             file_close(actual_csv);
 
@@ -1163,10 +1473,10 @@
                         if readout_data_32b(4-1 downto 0) = x"1" then
                             file_open(actual_csv, CSV1_PATH, append_mode);
                             v_line_being_created := '1'; -- Job Started
-                        elsif readout_data_32b(4-1 downto 0) = x"6" then
+                        elsif readout_data_32b(4-1 downto 0) = x"7" then
                             file_open(actual_csv, CSV2_PATH, append_mode);
                             v_line_being_created := '1'; -- Job Started
-                        elsif readout_data_32b(4-1 downto 0) = x"7" then
+                        elsif readout_data_32b(4-1 downto 0) = x"8" then
                             file_open(actual_csv, CSV3_PATH, append_mode);
                             v_line_being_created := '1'; -- Job Started
                         end if;
@@ -1209,13 +1519,14 @@
                         readout_photons(v_cntr_csv1_column) <= readout_data_32b(2-1+4 downto 4); -- Record Data (4 is offset, bits occupied by the csv commands)
                         v_cntr_csv1_column := v_cntr_csv1_column + 1;
 
+
                     elsif readout_data_32b(4-1 downto 0) = x"2" then -- Event-based data group 2
                         write(v_line_buffer, string'(
                             to_string(to_integer(unsigned(readout_data_32b(32-1 downto 4))) ) ));
                         write(v_line_buffer, string'(",") );
 
                         -- Get Data (4 is offset, bits occupied by the csv commands)
-                        readout_alpha(v_cntr_csv1_column) <= readout_data_32b(2-1+4 downto 4); -- Record Data (4 is offset, bits occupied by the csv commands)
+                        readout_actual_gflow <= readout_data_32b(32-1 downto 4); -- Record Data (4 is offset, bits occupied by the csv commands)
                         v_cntr_csv1_column := v_cntr_csv1_column + 1;
 
                     elsif readout_data_32b(4-1 downto 0) = x"3" then -- Event-based data group 3
@@ -1224,7 +1535,7 @@
                         write(v_line_buffer, string'(",") );
 
                         -- Get Data (4 is offset, bits occupied by the csv commands)
-                        readout_modulo(v_cntr_csv1_column) <= readout_data_32b(2-1+4 downto 4); -- Record Data (4 is offset, bits occupied by the csv commands)
+                        readout_alpha(v_cntr_csv1_column) <= readout_data_32b(2-1+4 downto 4); -- Record Data (4 is offset, bits occupied by the csv commands)
                         v_cntr_csv1_column := v_cntr_csv1_column + 1;
 
                     elsif readout_data_32b(4-1 downto 0) = x"4" then -- Event-based data group 4
@@ -1233,7 +1544,7 @@
                         write(v_line_buffer, string'(",") );
 
                         -- Get Data (4 is offset, bits occupied by the csv commands)
-                        readout_random(v_cntr_csv1_column) <= readout_data_32b(1-1+4 downto 4);
+                        readout_modulo(v_cntr_csv1_column) <= readout_data_32b(2-1+4 downto 4); -- Record Data (4 is offset, bits occupied by the csv commands)
                         v_cntr_csv1_column := v_cntr_csv1_column + 1;
 
                     elsif readout_data_32b(4-1 downto 0) = x"5" then -- Event-based data group 5
@@ -1242,10 +1553,19 @@
                         write(v_line_buffer, string'(",") );
 
                         -- Get Data (4 is offset, bits occupied by the csv commands)
+                        readout_random(v_cntr_csv1_column) <= readout_data_32b(1-1+4 downto 4);
+                        v_cntr_csv1_column := v_cntr_csv1_column + 1;
+
+                    elsif readout_data_32b(4-1 downto 0) = x"6" then -- Event-based data group 6
+                        write(v_line_buffer, string'(
+                            to_string(to_integer(unsigned(readout_data_32b(32-1 downto 4))) ) ));
+                        write(v_line_buffer, string'(",") );
+
+                        -- Get Data (4 is offset, bits occupied by the csv commands)
                         readout_timestamps(v_cntr_csv1_column) <= readout_data_32b(28-1+4 downto 4); -- Record Data (4 is offset, bits occupied by the csv commands)
                         v_cntr_csv1_column := v_cntr_csv1_column + 1;
 
-                    elsif readout_data_32b(4-1 downto 0) = x"6" then -- Regular reporting group 1
+                    elsif readout_data_32b(4-1 downto 0) = x"7" then -- Regular reporting group 1
                         write(v_line_buffer, string'(
                             to_string(to_integer(unsigned(readout_data_32b(32-1 downto 4))) ) ));
                         write(v_line_buffer, string'(",") );
@@ -1254,7 +1574,7 @@
                         readout_coincidences(v_cntr_csv2_column) <= readout_data_32b(16-1+4 downto 4); -- Record Data (4 is offset, bits occupied by the csv commands)
                         v_cntr_csv2_column := v_cntr_csv2_column + 1;
 
-                    elsif readout_data_32b(4-1 downto 0) = x"7" then -- Regular multi-transactional reporting 1
+                    elsif readout_data_32b(4-1 downto 0) = x"8" then -- Regular multi-transactional reporting 1
                         write(v_line_buffer, string'(
                             to_string(to_integer(unsigned(readout_data_32b(32-1 downto 4))) ) ));
                         write(v_line_buffer, string'(",") );
@@ -1262,7 +1582,7 @@
                         readout_photon_counter(v_cntr_csv3_column) <= readout_data_32b(16-1+4 downto 4);
                         v_cntr_csv3_column := v_cntr_csv3_column + 1;
 
-                    elsif readout_data_32b(4-1 downto 0) = x"8" then -- Regular multi-transactional reporting 2
+                    elsif readout_data_32b(4-1 downto 0) = x"9" then -- Regular multi-transactional reporting 2
                         write(v_line_buffer, string'(
                             to_string(to_integer(unsigned(readout_data_32b(32-1 downto 4))) ) ));
                         write(v_line_buffer, string'(",") );
@@ -1270,10 +1590,11 @@
                         readout_photon_losses(v_cntr_csv3_column) <= readout_data_32b(16-1+4 downto 4);
                         v_cntr_csv3_column := v_cntr_csv3_column + 1;
 
-                    elsif readout_data_32b(4-1 downto 0) = x"9" then -- Regular reporting
-                        null;
-                    elsif readout_data_32b(4-1 downto 0) = x"A" then -- Regular reporting
-                        null;
+                    elsif readout_data_32b(4-1 downto 0) = x"A" then -- FPGA Time
+                        write(v_line_buffer, string'(",") );
+                        write(v_line_buffer, string'(
+                            to_string(to_integer(unsigned(readout_data_32b(32-1 downto 4))) ) ));
+
                     elsif readout_data_32b(4-1 downto 0) = x"B" then -- Regular reporting
                         null;
                     elsif readout_data_32b(4-1 downto 0) = x"C" then -- Regular reporting
@@ -1295,47 +1616,6 @@
         --------------
         -- CHECKERS --
         --------------
-        proc_checker_fsm_gflow : process
-            variable rand_q : t_INT_QUBITS_CNT_x_int_2d;
-            variable mod_q : t_INT_QUBITS_CNT_x_int_2d;
-            variable sx_sz_q : t_INT_QUBITS_CNT_x_2b_2d;
-            variable expected_mod_q : t_INT_QUBITS_CNT_x_int_2d;
-            constant PI : natural := 2;
-        begin
-            -- Wait until readout transaction is completely reconstructed
-            wait until readout_csv1_line_done_event'event;
-
-            -- Update deltas to make sure data vectors contain the most recent value
-            wait_deltas(10);
-
-            -- Check only qubit 1
-            rand_q(0) := to_integer(unsigned(readout_random(0)));
-            mod_q(0) := to_integer(unsigned(readout_modulo(0)));
-
-            sx_sz_q(0) := (others => '0'); -- Initial Feedback = 0
-            expected_mod_q(0) := (((-1)**to_integer(unsigned(sx_sz_q(0)(0 downto 0))) * 0)
-                        + (to_integer(unsigned(sx_sz_q(0)(1 downto 1))) + rand_q(0))*PI) mod 4;
-            assert mod_q(0) = expected_mod_q(0)
-                report "Error: Qubit 1: Actual result is : " & integer'image(mod_q(0))
-                        & " . Expected result is : " & integer'image(expected_mod_q(0))
-                severity failure;
-
-            -- Loop over all qubits
-            if INT_QUBITS_CNT > 1 then
-                for i in 1 to INT_QUBITS_CNT-1 loop
-                    rand_q(i) := to_integer(unsigned(readout_random(i)));
-                    mod_q(i) := to_integer(unsigned(readout_modulo(i)));
-
-                    sx_sz_q(i) := std_logic_vector(to_unsigned(mod_q(i-1), 2)); -- Feedback is last modulo
-                    expected_mod_q(i) := (((-1)**to_integer(unsigned(sx_sz_q(i)(0 downto 0))) * (i mod 4))
-                                + (to_integer(unsigned(sx_sz_q(i)(1 downto 1))) + rand_q(i))*PI) mod 4; -- Always mod 4
-                    assert mod_q(i) = expected_mod_q(i)
-                        report "Error: Qubit " & integer'image(i+1) & ": Actual result is : " & integer'image(mod_q(i))
-                                & " . Expected result is : " & integer'image(expected_mod_q(i))
-                        severity failure;
-                end loop;
-            end if;
-
-        end process;
+        -- #TODO
 
     end architecture;

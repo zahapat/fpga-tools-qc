@@ -716,8 +716,8 @@
                         -- For EOM control & encryption
                         -- b' + Sz(default; for now  Sz=0)
                         if qubits_sampled_valid(0) = '1' then
-                            slv_o_sx_next(0) <= slv_qubits_sampled(0) xor '0'; -- slv_qubits_sampled(0) = V; slv_qubits_sampled(0) = H
-                            slv_o_sx_next(1) <= slv_qubits_sampled(0) and '0'; -- slv_qubits_sampled(0) = V; slv_qubits_sampled(0) = H
+                            slv_o_sx_next(0) <= slv_qubits_sampled(0) xor '0'; -- slv_qubits_sampled(0) = V; slv_qubits_sampled(1) = H
+                            slv_o_sx_next(1) <= slv_qubits_sampled(0) and '0'; -- slv_qubits_sampled(0) = V; slv_qubits_sampled(1) = H
                         end if;
 
 
@@ -774,8 +774,8 @@
                                 -- For EOM control & encryption
                                 -- b' + Sz(default; for now  Sz=0)
                                 if qubits_sampled_valid(QUBIT_ID(i)) = '1' then
-                                    slv_o_sx_next(0) <= slv_qubits_sampled(QUBIT_ID(i)*2) xor '0'; -- slv_qubits_sampled(0) = V; slv_qubits_sampled(0) = H
-                                    slv_o_sx_next(1) <= slv_qubits_sampled(QUBIT_ID(i)*2) and '0'; -- slv_qubits_sampled(0) = V; slv_qubits_sampled(0) = H
+                                    slv_o_sx_next(0) <= slv_qubits_sampled(QUBIT_ID(i)*2) xor '0'; -- slv_qubits_sampled(0) = V; slv_qubits_sampled(1) = H
+                                    slv_o_sx_next(1) <= slv_qubits_sampled(QUBIT_ID(i)*2) and '0'; -- slv_qubits_sampled(0) = V; slv_qubits_sampled(1) = H
                                 end if;
 
                                 -- Enable Qubit 1 state if not coincidence
@@ -820,8 +820,8 @@
                                     -- For EOM control & encryption
                                     -- b' + Sz(default; for now  Sz=0)
                                     if qubits_sampled_valid(QUBIT_ID(i)) = '1' then
-                                        slv_o_sx_next(0) <= slv_qubits_sampled(QUBIT_ID(i)*2) xor '0'; -- slv_qubits_sampled(0) = V; slv_qubits_sampled(0) = H
-                                        slv_o_sx_next(1) <= slv_qubits_sampled(QUBIT_ID(i)*2) and '0'; -- slv_qubits_sampled(0) = V; slv_qubits_sampled(0) = H
+                                        slv_o_sx_next(0) <= slv_qubits_sampled(QUBIT_ID(i)*2) xor '0'; -- slv_qubits_sampled(0) = V; slv_qubits_sampled(1) = H
+                                        slv_o_sx_next(1) <= slv_qubits_sampled(QUBIT_ID(i)*2) and '0'; -- slv_qubits_sampled(0) = V; slv_qubits_sampled(1) = H
                                     end if;
 
                                     -- Reset counters only if valid
@@ -909,8 +909,8 @@
                                 -- For EOM control & encryption
                                 -- b' + Sz(default; for now  Sz=0)
                                 if qubits_sampled_valid(QUBITS_CNT-1) = '1' then
-                                    slv_o_sx_next(0) <= slv_qubits_sampled((QUBITS_CNT-1)*2) xor '0'; -- slv_qubits_sampled(0) = V; slv_qubits_sampled(0) = H
-                                    slv_o_sx_next(1) <= slv_qubits_sampled((QUBITS_CNT-1)*2) and '0'; -- slv_qubits_sampled(0) = V; slv_qubits_sampled(0) = H
+                                    slv_o_sx_next(0) <= slv_qubits_sampled((QUBITS_CNT-1)*2) xor '0'; -- slv_qubits_sampled(0) = V; slv_qubits_sampled(1) = H
+                                    slv_o_sx_next(1) <= slv_qubits_sampled((QUBITS_CNT-1)*2) and '0'; -- slv_qubits_sampled(0) = V; slv_qubits_sampled(1) = H
                                 end if;
 
                                 -- If 'Horizontal' Coincidence is success on last qubit

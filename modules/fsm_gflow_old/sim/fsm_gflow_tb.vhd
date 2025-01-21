@@ -18,11 +18,8 @@
     architecture sim of fsm_gflow_tb is
 
         -- Generics
-                                  -- Qubit #:         1 2 3 4
-                                  -- Polarization:    HVHVHVHV
-        constant INT_FEEDFWD_PROGRAMMING : integer := 01000000;
-        -- constant INT_FEEDFWD_PROGRAMMING : integer := 01110101;
         constant RST_VAL                 : std_logic := '1';
+        constant CTRL_PULSE_DUR_WITH_DEADTIME_NS : natural := 150; -- Duration of the output PCD control pulse in ns (e.g. 100 ns high, 50 ns deadtime = 150 ns)
 
         constant SAMPL_CLK_HZ            : real := 250.0e6;
 
@@ -41,8 +38,7 @@
         constant PHOTON_5V_DELAY_NS      : real := -3181.05;
         constant PHOTON_6H_DELAY_NS      : real := -3177.95;
         constant PHOTON_6V_DELAY_NS      : real := -3181.05;
-        constant INT_NUMBER_OF_GFLOWS    : natural := 9;
-        constant GFLOW_NUMBER            : natural := 0;        -- 0 = real-time selection, 1 = Gflow number 1, 2 = Gflow number 2 ...
+        constant DISCARD_QUBITS_TIME_NS  : natural := 0;
         
 
         -- CLK of the FPGA
@@ -57,27 +53,23 @@
         -- Signals
         signal clk : std_logic := '0';
         signal rst : std_logic := '0';
-        signal enable : std_logic := '0';
-        signal i_random_string : std_logic_vector(QUBITS_CNT-1 downto 0) := (others => '0');
         signal qubits_sampled_valid : std_logic_vector(QUBITS_CNT-1 downto 0) := (others => '0');
         signal qubits_sampled : std_logic_vector((QUBITS_CNT*2)-1 downto 0) := (others => '0');
-        signal o_feedforward_pulse : std_logic_vector(0 downto 0) := (others => '0');
-        signal o_feedforward_pulse_trigger : std_logic_vector(0 downto 0) := (others => '0');
+        signal feedback_mod_valid : std_logic := '0';
+        signal feedback_mod : std_logic_vector(1 downto 0) := (others => '0');
         signal o_unsuccessful_qubits : std_logic_vector(QUBITS_CNT-1 downto 1) := (others => '0');
-        signal feedfwd_success_flag : std_logic := '0';
-        signal feedfwd_start : std_logic := '0';
+        signal gflow_success_flag : std_logic := '0';
+        signal gflow_success_done : std_logic := '0';
         signal qubit_buffer : t_qubit_buffer_2d := (others => (others => '0'));
         signal time_stamp_buffer : t_time_stamp_buffer_2d := (others => (others => '0'));
-        signal random_buffer : t_random_buffer_2d := (others => (others => '0'));
-        signal sx_buffer : std_logic_vector(QUBITS_CNT-1 downto 0) := (others => '0');
-        signal sz_buffer : std_logic_vector(QUBITS_CNT-1 downto 0) := (others => '0');
+        signal alpha_buffer : t_alpha_buffer_2d := (others => (others => '0'));
+        signal to_math_alpha : std_logic_vector(1 downto 0) := (others => '0');
+        signal to_math_sx_xz : std_logic_vector(1 downto 0) := (others => '0');
         signal actual_qubit_valid : std_logic := '0';
         signal actual_qubit : std_logic_vector(1 downto 0) := (others => '0');
         signal time_stamp_counter_overflow : std_logic := '0';
-        signal state_feedfwd : std_logic_vector(QUBITS_CNT-1 downto 0) := (others => '0');
+        signal state_gflow : natural range 0 to QUBITS_CNT-1;
         signal eom_ctrl_pulse_ready : std_logic := '1';
-        signal actual_gflow_buffer : std_logic_vector(
-                integer(ceil(log2(real(INT_NUMBER_OF_GFLOWS+1))))-1 downto 0) := (others => '0');
 
         -- Number od random inputs INST_B
         constant MAX_RANDOM_NUMBS : natural := 300;
@@ -132,10 +124,10 @@
         -- DUT instance
         dut_fsm_gflow : entity lib_src.fsm_gflow(rtl)
         generic map (
-            INT_FEEDFWD_PROGRAMMING => INT_FEEDFWD_PROGRAMMING,
             RST_VAL                 => RST_VAL,
             CLK_HZ                  => CLK_HZ,
             -- SAMPL_CLK_HZ            => SAMPL_CLK_HZ,
+            CTRL_PULSE_DUR_WITH_DEADTIME_NS => CTRL_PULSE_DUR_WITH_DEADTIME_NS,
             QUBITS_CNT              => QUBITS_CNT,
             PHOTON_1H_DELAY_NS      => PHOTON_1H_DELAY_NS,
             PHOTON_1V_DELAY_NS      => PHOTON_1V_DELAY_NS,
@@ -149,36 +141,31 @@
             PHOTON_5V_DELAY_NS      => PHOTON_5V_DELAY_NS,
             PHOTON_6H_DELAY_NS      => PHOTON_6H_DELAY_NS,
             PHOTON_6V_DELAY_NS      => PHOTON_6V_DELAY_NS,
-            INT_NUMBER_OF_GFLOWS    => INT_NUMBER_OF_GFLOWS,
-            GFLOW_NUMBER            => GFLOW_NUMBER
+            DISCARD_QUBITS_TIME_NS  => DISCARD_QUBITS_TIME_NS
         )
         port map (
             clk => clk,
             rst => rst,
-            enable => enable,
-
-            i_random_string => i_random_string,
 
             qubits_sampled_valid => qubits_sampled_valid,
             qubits_sampled => qubits_sampled,
 
-            o_feedforward_pulse => o_feedforward_pulse,
-            o_feedforward_pulse_trigger => o_feedforward_pulse_trigger,
+            feedback_mod_valid => feedback_mod_valid,
+            feedback_mod => feedback_mod,
 
             o_unsuccessful_qubits => o_unsuccessful_qubits,
 
-            feedfwd_success_flag => feedfwd_success_flag,
-            feedfwd_start => feedfwd_start,
+            gflow_success_flag => gflow_success_flag,
+            gflow_success_done => gflow_success_done,
             qubit_buffer => qubit_buffer,
             time_stamp_buffer => time_stamp_buffer,
-            random_buffer => random_buffer,
-            sx_buffer => sx_buffer,
-            sz_buffer => sz_buffer,
-            actual_gflow_buffer => actual_gflow_buffer,
+            alpha_buffer => alpha_buffer,
 
+            to_math_alpha => to_math_alpha,
+            to_math_sx_xz => to_math_sx_xz,
             actual_qubit_valid => actual_qubit_valid,
             actual_qubit => actual_qubit,
-            state_feedfwd => state_feedfwd,
+            state_gflow => state_gflow,
 
             time_stamp_counter_overflow => time_stamp_counter_overflow,
             eom_ctrl_pulse_ready => eom_ctrl_pulse_ready
@@ -233,17 +220,11 @@
             wait for RST_DURATION;
 
             -- Releasing reset
-            rst <= not(RST_VAL);
-
-            -- Wait to simulate enable feedforward
-            wait for RST_DURATION;
-
-            -- Enable feedforward
-            enable <= '1';
+            RST <= not(RST_VAL);
 
 
             -- TEST #1
-            report "TEST #1: Stay in State 1";
+            report "TEST #1: Stay at State 1";
             -- Keep the FSM in state 1
             qubits_sampled <= (others => '0');
             qubits_sampled_valid <= (others => '0');

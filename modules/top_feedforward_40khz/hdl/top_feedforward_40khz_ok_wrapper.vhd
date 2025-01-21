@@ -94,6 +94,9 @@
         -- Number of outgoing endpoints in your design (n*65-1 downto 0)
         signal okEHx : std_logic_vector(OUT_ENDPTS_TOTAL_CNT*65-1 downto 0);
 
+        -- Endpoint: TriggerIn
+        signal slv_tin_ep40 : std_logic_vector(32-1 downto 0) := (others => '0');
+
         -- Endpoint: WireIn
         signal slv_win_ep00               : std_logic_vector(31 downto 0) := (others => '0');
         signal slv_win_ep01_throttle_out  : std_logic_vector(31 downto 0) := (others => '0');
@@ -124,9 +127,9 @@
     begin
 
 
-        ---------------------------
-        -- OK FRONTPANEL Wire OR --
-        ---------------------------
+        -------------------
+        -- OK FRONTPANEL --
+        -------------------
         -- okHost interface needs to be connected to user endpoints
         -- - A Gateway for FrontPanel to interact with user design
         -- - Contains the logic that lets the USB microcontroller on the device communicate with 
@@ -143,6 +146,7 @@
             okHE=>okHE,     -- Input Control signals : to user target endpoints (host to endpoint)
             okEH=>okEH      -- Output Control flag   : from user target endpoints (endpoint to host)
         );
+
 
         ---------------------------
         -- OK FRONTPANEL Wire OR --
@@ -161,6 +165,20 @@
             okEH  => okEH,
             okEHx => okEHx
         );
+
+
+        ---------------------------
+        -- OK FRONTPANEL Trigger --
+        ---------------------------
+        -- Trigger In (to FPGA)
+        inst_trigger_in_addr40 : entity lib_src.okTriggerIn
+        port map (
+            okHE       => okHE,
+            ep_addr    => std_logic_vector(to_unsigned(16#40#, 8)), -- x"40",
+            ep_clk     => okClk,
+            ep_trigger => slv_tin_ep40
+        );
+
 
         -----------------------------------------
         -- OK FRONTPANEL Wire In/Out Endpoints --

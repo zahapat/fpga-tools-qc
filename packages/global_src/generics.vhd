@@ -28,7 +28,7 @@ package generics is
     constant INT_WHOLE_DIGITS_CNT_PHOTON_6H_DELAY : integer := 3;
     constant INT_ALL_DIGITS_PHOTON_6V_DELAY_NS : integer := -61811;
     constant INT_WHOLE_DIGITS_CNT_PHOTON_6V_DELAY : integer := 3;
-    constant INT_CTRL_PULSE_HIGH_DURATION_NS : integer := 30;
+    constant INT_CTRL_PULSE_HIGH_DURATION_NS : integer := 25;
     constant INT_CTRL_PULSE_DEAD_DURATION_NS : integer := 10;
     constant INT_CTRL_PULSE_EXTRA_DELAY_Q2_NS : integer := 40;
     constant INT_CTRL_PULSE_EXTRA_DELAY_Q3_NS : integer := 37;
@@ -36,6 +36,8 @@ package generics is
     constant INT_CTRL_PULSE_EXTRA_DELAY_Q5_NS : integer := 20;
     constant INT_CTRL_PULSE_EXTRA_DELAY_Q6_NS : integer := 20;
     constant INT_FEEDFWD_PROGRAMMING : integer := 01101011;
+    constant INT_NUMBER_OF_GFLOWS : integer := 9;
+    constant INT_GFLOW_NUMBER : integer := 9;
 
 end package generics;
 

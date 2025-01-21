@@ -22,17 +22,17 @@
     library OSVVM;
     use OSVVM.RandomPkg.all;
 
-    entity top_flowambiguity_tb is
-    end top_flowambiguity_tb;
+    entity top_gflow_tb is
+    end top_gflow_tb;
 
-    architecture sim of top_flowambiguity_tb is
+    architecture sim of top_gflow_tb is
 
         constant PROJ_DIR : string := PROJ_DIR;
 
         -- File I/O: Write to ONE file at a time
-        constant CSV1_PATH : string := PROJ_DIR & "modules/top_flowambiguity/sim/sim_reports/all_flows_details.csv";
-        constant CSV2_PATH : string := PROJ_DIR & "modules/top_flowambiguity/sim/sim_reports/all_coincidences.csv";
-        constant CSV3_PATH : string := PROJ_DIR & "modules/top_flowambiguity/sim/sim_reports/all_counters.csv";
+        constant CSV1_PATH : string := PROJ_DIR & "modules/top_gflow/sim/sim_reports/all_flows_details.csv";
+        constant CSV2_PATH : string := PROJ_DIR & "modules/top_gflow/sim/sim_reports/all_coincidences.csv";
+        constant CSV3_PATH : string := PROJ_DIR & "modules/top_gflow/sim/sim_reports/all_counters.csv";
         file actual_csv : text;
         signal files_recreated : bit := '0';
 
@@ -41,10 +41,7 @@
             SEND_PHOTON_EVERY_LASER_CLK,
             SEND_CLUSTER_THEN_WAIT
         );
-        constant WAIT_BEFORE_FIRST_PHOTON_NS : time := 500.0 ns;
-        constant OUTPUT_BOTH_CHANNELS : boolean := false;
-        -- constant TIME_BETWEEN_CLUSTERS_NS : time := 1000.0 ns;
-        constant TIME_BETWEEN_CLUSTERS_NS : time := 100.0 ns;
+        constant TIME_BETWEEN_CLUSTERS_NS : time := 1000.0 ns;
         signal ctrl_input_emulation_mode : t_input_emulation_mode := SEND_PHOTON_EVERY_LASER_CLK;
         signal ctrl_sim_start : std_logic := '0';
 
@@ -95,11 +92,7 @@
         -- PCD Control Pulse Design & Delay
         constant INT_CTRL_PULSE_HIGH_DURATION_NS : integer := INT_CTRL_PULSE_HIGH_DURATION_NS;
         constant INT_CTRL_PULSE_DEAD_DURATION_NS : integer := INT_CTRL_PULSE_DEAD_DURATION_NS;
-        constant INT_CTRL_PULSE_EXTRA_DELAY_Q2_NS   : integer := INT_CTRL_PULSE_EXTRA_DELAY_Q2_NS;
-        constant INT_CTRL_PULSE_EXTRA_DELAY_Q3_NS   : integer := INT_CTRL_PULSE_EXTRA_DELAY_Q3_NS;
-        constant INT_CTRL_PULSE_EXTRA_DELAY_Q4_NS   : integer := INT_CTRL_PULSE_EXTRA_DELAY_Q4_NS;
-        constant INT_CTRL_PULSE_EXTRA_DELAY_Q5_NS   : integer := INT_CTRL_PULSE_EXTRA_DELAY_Q5_NS;
-        constant INT_CTRL_PULSE_EXTRA_DELAY_Q6_NS   : integer := INT_CTRL_PULSE_EXTRA_DELAY_Q6_NS;
+        constant INT_CTRL_PULSE_EXTRA_DELAY_NS   : integer := INT_CTRL_PULSE_EXTRA_DELAY_NS;
 
         constant WRITE_ON_VALID     : boolean := true;
 
@@ -145,9 +138,9 @@
         signal s_io_delay_upper_bound_ns : t_time_arr_allphotons_2d;
         signal s_io_delay_lower_bound_ns : t_time_arr_allphotons_2d;
         signal s_io_delay_avg_ns : t_time_arr_allphotons_2d;
-        signal s_i_to_fsm_feedfwd_delay_lower_bound_ns : t_time_arr_allphotons_2d;
-        signal s_i_to_fsm_feedfwd_delay_upper_bound_ns : t_time_arr_allphotons_2d;
-        signal s_i_to_fsm_feedfwd_delay_avg_ns : t_time_arr_allphotons_2d;
+        signal s_i_to_fsm_gflow_delay_lower_bound_ns : t_time_arr_allphotons_2d;
+        signal s_i_to_fsm_gflow_delay_upper_bound_ns : t_time_arr_allphotons_2d;
+        signal s_i_to_fsm_gflow_delay_avg_ns : t_time_arr_allphotons_2d;
         signal int_successful_flows_counter : integer := 0;
         signal int_failed_flows_counter : integer := 0;
 
@@ -163,11 +156,7 @@
                                                       -- Zero will create a decimal number: 0.'INT_ALL_DIGITS' (to be converted to 0.4541710)
         ) return real is
         begin
-            if INT_ALL_DIGITS /= 0 then
-                return (real(INT_ALL_DIGITS) / (10.0**(floor(log10(abs(real(INT_ALL_DIGITS))))+1.0))) * (0.1**(-1.0*real(INT_WHOLE_DIGITS_COUNT)));
-            else
-                return 0.0;
-            end if;
+            return (real(INT_ALL_DIGITS) / (10.0**(floor(log10(abs(real(INT_ALL_DIGITS))))+1.0))) * (0.1**(-1.0*real(INT_WHOLE_DIGITS_COUNT)));
         end function;
 
         constant PHOTON_1H_DELAY_ABS_NS : real := abs(int_to_real(INT_ALL_DIGITS_PHOTON_1H_DELAY_NS, INT_WHOLE_DIGITS_CNT_PHOTON_1H_DELAY));
@@ -341,13 +330,13 @@
             writeline(output, str);
             for i in 0 to 2*INT_QUBITS_CNT-1 loop
                 -- Print Upper Bound IO Delay
-                write(str, string'("I-to-FSM Delay (Upper Bound)(channel " & to_string(i) & "): " & time'image(s_i_to_fsm_feedfwd_delay_upper_bound_ns(i))));
+                write(str, string'("I-to-FSM Delay (Upper Bound)(channel " & to_string(i) & "): " & time'image(s_i_to_fsm_gflow_delay_upper_bound_ns(i))));
                 writeline(output, str);
                 if i = 0 then
-                    v_time_upper_bound := s_i_to_fsm_feedfwd_delay_upper_bound_ns(i);
+                    v_time_upper_bound := s_i_to_fsm_gflow_delay_upper_bound_ns(i);
                 else
-                    if v_time_upper_bound < s_i_to_fsm_feedfwd_delay_upper_bound_ns(i) then
-                        v_time_upper_bound := s_i_to_fsm_feedfwd_delay_upper_bound_ns(i);
+                    if v_time_upper_bound < s_i_to_fsm_gflow_delay_upper_bound_ns(i) then
+                        v_time_upper_bound := s_i_to_fsm_gflow_delay_upper_bound_ns(i);
                     end if;
                 end if;
             end loop;
@@ -356,13 +345,13 @@
             writeline(output, str);
             for i in 0 to 2*INT_QUBITS_CNT-1 loop
                 -- Print Lower Bound IO Delay
-                write(str, string'("I-to-FSM Delay (Lower Bound)(channel " & to_string(i) & "): " & time'image(s_i_to_fsm_feedfwd_delay_lower_bound_ns(i))));
+                write(str, string'("I-to-FSM Delay (Lower Bound)(channel " & to_string(i) & "): " & time'image(s_i_to_fsm_gflow_delay_lower_bound_ns(i))));
                 writeline(output, str);
                 if i = 0 then
-                    v_time_lower_bound := s_i_to_fsm_feedfwd_delay_lower_bound_ns(i);
+                    v_time_lower_bound := s_i_to_fsm_gflow_delay_lower_bound_ns(i);
                 else
-                    if v_time_lower_bound > s_i_to_fsm_feedfwd_delay_lower_bound_ns(i) then
-                        v_time_lower_bound := s_i_to_fsm_feedfwd_delay_lower_bound_ns(i);
+                    if v_time_lower_bound > s_i_to_fsm_gflow_delay_lower_bound_ns(i) then
+                        v_time_lower_bound := s_i_to_fsm_gflow_delay_lower_bound_ns(i);
                     end if;
                 end if;
             end loop;
@@ -371,12 +360,12 @@
             writeline(output, str);
             for i in 0 to 2*INT_QUBITS_CNT-1 loop
                 -- Print Lower Bound IO Delay
-                write(str, string'("I-to-FSM Delay (Average)(channel " & to_string(i) & "): " & time'image(s_i_to_fsm_feedfwd_delay_avg_ns(i))));
+                write(str, string'("I-to-FSM Delay (Average)(channel " & to_string(i) & "): " & time'image(s_i_to_fsm_gflow_delay_avg_ns(i))));
                 writeline(output, str);
                 if i = 0 then
-                    v_time_average := s_i_to_fsm_feedfwd_delay_avg_ns(i);
+                    v_time_average := s_i_to_fsm_gflow_delay_avg_ns(i);
                 else
-                    v_time_average := v_time_average + s_i_to_fsm_feedfwd_delay_avg_ns(i);
+                    v_time_average := v_time_average + s_i_to_fsm_gflow_delay_avg_ns(i);
                 end if;
             end loop;
 
@@ -394,7 +383,7 @@
             for i in 0 to INT_QUBITS_CNT-1 loop
                 -- Print Upper Bound IO Delay
                 write(str, string'("I-to-FSM Delay Compensation (Upper Bound)(qubit " & to_string(i) 
-                    & "): " & time'image(abs(s_i_to_fsm_feedfwd_delay_upper_bound_ns(i*2) - s_i_to_fsm_feedfwd_delay_upper_bound_ns((i+1)*2-1)))));
+                    & "): " & time'image(abs(s_i_to_fsm_gflow_delay_upper_bound_ns(i*2) - s_i_to_fsm_gflow_delay_upper_bound_ns((i+1)*2-1)))));
                 writeline(output, str);
             end loop;
 
@@ -403,7 +392,7 @@
             for i in 0 to INT_QUBITS_CNT-1 loop
                 -- Print Upper Bound IO Delay
                 write(str, string'("I-to-FSM Delay Compensation (Lower Bound)(qubit " & to_string(i) 
-                    & "): " & time'image(abs(s_i_to_fsm_feedfwd_delay_lower_bound_ns(i*2) - s_i_to_fsm_feedfwd_delay_lower_bound_ns((i+1)*2-1)))));
+                    & "): " & time'image(abs(s_i_to_fsm_gflow_delay_lower_bound_ns(i*2) - s_i_to_fsm_gflow_delay_lower_bound_ns((i+1)*2-1)))));
                 writeline(output, str);
             end loop;
 
@@ -412,7 +401,7 @@
             for i in 0 to INT_QUBITS_CNT-1 loop
                 -- Print Upper Bound IO Delay
                 write(str, string'("I-to-FSM Delay Compensation (Average)(qubit " & to_string(i) 
-                    & "): " & time'image(abs(s_i_to_fsm_feedfwd_delay_avg_ns(i*2) - s_i_to_fsm_feedfwd_delay_avg_ns((i+1)*2-1)))));
+                    & "): " & time'image(abs(s_i_to_fsm_gflow_delay_avg_ns(i*2) - s_i_to_fsm_gflow_delay_avg_ns((i+1)*2-1)))));
                 writeline(output, str);
             end loop;
 
@@ -460,7 +449,7 @@
         ------------------
         -- DUT instance --
         ------------------
-        dut_top_flowambiguity : entity lib_src.top_flowambiguity(str)
+        dut_top_gflow : entity lib_src.top_gflow(str)
         generic map (
             RST_VAL            => RST_VAL,
             INT_QUBITS_CNT     => INT_QUBITS_CNT,
@@ -494,11 +483,7 @@
             -- PCD Control Pulse Design & Delay
             INT_CTRL_PULSE_HIGH_DURATION_NS => INT_CTRL_PULSE_HIGH_DURATION_NS,
             INT_CTRL_PULSE_DEAD_DURATION_NS => INT_CTRL_PULSE_DEAD_DURATION_NS,
-            INT_CTRL_PULSE_EXTRA_DELAY_Q2_NS => INT_CTRL_PULSE_EXTRA_DELAY_Q2_NS,
-            INT_CTRL_PULSE_EXTRA_DELAY_Q3_NS => INT_CTRL_PULSE_EXTRA_DELAY_Q3_NS,
-            INT_CTRL_PULSE_EXTRA_DELAY_Q4_NS => INT_CTRL_PULSE_EXTRA_DELAY_Q4_NS,
-            INT_CTRL_PULSE_EXTRA_DELAY_Q5_NS => INT_CTRL_PULSE_EXTRA_DELAY_Q5_NS,
-            INT_CTRL_PULSE_EXTRA_DELAY_Q6_NS => INT_CTRL_PULSE_EXTRA_DELAY_Q6_NS,
+            INT_CTRL_PULSE_EXTRA_DELAY_NS => INT_CTRL_PULSE_EXTRA_DELAY_NS,
 
             WRITE_ON_VALID => WRITE_ON_VALID
         )
@@ -533,7 +518,7 @@
         --------------
         -- Monitors --
         --------------
-        slv_cdcc_rd_qubits_to_fsm <= << signal.top_flowambiguity_tb.dut_top_flowambiguity.slv_cdcc_rd_qubits_to_fsm : std_logic_vector >>;
+        slv_cdcc_rd_qubits_to_fsm <= << signal.top_gflow_tb.dut_top_gflow.slv_cdcc_rd_qubits_to_fsm : std_logic_vector >>;
         gen_monitors_all_qubits : for q in 0 to INT_QUBITS_CNT-1 generate
             monitor_qubits_transmitted_counter : process
             begin
@@ -617,8 +602,8 @@
                 end loop;
             end process;
 
-            -- Check if the fsm_feedforward module captured the transmitted photons
-            monitors_delay_in_to_fsm_feedforward : process
+            -- Check if the fsm_gflow module captured the transmitted photons
+            monitors_delay_in_to_fsm_gflow : process
                 variable v_time_start_real : real := 0.0;
                 variable v_time_delta_real : real := 0.0;
                 variable v_time_delta_acc_real : real := 0.0;
@@ -663,9 +648,9 @@
                             end if;
                         end if;
 
-                        s_i_to_fsm_feedfwd_delay_upper_bound_ns(c) <= v_time_upper_bound;
-                        s_i_to_fsm_feedfwd_delay_lower_bound_ns(c) <= v_time_lower_bound;
-                        s_i_to_fsm_feedfwd_delay_avg_ns(c) <= v_time_avg;
+                        s_i_to_fsm_gflow_delay_upper_bound_ns(c) <= v_time_upper_bound;
+                        s_i_to_fsm_gflow_delay_lower_bound_ns(c) <= v_time_lower_bound;
+                        s_i_to_fsm_gflow_delay_avg_ns(c) <= v_time_avg;
                     end if;
                  end loop;
             end process;
@@ -673,66 +658,16 @@
         end generate;
 
         monitor_successful_and_failed_flows_counter : process
-            variable v_prev_state : natural range 0 to 2**INT_QUBITS_CNT-1 := 0;
-            variable v_curr_state : natural range 0 to 2**INT_QUBITS_CNT-1 := 0;
+            variable v_prev_state : natural range 0 to INT_QUBITS_CNT-1 := 0;
+            variable v_curr_state : natural range 0 to INT_QUBITS_CNT-1 := 0;
             variable v_success_flag : std_logic := '0';
-
-            variable v_slv_prev_state : std_logic_vector(INT_QUBITS_CNT-1 downto 0) := std_logic_vector(to_unsigned(1, INT_QUBITS_CNT));
-            variable v_slv_curr_state : std_logic_vector(INT_QUBITS_CNT-1 downto 0) := std_logic_vector(to_unsigned(1, INT_QUBITS_CNT));
-            variable v_xs : std_logic_vector(INT_QUBITS_CNT-1 downto 0) := (others => 'X');
-            variable v_us : std_logic_vector(INT_QUBITS_CNT-1 downto 0) := (others => 'U');
         begin
             loop
-                -- OLD
-                -- v_prev_state := << signal.top_flowambiguity_tb.dut_top_flowambiguity.state_feedfwd : natural range 0 to INT_QUBITS_CNT-1 >>;
+                v_prev_state := << signal.top_gflow_tb.dut_top_gflow.state_gflow : natural range 0 to INT_QUBITS_CNT-1 >>;
 
-                -- wait until rising_edge(o_eom_ctrl_pulsegen_busy);
-                -- v_curr_state := << signal.top_flowambiguity_tb.dut_top_flowambiguity.state_feedfwd : natural range 0 to INT_QUBITS_CNT-1 >>;
-                -- v_success_flag := << signal.top_flowambiguity_tb.dut_top_flowambiguity.sl_feedfwd_success_flag : std_logic >>;
-
-                -- if v_prev_state > 0 and v_curr_state = 0 and v_success_flag = '0' then
-                --     int_failed_flows_counter <= int_failed_flows_counter + 1;
-                -- end if;
-
-                -- if v_prev_state = INT_QUBITS_CNT-1 and v_curr_state = 0 and v_success_flag = '1' then
-                --     int_successful_flows_counter <= int_successful_flows_counter + 1;
-                -- end if;
-
-                -- NEW
-                v_slv_prev_state := << signal.top_flowambiguity_tb.dut_top_flowambiguity.state_feedfwd : std_logic_vector(INT_QUBITS_CNT-1 downto 0) >>;
-                -- Prevent reading metavalues
-                if v_slv_prev_state = v_xs or v_slv_prev_state = v_us then
-                    for i in 0 to 100 loop
-                        v_slv_prev_state := << signal.top_flowambiguity_tb.dut_top_flowambiguity.state_feedfwd : std_logic_vector(INT_QUBITS_CNT-1 downto 0) >>;
-                        wait for 0 ns;
-                    end loop;
-                end if;
-                v_prev_state := to_integer(unsigned(v_slv_prev_state));
-                if (v_prev_state > 0) then
-                    v_prev_state := integer(ceil(log2(real(v_prev_state))));
-                end if;
-
-
-                -- !!!!!!
-                -- At this time, the fsm feedforward state should be updated
-                -- wait until rising_edge(o_eom_ctrl_pulsegen_busy);
-                wait until falling_edge(<< signal.top_flowambiguity_tb.dut_top_flowambiguity.inst_fsm_flowambiguity.actual_qubit_valid : std_logic >>); -- NEW
-                -- !!!!!!
-
-                v_slv_curr_state := << signal.top_flowambiguity_tb.dut_top_flowambiguity.state_feedfwd : std_logic_vector(INT_QUBITS_CNT-1 downto 0) >>;
-                -- Prevent reading metavalues
-                if v_slv_curr_state = v_xs or v_slv_curr_state = v_us then
-                    for i in 0 to 100 loop
-                        wait for 0 ns;
-                        v_slv_prev_state := << signal.top_flowambiguity_tb.dut_top_flowambiguity.state_feedfwd : std_logic_vector(INT_QUBITS_CNT-1 downto 0) >>;
-                    end loop;
-                end if;
-                v_curr_state := to_integer(unsigned(v_slv_curr_state));
-                if (v_curr_state > 0) then
-                    v_curr_state := integer(ceil(log2(real(v_curr_state))));
-                end if;
-
-                v_success_flag := << signal.top_flowambiguity_tb.dut_top_flowambiguity.sl_feedfwd_success_flag : std_logic >>;
+                wait until rising_edge(o_eom_ctrl_pulsegen_busy);
+                v_curr_state := << signal.top_gflow_tb.dut_top_gflow.state_gflow : natural range 0 to INT_QUBITS_CNT-1 >>;
+                v_success_flag := << signal.top_gflow_tb.dut_top_gflow.sl_gflow_success_flag : std_logic >>;
 
                 if v_prev_state > 0 and v_curr_state = 0 and v_success_flag = '0' then
                     int_failed_flows_counter <= int_failed_flows_counter + 1;
@@ -751,6 +686,7 @@
         begin
             -- Wait until the readout line is complete for a completed flow
             wait until readout_csv1_line_done_event'event;
+            report "DEBUG: readout_csv1_line_done_event'event";
 
             wait_deltas(10);
 
@@ -792,11 +728,8 @@
                     wait_deltas(1);
                     s_photon_trans_event(0) <= not s_photon_trans_event(0);
                     wait_deltas(1);
-                    if OUTPUT_BOTH_CHANNELS = true then
-                        input_pads(0) <= '1';
-                    else
-                        input_pads(0) <= s_qubits(0);
-                    end if;
+
+                    input_pads(0) <= s_qubits(0);
                     wait_deltas(1);
                     wait for REALISTIC_DETECTOR_HIGH_TIME_NS;
 
@@ -812,7 +745,7 @@
                         end if;
                         wait for TIME_BETWEEN_CLUSTERS_NS;
                     end if;
-
+                    
                 end loop;
             else
                 -- If photon V is slower (has smaller delay) ensure 01/10 configuration
@@ -823,11 +756,7 @@
                     wait_deltas(1);
                     s_qubits(0) <= not(s_photon_value_latched(1));
                     wait_deltas(1);
-                    if OUTPUT_BOTH_CHANNELS = true then
-                        input_pads(0) <= '1';
-                    else
-                        input_pads(0) <= s_qubits(0);
-                    end if;
+                    input_pads(0) <= s_qubits(0);
                     wait_deltas(1);
                     wait for REALISTIC_DETECTOR_HIGH_TIME_NS;
 
@@ -867,11 +796,8 @@
                     wait_deltas(1);
                     s_photon_trans_event(1) <= not s_photon_trans_event(1);
                     wait_deltas(1);
-                    if OUTPUT_BOTH_CHANNELS = true then
-                        input_pads(1) <= '1';
-                    else
-                        input_pads(1) <= s_qubits(1);
-                    end if;
+
+                    input_pads(1) <= s_qubits(1);
                     wait_deltas(1);
                     wait for REALISTIC_DETECTOR_HIGH_TIME_NS;
 
@@ -898,11 +824,7 @@
                     wait_deltas(1);
                     s_qubits(1) <= not(s_photon_value_latched(0));
                     wait_deltas(1);
-                    if OUTPUT_BOTH_CHANNELS = true then
-                        input_pads(1) <= '1';
-                    else
-                        input_pads(1) <= s_qubits(1);
-                    end if;
+                    input_pads(1) <= s_qubits(1);
                     wait_deltas(1);
                     wait for REALISTIC_DETECTOR_HIGH_TIME_NS;
 
@@ -950,11 +872,8 @@
                         wait_deltas(1);
                         s_photon_trans_event(p*2) <= not s_photon_trans_event(p*2);
                         wait_deltas(1);
-                        if OUTPUT_BOTH_CHANNELS = true then
-                            input_pads(p*2) <= '1';
-                        else
-                            input_pads(p*2) <= s_qubits(p*2);
-                        end if;
+
+                        input_pads(p*2) <= s_qubits(p*2);
                         wait_deltas(1);
                         wait for REALISTIC_DETECTOR_HIGH_TIME_NS;
 
@@ -986,11 +905,7 @@
                         wait_deltas(1);
                         s_qubits(p*2) <= not(s_photon_value_latched((p+1)*2-1));
                         wait_deltas(1);
-                        if OUTPUT_BOTH_CHANNELS = true then
-                            input_pads(p*2) <= '1';
-                        else
-                            input_pads(p*2) <= s_qubits(p*2);
-                        end if;
+                        input_pads(p*2) <= s_qubits(p*2);
                         wait_deltas(1);
                         wait for REALISTIC_DETECTOR_HIGH_TIME_NS;
 
@@ -1034,11 +949,8 @@
                         wait_deltas(1);
                         s_photon_trans_event((p+1)*2-1) <= not s_photon_trans_event((p+1)*2-1);
                         wait_deltas(1);
-                        if OUTPUT_BOTH_CHANNELS = true then
-                            input_pads((p+1)*2-1) <= '1';
-                        else
-                            input_pads((p+1)*2-1) <= s_qubits((p+1)*2-1);
-                        end if;
+
+                        input_pads((p+1)*2-1) <= s_qubits((p+1)*2-1);
                         wait_deltas(1);
                         wait for REALISTIC_DETECTOR_HIGH_TIME_NS;
 
@@ -1071,11 +983,7 @@
                         wait_deltas(1);
                         s_qubits((p+1)*2-1) <= not(s_photon_value_latched(p*2));
                         wait_deltas(1);
-                        if OUTPUT_BOTH_CHANNELS = true then
-                            input_pads((p+1)*2-1) <= '1';
-                        else
-                            input_pads((p+1)*2-1) <= s_qubits((p+1)*2-1);
-                        end if;
+                        input_pads((p+1)*2-1) <= s_qubits((p+1)*2-1);
                         wait_deltas(1);
                         wait for REALISTIC_DETECTOR_HIGH_TIME_NS;
 
@@ -1112,10 +1020,10 @@
             write(v_line_buffer, string'("PHOTON_6V_DELAY_ABS_NS=" & real'image(PHOTON_6V_DELAY_ABS_NS))); writeline(output, v_line_buffer);
 
             -- Wait until MMCM0 is locked, then trigger input emulation
-            wait until rising_edge(<< signal.top_flowambiguity_tb.dut_top_flowambiguity.mmcm_locked : std_logic >>);
+            wait until rising_edge(<< signal.top_gflow_tb.dut_top_gflow.mmcm_locked : std_logic >>);
             wait for 500 ns;
 
-            
+
             wait for WAIT_BEFORE_FIRST_PHOTON_NS; -- NEW
             ctrl_input_emulation_mode <= SEND_CLUSTER_THEN_WAIT;
             ctrl_sim_start <= '1';
@@ -1208,8 +1116,6 @@
 
             write(v_line_buffer, string'(","));
             write(v_line_buffer, string'("@time"));
-            write(v_line_buffer, string'(","));
-            write(v_line_buffer, string'("time_ovflw"));
             writeline(actual_csv, v_line_buffer);
             file_close(actual_csv);
 
@@ -1222,9 +1128,6 @@
 
             write(v_line_buffer, string'(","));
             write(v_line_buffer, string'("@time"));
-
-            write(v_line_buffer, string'(","));
-            write(v_line_buffer, string'("time_ovflw"));
             writeline(actual_csv, v_line_buffer);
             file_close(actual_csv);
 
@@ -1242,8 +1145,6 @@
 
             write(v_line_buffer, string'(","));
             write(v_line_buffer, string'("@time"));
-            write(v_line_buffer, string'(","));
-            write(v_line_buffer, string'("time_ovflw"));
             writeline(actual_csv, v_line_buffer);
             file_close(actual_csv);
 
@@ -1369,10 +1270,8 @@
                         readout_photon_losses(v_cntr_csv3_column) <= readout_data_32b(16-1+4 downto 4);
                         v_cntr_csv3_column := v_cntr_csv3_column + 1;
 
-                    elsif readout_data_32b(4-1 downto 0) = x"9" then -- FPGA Time
-                        write(v_line_buffer, string'(",") );
-                        write(v_line_buffer, string'(
-                            to_string(to_integer(unsigned(readout_data_32b(32-1 downto 4))) ) ));
+                    elsif readout_data_32b(4-1 downto 0) = x"9" then -- Regular reporting
+                        null;
                     elsif readout_data_32b(4-1 downto 0) = x"A" then -- Regular reporting
                         null;
                     elsif readout_data_32b(4-1 downto 0) = x"B" then -- Regular reporting
@@ -1396,6 +1295,47 @@
         --------------
         -- CHECKERS --
         --------------
-        -- #TODO
+        proc_checker_fsm_gflow : process
+            variable rand_q : t_INT_QUBITS_CNT_x_int_2d;
+            variable mod_q : t_INT_QUBITS_CNT_x_int_2d;
+            variable sx_sz_q : t_INT_QUBITS_CNT_x_2b_2d;
+            variable expected_mod_q : t_INT_QUBITS_CNT_x_int_2d;
+            constant PI : natural := 2;
+        begin
+            -- Wait until readout transaction is completely reconstructed
+            wait until readout_csv1_line_done_event'event;
+
+            -- Update deltas to make sure data vectors contain the most recent value
+            wait_deltas(10);
+
+            -- Check only qubit 1
+            rand_q(0) := to_integer(unsigned(readout_random(0)));
+            mod_q(0) := to_integer(unsigned(readout_modulo(0)));
+
+            sx_sz_q(0) := (others => '0'); -- Initial Feedback = 0
+            expected_mod_q(0) := (((-1)**to_integer(unsigned(sx_sz_q(0)(0 downto 0))) * 0)
+                        + (to_integer(unsigned(sx_sz_q(0)(1 downto 1))) + rand_q(0))*PI) mod 4;
+            assert mod_q(0) = expected_mod_q(0)
+                report "Error: Qubit 1: Actual result is : " & integer'image(mod_q(0))
+                        & " . Expected result is : " & integer'image(expected_mod_q(0))
+                severity failure;
+
+            -- Loop over all qubits
+            if INT_QUBITS_CNT > 1 then
+                for i in 1 to INT_QUBITS_CNT-1 loop
+                    rand_q(i) := to_integer(unsigned(readout_random(i)));
+                    mod_q(i) := to_integer(unsigned(readout_modulo(i)));
+
+                    sx_sz_q(i) := std_logic_vector(to_unsigned(mod_q(i-1), 2)); -- Feedback is last modulo
+                    expected_mod_q(i) := (((-1)**to_integer(unsigned(sx_sz_q(i)(0 downto 0))) * (i mod 4))
+                                + (to_integer(unsigned(sx_sz_q(i)(1 downto 1))) + rand_q(i))*PI) mod 4; -- Always mod 4
+                    assert mod_q(i) = expected_mod_q(i)
+                        report "Error: Qubit " & integer'image(i+1) & ": Actual result is : " & integer'image(mod_q(i))
+                                & " . Expected result is : " & integer'image(expected_mod_q(i))
+                        severity failure;
+                end loop;
+            end if;
+
+        end process;
 
     end architecture;

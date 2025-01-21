@@ -166,7 +166,7 @@
                 if rising_edge(clk_read) then
 
                     -- Default
-                    slv_data_synchronized_p1 <= slv_data_synchronized;
+                    -- slv_data_synchronized_p1 <= slv_data_synchronized;
                     sl_wr_en_event_synchronized_p1 <= sl_wr_en_event_synchronized;
 
                     -- Data always propagate further

@@ -12,6 +12,7 @@
     entity csv_readout is
         generic (
             INT_QUBITS_CNT : positive := 4;
+            INT_NUMBER_OF_GFLOWS : natural := 9;
             CLK_HZ : real := 100.0e6;
             REGULAR_SAMPLER_SECONDS : real := 1.0e-6;
             REGULAR_SAMPLER_SECONDS_2 : real := 2.0e-6
@@ -32,6 +33,8 @@
             wr_data_alpha_buffer : in t_alpha_buffer_2d;
             wr_data_modulo_buffer : in t_modulo_buffer_2d;
             wr_data_random_buffer : in t_random_buffer_2d;
+            wr_data_actual_gflow_buffer : in std_logic_vector(
+                integer(ceil(log2(real(INT_NUMBER_OF_GFLOWS+1))))-1 downto 0);
 
             -- Read endpoint signals: slower CLK, faster rate
             readout_clk : in std_logic;
@@ -138,15 +141,14 @@
         signal slv_higher_bits_qubit_buffer : std_logic_vector(INT_QUBITS_CNT-1 downto 0) := (others => '0');
 
         -- All channels detections accumulator
-        -- constant ALL_CH_DETECTIONS_ACC_WIDTH : positive := 16; -- 65536 counts max
-        constant ALL_CH_DETECTIONS_ACC_WIDTH : positive := 28; -- 65536 counts max
+        constant ALL_CH_DETECTIONS_ACC_WIDTH : positive := 32-4;
         type t_all_channels_detections_2d is array(INT_QUBITS_CNT*2-1 downto 0) of std_logic_vector(ALL_CH_DETECTIONS_ACC_WIDTH-1 downto 0);
         signal slv_all_channels_detections_2d : t_all_channels_detections_2d := (others => (others => '0'));
         signal sl_overflow_counter : std_logic := '0';
         signal slv_last_bit_p1 : std_logic_vector(INT_QUBITS_CNT*2-1 downto 0) := (others => '0');
 
         -- Photon Miss / Photon Loss accumulator
-        constant ALL_PHOTON_LOSSES_ACC_WIDTH : positive := 16; -- 65536 counts max
+        constant ALL_PHOTON_LOSSES_ACC_WIDTH : positive := 32-4; -- 65536 counts max
         type t_all_unsuccessful_coincidences_2d is array(INT_QUBITS_CNT-2 downto 0) of std_logic_vector(ALL_PHOTON_LOSSES_ACC_WIDTH-1 downto 0);
         signal slv_all_unsuccessful_coincidences_2d : t_all_unsuccessful_coincidences_2d := (others => (others => '0'));
 
@@ -162,6 +164,7 @@
         signal slv_flow_modulo_buffer_sampled : std_logic_vector(2*INT_QUBITS_CNT-1 downto 0) := (others => '0');
         signal slv_flow_random_buffer_sampled : std_logic_vector(1*INT_QUBITS_CNT-1 downto 0) := (others => '0');
         signal slv_flow_timestamp_buffer_sampled : std_logic_vector(INT_DATA_SPACE_IN_CHANNEL*(INT_QUBITS_CNT+1)-1 downto 0) := (others => '0');
+        -- signal slv_flow_actual_gflow_buffer_sampled : std_logic_vector(2*INT_QUBITS_CNT-1 downto 0) := (others => '0');
 
         -- Shifters for data outflow
         signal slv_combinations_counters_shreg : std_logic_vector(COINCIDENCE_PATTERN_ACC_WIDTH*(INT_QUBITS_CNT**2)-1 downto 0) := (others => '0');
@@ -172,6 +175,7 @@
         signal slv_flow_modulo_buffer_shreg : std_logic_vector(slv_flow_modulo_buffer_sampled'range) := (others => '0');
         signal slv_flow_random_buffer_shreg : std_logic_vector(slv_flow_random_buffer_sampled'range) := (others => '0');
         signal slv_flow_timestamp_buffer_shreg : std_logic_vector(slv_flow_timestamp_buffer_sampled'range) := (others => '0');
+        signal slv_flow_actual_gflow_buffer_shreg : std_logic_vector(28-1 downto 0) := (others => '0');
 
         signal sl_readout_request_feedfwd : std_logic := '0'; -- '1' value will be latched
 
@@ -191,6 +195,7 @@
             SEND_CH_DETECTIONS,
             SEND_PHOTON_LOSSES,
             SEND_GFLOW_PHOTONS,
+            SEND_GFLOW_NUMBER,
             SEND_GFLOW_ALPHA,
             SEND_GFLOW_MODULO,
             SEND_GFLOW_RANDOM,
@@ -217,14 +222,14 @@
         -- x"0" = Do not use
         -- x"1" = SEND_GFLOW_PHOTONS    (multi-transactional readout start on event)
         -- x"2" = SEND_GFLOW_ALPHA      (continues the x"1")
-        -- x"3" = SEND_GFLOW_MODULO     (continues the x"2")
-        -- x"4" = SEND_GFLOW_RANDOM     (continues the x"3")
-        -- x"5" = SEND_FEEDFWD_TIMESTAMP (continues the x"4")
-        -- x"6" = SEND_COINCIDENCES     (periodical readout)
-        -- x"7" = SEND_CH_DETECTIONS    (periodical readout)
-        -- x"8" = SEND_PHOTON_LOSSES    (periodical readout)
-        -- x"9" = FPGA time (match with active output file)
-        -- x"A" = available
+        -- x"3" = SEND_GFLOW_ALPHA      (continues the x"2")
+        -- x"4" = SEND_GFLOW_MODULO     (continues the x"3")
+        -- x"5" = SEND_GFLOW_RANDOM     (continues the x"4")
+        -- x"6" = SEND_FEEDFWD_TIMESTAMP (continues the x"5")
+        -- x"7" = SEND_COINCIDENCES     (periodical readout)
+        -- x"8" = SEND_CH_DETECTIONS    (periodical readout)
+        -- x"9" = SEND_PHOTON_LOSSES    (periodical readout)
+        -- x"A" = FPGA time (match with active output file)
         -- x"B" = available
         -- x"C" = available
         -- x"D" = available
@@ -352,7 +357,11 @@
             proc_photon_loss_accumulator : process (wr_sys_clk)
             begin
                 if rising_edge(wr_sys_clk) then
-                    if wr_photon_losses(i) = '1' then
+                    -- Report losses only per certain period of time
+                    if sl_periodic_report_sample_request_2(i) = '1' then
+                        slv_all_unsuccessful_coincidences_2d(i) <= (others => '0');
+                        slv_all_unsuccessful_coincidences_2d(i)(0) <= wr_photon_losses(i);
+                    elsif wr_photon_losses(i) = '1' then
                         slv_all_unsuccessful_coincidences_2d(i) <= std_logic_vector(unsigned(slv_all_unsuccessful_coincidences_2d(i)) + "1");
                     end if;
                 end if;
@@ -380,6 +389,22 @@
                     slv_flow_photons_buffer_shreg <= 
                         slv_shift_right(slv_flow_photons_buffer_shreg, 2);
                 end if;
+            end if;
+        end process;
+
+        proc_sample_actual_gflow_buffer : process(wr_sys_clk)
+        begin
+            if rising_edge(wr_sys_clk) then
+
+                -- Sample on sample request
+                if wr_valid_feedfwd_success_done = '1' then -- Sample request signal
+                    slv_flow_actual_gflow_buffer_shreg(wr_data_actual_gflow_buffer'range)
+                        <= wr_data_actual_gflow_buffer;
+                end if;
+
+                -- Shift right by a certain number of bits on enable
+                -- Nothing to shift here, data is not split into qubit cnt
+                
             end if;
         end process;
 
@@ -640,7 +665,7 @@
                             -- Send enter
                             sl_wr_en_flag_pulsed <= '1'; -- Writing to FIFO shut down
                             slv_wr_data_stream_32b(31 downto 4) <= slv_time_periodic_sample_request(ACTUAL_TIME_COUNTER_WIDTH-1 downto 0); -- Send TIME information about when data were sampled along with x"9" & x"F" (end of frame)
-                            slv_wr_data_stream_32b(3 downto 0) <= x"9";
+                            slv_wr_data_stream_32b(3 downto 0) <= x"A";
 
                             sl_readout_request_periodic <= '0';      -- Job Done
 
@@ -654,7 +679,7 @@
                                 <= std_logic_vector(to_unsigned(0, INT_DATA_SPACE_IN_CHANNEL-COINCIDENCE_PATTERN_ACC_WIDTH)) 
                                     & slv_combinations_counters_shreg(COINCIDENCE_PATTERN_ACC_WIDTH-1 downto 0);
 
-                            slv_wr_data_stream_32b(3 downto 0) <= x"6"; -- Encoded command for the RX counterpart
+                            slv_wr_data_stream_32b(3 downto 0) <= x"7"; -- Encoded command for the RX counterpart
 
                             sl_request_read_coincidences_shift_enable <= '1'; -- Keep Pipe On
 
@@ -683,7 +708,7 @@
                                 <= std_logic_vector(to_unsigned(0, INT_DATA_SPACE_IN_CHANNEL-ALL_CH_DETECTIONS_ACC_WIDTH)) 
                                     & slv_ch_detections_shreg(ALL_CH_DETECTIONS_ACC_WIDTH-1 downto 0);
 
-                            slv_wr_data_stream_32b(3 downto 0) <= x"7"; -- Encoded command for the RX counterpart
+                            slv_wr_data_stream_32b(3 downto 0) <= x"8"; -- Encoded command for the RX counterpart
 
                             sl_request_read_ch_detections_shift_enable <= '1'; -- Keep Pipe On
 
@@ -697,8 +722,8 @@
 
                             -- Send enter
                             sl_wr_en_flag_pulsed <= '1'; -- Writing to FIFO shut down
-                            slv_wr_data_stream_32b(31 downto 4) <= slv_time_periodic_sample_request_2(ACTUAL_TIME_COUNTER_WIDTH-1 downto 0); -- Send TIME information about when data were sampled along with x"9" & x"F" (end of frame)
-                            slv_wr_data_stream_32b(3 downto 0) <= x"9";
+                            slv_wr_data_stream_32b(31 downto 4) <= slv_time_periodic_sample_request_2(ACTUAL_TIME_COUNTER_WIDTH-1 downto 0); -- Send TIME information about when data were sampled along with x"A" & x"F" (end of frame)
+                            slv_wr_data_stream_32b(3 downto 0) <= x"A";
 
                             sl_readout_request_periodic_2 <= '0';      -- Job Done
 
@@ -712,7 +737,7 @@
                                 <= std_logic_vector(to_unsigned(0, INT_DATA_SPACE_IN_CHANNEL-ALL_PHOTON_LOSSES_ACC_WIDTH)) 
                                     & slv_photon_losses_shreg(ALL_PHOTON_LOSSES_ACC_WIDTH-1 downto 0);
 
-                            slv_wr_data_stream_32b(3 downto 0) <= x"8"; -- Encoded command for the RX counterpart
+                            slv_wr_data_stream_32b(3 downto 0) <= x"9"; -- Encoded command for the RX counterpart
 
                             sl_request_read_photon_losses_shift_enable <= '1'; -- Keep Pipe On
 
@@ -723,6 +748,7 @@
                     when SEND_GFLOW_PHOTONS => 
 
                         -- Send periodic report in a way it has a higher priority over the 'sl_readout_request_feedfwd' but does not interfere with it
+                        -- Multiple 32b transactions
                         if int_readout_counter = INT_QUBITS_CNT then
                             int_readout_counter <= 0;
 
@@ -731,10 +757,11 @@
                             slv_wr_data_stream_32b(31 downto 4) <= (others => '0');
                             slv_wr_data_stream_32b(3 downto 0) <= x"E";
 
-                            state_fifo_readout <= SEND_GFLOW_ALPHA; -- Coordinate the readout logic
-                            sl_request_read_alpha_shift_enable <= '1'; -- Pipe On (will be done after 2 clk cycles)
+                            state_fifo_readout <= SEND_GFLOW_NUMBER; -- Coordinate the readout logic
+                            -- sl_request_read_actual_gflow_shift_enable <= '1'; -- No need to pre-enable Pipe On as the next transaction does not include shifters
 
                         else
+                            -- Multiple 32b transactions
                             int_readout_counter <= int_readout_counter + 1;
                             sl_wr_en_flag_pulsed <= '1';
 
@@ -748,10 +775,38 @@
 
                         end if;
 
+                    
+                    when SEND_GFLOW_NUMBER =>
+
+                        -- Send periodic report in a way it has a higher priority over the 'sl_readout_request_feedfwd' but does not interfere with it
+                        -- Single 32b transaction
+                        if int_readout_counter = 1 then
+                            int_readout_counter <= 0;
+
+                            -- Send extra comma delimiter
+                            sl_wr_en_flag_pulsed <= '1';
+                            slv_wr_data_stream_32b(31 downto 4) <= (others => '0');
+                            slv_wr_data_stream_32b(3 downto 0) <= x"E";
+
+                            state_fifo_readout <= SEND_GFLOW_ALPHA; -- Coordinate the readout logic
+                            sl_request_read_alpha_shift_enable <= '1'; -- Pipe On (will be done after 2 clk cycles)
+
+                        else
+                            -- Single 32b transaction
+                            int_readout_counter <= int_readout_counter + 1;
+                            sl_wr_en_flag_pulsed <= '1';
+                            
+                            sl_wr_en_flag_pulsed <= '1';
+                            slv_wr_data_stream_32b(31 downto 4) <= slv_flow_actual_gflow_buffer_shreg;
+                            slv_wr_data_stream_32b(3 downto 0) <= x"2";
+
+                        end if;
+
 
                     when SEND_GFLOW_ALPHA =>
 
                         -- Send periodic report in a way it has a higher priority over the 'sl_readout_request_feedfwd' but does not interfere with it
+                        -- Multiple 32b transactions
                         if int_readout_counter = INT_QUBITS_CNT then
                             int_readout_counter <= 0;
 
@@ -763,6 +818,7 @@
                             state_fifo_readout <= SEND_GFLOW_MODULO; -- Coordinate the readout logic
                             sl_request_read_modulo_shift_enable <= '1'; -- Pipe On (will be done after 2 clk cycles)
                         else
+                            -- Multiple 32b transactions
                             int_readout_counter <= int_readout_counter + 1;
                             sl_wr_en_flag_pulsed <= '1';
 
@@ -770,7 +826,7 @@
                                 <= std_logic_vector(to_unsigned(0, INT_DATA_SPACE_IN_CHANNEL-2))
                                     & slv_flow_alpha_buffer_shreg(2-1 downto 0);
 
-                            slv_wr_data_stream_32b(3 downto 0) <= x"2"; -- Encoded command for the RX readout counterpart
+                            slv_wr_data_stream_32b(3 downto 0) <= x"3"; -- Encoded command for the RX readout counterpart
 
                             sl_request_read_alpha_shift_enable <= '1'; -- Keep Pipe On
 
@@ -779,6 +835,7 @@
                     when SEND_GFLOW_MODULO =>
 
                         -- Send periodic report in a way it has a higher priority over the 'sl_readout_request_feedfwd' but does not interfere with it
+                        -- Multiple 32b transactions
                         if int_readout_counter = INT_QUBITS_CNT then
                             int_readout_counter <= 0;
 
@@ -791,6 +848,7 @@
                             sl_request_read_random_shift_enable <= '1'; -- Pipe On (will be done after 2 clk cycles)
 
                         else
+                            -- Multiple 32b transactions
                             int_readout_counter <= int_readout_counter + 1;
                             sl_wr_en_flag_pulsed <= '1';
 
@@ -798,7 +856,7 @@
                                 <= std_logic_vector(to_unsigned(0, INT_DATA_SPACE_IN_CHANNEL-2))
                                     & slv_flow_modulo_buffer_shreg(2-1 downto 0);
 
-                            slv_wr_data_stream_32b(3 downto 0) <= x"3"; -- Encoded command for the RX readout counterpart
+                            slv_wr_data_stream_32b(3 downto 0) <= x"4"; -- Encoded command for the RX readout counterpart
 
                             sl_request_read_modulo_shift_enable <= '1'; -- Pipe On
 
@@ -807,6 +865,7 @@
                     when SEND_GFLOW_RANDOM =>
 
                         -- Send periodic report in a way it has a higher priority over the 'sl_readout_request_feedfwd' but does not interfere with it
+                        -- Multiple 32b transactions
                         if int_readout_counter = INT_QUBITS_CNT then
                             int_readout_counter <= 0;
 
@@ -819,6 +878,7 @@
                             sl_request_read_timestamp_shift_enable <= '1'; -- Pipe On (will be done after 2 clk cycles)
 
                         else
+                            -- Multiple 32b transactions
                             int_readout_counter <= int_readout_counter + 1;
 
                             -- Send data
@@ -827,7 +887,7 @@
                                 <= std_logic_vector(to_unsigned(0, INT_DATA_SPACE_IN_CHANNEL-1))
                                     & slv_flow_random_buffer_shreg(1-1 downto 0);
 
-                            slv_wr_data_stream_32b(3 downto 0) <= x"4"; -- Encoded command for the RX readout counterpart
+                            slv_wr_data_stream_32b(3 downto 0) <= x"5"; -- Encoded command for the RX readout counterpart
 
                             sl_request_read_random_shift_enable <= '1'; -- Pipe On
 
@@ -836,25 +896,27 @@
                     when SEND_FEEDFWD_TIMESTAMP =>
 
                         -- Send periodic report in a way it has a higher priority over the 'sl_readout_request_feedfwd' but does not interfere with it
+                        -- Multiple 32b transactions
                         if int_readout_counter = INT_QUBITS_CNT+1 then
                             int_readout_counter <= 0;
 
                             -- Send enter
                             sl_wr_en_flag_pulsed <= '1';
                             slv_wr_data_stream_32b(31 downto 4) <= slv_time_feedfwd_sample_request(ACTUAL_TIME_COUNTER_WIDTH-1 downto 0); -- Send TIME information about when data were sampled along with x"9" (end of frame)
-                            slv_wr_data_stream_32b(3 downto 0) <= x"9";
+                            slv_wr_data_stream_32b(3 downto 0) <= x"A";
 
                             state_fifo_readout <= SEND_FEEDFWD_TIMESTAMP_OVERFLOW; -- Coordinate the readout logic
                             sl_readout_request_feedfwd <= '0'; -- Job done flag
 
                         else
+                            -- Multiple 32b transactions
                             int_readout_counter <= int_readout_counter + 1;
 
                             -- Send data
                             sl_wr_en_flag_pulsed <= '1';
                             slv_wr_data_stream_32b(31 downto 4) -- Define All bits!
                                 <= slv_flow_timestamp_buffer_shreg(INT_DATA_SPACE_IN_CHANNEL-1 downto 0);
-                            slv_wr_data_stream_32b(3 downto 0) <= x"5"; -- Encoded command for the RX readout counterpart
+                            slv_wr_data_stream_32b(3 downto 0) <= x"6"; -- Encoded command for the RX readout counterpart
 
                             sl_request_read_timestamp_shift_enable <= '1'; -- Pipe On
 

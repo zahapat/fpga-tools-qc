@@ -12,7 +12,7 @@
     use lib_src.types_pack.all;
     use lib_src.generics.all;
 
-    entity top_flowambiguity is
+    entity top_gflow is
         generic(
             -- Gflow generics
             RST_VAL : std_logic := '1';
@@ -45,15 +45,10 @@
             INT_WHOLE_DIGITS_CNT_PHOTON_6H_DELAY : integer := INT_WHOLE_DIGITS_CNT_PHOTON_6H_DELAY;
             INT_WHOLE_DIGITS_CNT_PHOTON_6V_DELAY : integer := INT_WHOLE_DIGITS_CNT_PHOTON_6V_DELAY;
 
-            INT_CTRL_PULSE_HIGH_DURATION_NS  : integer := INT_CTRL_PULSE_HIGH_DURATION_NS;  -- EOM Control Pulse On Duration
-            INT_CTRL_PULSE_DEAD_DURATION_NS  : integer := INT_CTRL_PULSE_DEAD_DURATION_NS;  -- EOM Control Pulse Off Duration (minimal)
-            INT_CTRL_PULSE_EXTRA_DELAY_Q2_NS : integer := INT_CTRL_PULSE_EXTRA_DELAY_Q2_NS; -- EOM Control Pulse Delay to catch qubit 2
-            INT_CTRL_PULSE_EXTRA_DELAY_Q3_NS : integer := INT_CTRL_PULSE_EXTRA_DELAY_Q3_NS; -- EOM Control Pulse Design to catch qubit 3
-            INT_CTRL_PULSE_EXTRA_DELAY_Q4_NS : integer := INT_CTRL_PULSE_EXTRA_DELAY_Q4_NS; -- EOM Control Pulse Design to catch qubit 4
-            INT_CTRL_PULSE_EXTRA_DELAY_Q5_NS : integer := INT_CTRL_PULSE_EXTRA_DELAY_Q5_NS; -- EOM Control Pulse Design to catch qubit 5
-            INT_CTRL_PULSE_EXTRA_DELAY_Q6_NS : integer := INT_CTRL_PULSE_EXTRA_DELAY_Q6_NS; -- EOM Control Pulse Design to catch qubit 6
-
-            INT_FEEDFWD_PROGRAMMING : integer := INT_FEEDFWD_PROGRAMMING;
+            INT_DISCARD_QUBITS_TIME_NS      : integer := INT_DISCARD_QUBITS_TIME_NS;           -- Stop feedforward for a given time
+            INT_CTRL_PULSE_HIGH_DURATION_NS : integer := INT_CTRL_PULSE_HIGH_DURATION_NS; -- EOM Control Pulse Design & Delay
+            INT_CTRL_PULSE_DEAD_DURATION_NS : integer := INT_CTRL_PULSE_DEAD_DURATION_NS; -- EOM Control Pulse Design & Delay
+            INT_CTRL_PULSE_EXTRA_DELAY_NS   : integer := INT_CTRL_PULSE_EXTRA_DELAY_NS;   -- EOM Control Pulse Design & Delay
 
             WRITE_ON_VALID : boolean := true
 
@@ -83,9 +78,9 @@
             o_debug_port_2 : out std_logic;      -- Debug port 2
             o_debug_port_3 : out std_logic       -- Debug port 3
         );
-    end top_flowambiguity;
+    end top_gflow;
 
-    architecture str of top_flowambiguity is
+    architecture str of top_gflow is
 
         ------------------------------
         -- USB FIFO Readout Control --
@@ -192,8 +187,7 @@
         constant REAL_BOARD_OSC_FREQ_MHZ : real := 200.0;
         constant REAL_CLK_EVAL_MHZ : real := 200.0;
         constant REAL_CLK_EVAL_HZ : real := 200.0e6;
-        -- constant REAL_CLK_DSP_HZ : real := 300.0e6;
-        constant REAL_CLK_DSP_HZ : real := 400.0e6; -- NEW
+        constant REAL_CLK_DSP_HZ : real := 300.0e6;
         constant REAL_CLK_ACQ_HZ : real := 600.0e6;
 
         ---------------
@@ -203,14 +197,9 @@
 
         -- Noisy rising edge detection & keep input
         constant CHANNELS_CNT                     : positive := INPUT_PADS_CNT;
-        constant PATTERN_WIDTH                    : positive := 3; --          3 = [ ] [ ] [ ] must be equal or less than PATTERN_WIDTH
+        constant BUFFER_DEPTH                     : positive := 3;    -- 4 = [ ] [ ] [ ] [ ]
+        constant PATTERN_WIDTH                    : positive := 3;    -- 3 = [ ] [ ] [ ] must be equal or less than BUFFER_DEPTH
         constant BUFFER_PATTERN                   : positive := 1; -- default: 1 =  0   0   1
-
-        -- NEW
-        -- constant PATTERN_WIDTH                    : positive := 4;    -- 4 = [ ] [ ] [ ] [ ] must be equal or less than PATTERN_WIDTH
-        -- NEW
-        -- constant BUFFER_PATTERN                   : positive := 3; -- default: 1 =  0   1   1
-
         -- constant BUFFER_PATTERN                   : positive := 3;    -- 3 =  0   1   1
         constant DETECTOR_ACTIVE_PERIOD_NS        : positive := 10;
         constant DETECTOR_DEAD_PERIOD_NS          : positive := 22;
@@ -226,16 +215,16 @@
         constant GF_SEED           : positive := 1;
 
         -- Gflow FSM
-        -- Delay before: PATTERN_WIDTH + DELAY COMPENSATION BUFFER + REDGE clk + Output Logic Buffer
+        -- Delay before: BUFFER_DEPTH + DELAY COMPENSATION BUFFER + REDGE clk + Output Logic Buffer
         constant CTRL_PULSE_DUR_WITH_DEADTIME_NS : natural := INT_CTRL_PULSE_HIGH_DURATION_NS + INT_CTRL_PULSE_DEAD_DURATION_NS; -- Duration of the output EOM control pulse in ns (e.g. 100 ns high, 50 ns deadtime = 150 ns)
         --                                                   (metastability flipflop) + (2x oversample) + (redge detection) + (output logic)
-        constant TOTAL_STATIC_DELAY_FPGA_BEFORE : natural := 1                        + 2               + 1                 + 1; -- NOTE: synchr flipflops are calculated in fsm_feedforward
+        constant TOTAL_STATIC_DELAY_FPGA_BEFORE : natural := 1                        + 2               + 1                 + 1; -- NOTE: synchr flipflops are calculated in fsm_gflow
         constant MAGIC_NUMBER_AFTER : natural := 5;
 
 
         -------------
         -- Signals --
-        -------------      
+        -------------        
         -- NEW
         -- MMCM clk outputs
         signal acq_clk0 : std_logic := '0';
@@ -277,7 +266,6 @@
         -- FIFO Set/Reset on device power up in both RD and WR domains
         signal sl_rst_eval_clk : std_logic := '0';
         signal sl_rst_readout_clk : std_logic := '0';
-        signal sl_rst_dsp_clk : std_logic := '0';
 
         -- Dimensioned (fixed) input signals for 6 qubits max
         type t_input_channels_iddr_slv_2d is array (6-1 downto 0) of std_logic_vector(2-1 downto 0);
@@ -287,12 +275,12 @@
         signal slv_input_channels_v_fdre : std_logic_vector(6-1 downto 0) := (others => '0');
         signal slv_input_channels_v_iddr_2clk_2d : t_input_channels_iddr_slv_2d := (others => (others => '0'));
         signal slv_input_channels_v_iserdese2_2d : t_input_channels_iserdes_slv_2d := (others => (others => '0'));
-
+        
         signal slv_input_pads_h : std_logic_vector(6-1 downto 0) := (others => '0');
         signal slv_input_channels_h_fdre : std_logic_vector(6-1 downto 0) := (others => '0');
         signal slv_input_channels_h_iddr_2clk_2d : t_input_channels_iddr_slv_2d := (others => (others => '0'));
         signal slv_input_channels_h_iserdese2_2d : t_input_channels_iserdes_slv_2d := (others => (others => '0'));
-
+        
         signal slv_input_channels : std_logic_vector(12-1 downto 0) := (others => '0');
         signal slv_input_channels_donttouch : std_logic_vector(INT_QUBITS_CNT*2-1 downto 0) := (others => '0');
 
@@ -305,39 +293,26 @@
 
         signal slv_cdcc_rd_valid_to_fsm : std_logic_vector(INT_QUBITS_CNT-1 downto 0) := (others => '0');
         signal slv_cdcc_rd_qubits_to_fsm : std_logic_vector(CHANNELS_CNT-1 downto 0) := (others => '0');
-        signal slv_cdcc_rd_qubits_to_fsm_delayed : std_logic_vector(CHANNELS_CNT-1 downto 0) := (others => '0');
 
-        signal slv_feedforward_pulse       : std_logic_vector(0 downto 0) := (others => '0');
-        signal slv_feedforward_pulse_trigger : std_logic_vector(0 downto 0) := (others => '0');
-        signal sl_feedfwd_success_flag     : std_logic := '0';
-        signal slv_feedfwd_success_flag    : std_logic_vector(0 downto 0) := (others => '0');
-        signal sl_feedfwd_start            : std_logic := '0';
-        signal slv_feedfwd_start           : std_logic_vector(0 downto 0) := (others => '0');
+        signal sl_gflow_success_flag       : std_logic := '0';
+        signal sl_gflow_success_done       : std_logic := '0';
         signal slv_alpha_to_math           : std_logic_vector(1 downto 0) := (others => '0');
         signal slv_sx_sz_to_math           : std_logic_vector(1 downto 0) := (others => '0');
-        signal slv_o_sx_next_to_math       : std_logic_vector(1 downto 0) := (others => '0');
         signal sl_actual_qubit_valid       : std_logic := '0';
         signal slv_actual_qubit            : std_logic_vector(1 downto 0) := (others => '0');
         signal slv_actual_qubit_time_stamp : std_logic_vector(st_transaction_data_max_width) := (others => '0');
-        -- signal state_feedfwd               : natural range 0 to INT_QUBITS_CNT-1 := 0;
-        signal state_feedfwd               : std_logic_vector(INT_QUBITS_CNT-1 downto 0) := (others => '0');
-
+        signal state_gflow                 : natural range 0 to INT_QUBITS_CNT-1 := 0;
 
         signal sl_pseudorandom_to_math : std_logic := '0';
         signal slv_math_data_modulo    : std_logic_vector(1 downto 0) := (others => '0');
         signal sl_math_data_valid      : std_logic := '0';
 
-        signal slv_feedfwd_eom_pulse         : std_logic_vector(0 downto 0) := (others => '0');
-        signal slv_feedfwd_eom_pulse_en      : std_logic_vector(0 downto 0) := (others => '0');
-        signal slv_feedfwd_eom_pulse_delayed : std_logic_vector(INT_QUBITS_CNT-2 downto 0) := (others => '0');
-        signal slv_feedfwd_eom_pulse_delayed_ored : std_logic_vector(0 downto 0) := (others => '0');
-        signal slv_feedfwd_eom_pulse_delayed_ored_ff : std_logic_vector(0 downto 0) := (others => '0');
-        signal eom_ctrl_pulse_ready          : std_logic_vector(0 downto 0) := (others => '0');
-        signal eom_ctrl_pulse_ready_delayed  : std_logic_vector(0 downto 0) := (others => '0');
-        signal eom_ctrl_pulse_busy           : std_logic_vector(0 downto 0) := (others => '0');
-        signal eom_ctrl_pulse_busy_delayed   : std_logic_vector(0 downto 0) := (others => '0');
-
-        signal eom_ctrl_pulse_coincidence : std_logic_vector(0 downto 0) := (others => '0');
+        signal slv_modulo_bit_pulse         : std_logic_vector(0 downto 0) := (others => '0');       
+        signal slv_modulo_bit_pulse_delayed : std_logic_vector(0 downto 0) := (others => '0');
+        signal eom_ctrl_pulse_ready         : std_logic_vector(0 downto 0) := (others => '0');
+        signal eom_ctrl_pulse_ready_delayed : std_logic_vector(0 downto 0) := (others => '0');
+        signal eom_ctrl_pulse_busy          : std_logic_vector(0 downto 0) := (others => '0');
+        signal eom_ctrl_pulse_busy_delayed  : std_logic_vector(0 downto 0) := (others => '0');
 
         -- Data buffers from G-Flow protocol module
         signal slv_qubit_buffer_2d      : t_qubit_buffer_2d := (others => (others => '0'));
@@ -352,38 +327,14 @@
         signal slv_channels_detections_cntr : t_photon_counter_2d := (others => (others => '0'));
 
         -- CDCC Sampl clk to Readout clk transfer
-        signal slv_qubit_buffer_to_transfer_rd_valid      : std_logic_vector(INT_QUBITS_CNT downto 0) := (others => '0');
-        signal slv_time_stamp_buffer_to_transfer_rd_valid : std_logic_vector(INT_QUBITS_CNT downto 0) := (others => '0');
-        signal slv_alpha_buffer_to_transfer_rd_valid      : std_logic_vector(INT_QUBITS_CNT downto 0) := (others => '0');
-        signal slv_modulo_buffer_to_transfer_rd_valid     : std_logic_vector(INT_QUBITS_CNT downto 0) := (others => '0');
-        signal slv_random_buffer_to_transfer_rd_valid     : std_logic_vector(INT_QUBITS_CNT downto 0) := (others => '0');
-        signal sl_feedfwd_success_done_to_transfer_rd_valid  : std_logic := '0';
-
-        signal slv_qubit_buffer_to_transfer_rd_rdy      : std_logic_vector(INT_QUBITS_CNT downto 0) := (others => '0');
-        signal slv_time_stamp_buffer_to_transfer_rd_rdy : std_logic_vector(INT_QUBITS_CNT downto 0) := (others => '0');
-        signal slv_alpha_buffer_to_transfer_rd_rdy      : std_logic_vector(INT_QUBITS_CNT downto 0) := (others => '0');
-        signal slv_modulo_buffer_to_transfer_rd_rdy     : std_logic_vector(INT_QUBITS_CNT downto 0) := (others => '0');
-        signal slv_random_buffer_to_transfer_rd_rdy     : std_logic_vector(INT_QUBITS_CNT downto 0) := (others => '0');
-        signal sl_feedfwd_success_done_to_transfer_rd_rdy  : std_logic := '0';
-
-        signal slv_qubit_buffer_to_transfer_2d      : t_qubit_buffer_2d := (others => (others => '0'));
-        signal slv_time_stamp_buffer_to_transfer_2d : t_time_stamp_buffer_2d := (others => (others => '0'));
-        signal slv_alpha_buffer_to_transfer_2d      : t_alpha_buffer_2d := (others => (others => '0'));
-        signal slv_modulo_buffer_to_transfer_2d     : t_modulo_buffer_2d := (others => (others => '0'));
-        signal slv_random_buffer_to_transfer_2d     : t_random_buffer_2d := (others => (others => '0'));
-        signal sl_feedfwd_success_done_to_transfer  : std_logic := '0';
-
         signal slv_qubit_buffer_transferred_2d      : t_qubit_buffer_2d := (others => (others => '0'));
         signal slv_time_stamp_buffer_transferred_2d : t_time_stamp_buffer_2d := (others => (others => '0'));
         signal slv_alpha_buffer_transferred_2d      : t_alpha_buffer_2d := (others => (others => '0'));
         signal slv_modulo_buffer_transferred_2d     : t_modulo_buffer_2d := (others => (others => '0'));
         signal slv_random_buffer_transferred_2d     : t_random_buffer_2d := (others => (others => '0'));
-        signal sl_feedfwd_success_done_transferred  : std_logic := '0';
+        signal sl_gflow_success_done_transferred    : std_logic := '0';
 
         -- Output Signals
-        signal slv_debug_port_1 : std_logic_vector(0 downto 0) := (others => '0');
-        signal slv_debug_port_2 : std_logic_vector(0 downto 0) := (others => '0');
-        signal slv_debug_port_3 : std_logic_vector(0 downto 0) := (others => '0');
         signal slv_eom_ctrl_pulse : std_logic_vector(0 downto 0) := (others => '0');
         signal slv_eom_ctrl_pulsegen_busy : std_logic_vector(0 downto 0) := (others => '0');
         signal slv_photon_1h : std_logic_vector(0 downto 0) := (others => '0');
@@ -402,11 +353,7 @@
                                                       -- Zero will create a decimal number: 0.'INT_ALL_DIGITS' (to be converted to 0.4541710)
         ) return real is
         begin
-            if INT_ALL_DIGITS /= 0 then
-                return (real(INT_ALL_DIGITS) / (10.0**(floor(log10(abs(real(INT_ALL_DIGITS))))+1.0))) * (0.1**(-1.0*real(INT_WHOLE_DIGITS_COUNT)));
-            else
-                return 0.0;
-            end if;
+            return (real(INT_ALL_DIGITS) / (10.0**(floor(log10(abs(real(INT_ALL_DIGITS))))+1.0))) * (0.1**(-1.0*real(INT_WHOLE_DIGITS_COUNT)));
         end function;
         constant PHOTON_1H_DELAY_NS : real := abs(int_to_real(INT_ALL_DIGITS_PHOTON_1H_DELAY_NS, INT_WHOLE_DIGITS_CNT_PHOTON_1H_DELAY));
         constant PHOTON_1V_DELAY_NS : real := abs(int_to_real(INT_ALL_DIGITS_PHOTON_1V_DELAY_NS, INT_WHOLE_DIGITS_CNT_PHOTON_1V_DELAY));
@@ -439,221 +386,18 @@
             PHOTON_1V_DELAY_NS  -- index 0
         );
 
-
-        -- NEW
-        -- Ceil function may increase the difference from the target and generated delay
-        --                            H        V
-        type idelay_taps_hvphotons is array(1 downto 0) of natural;
-        type idelay_taps_hvphotons_allqubits_2d is array (6-1 downto 0) of idelay_taps_hvphotons;
-        impure function correct_periods (
-            constant REAL_CLK_HZ : real;
-            constant PHOTON_H_DELAY_NS_REAL_ABS : real;
-            constant PHOTON_V_DELAY_NS_REAL_ABS : real
-        ) return idelay_taps_hvphotons is
-            --                                          CLK_PERIOD_NS
-            variable v_periods_plus_one : real := 0.0;
-            variable v_periods_plus_one_abserror : real;
-
-            variable v_periods_actual : real := 0.0;
-            variable v_periods_actual_abserror : real;
-
-            variable v_periods_minus_one : real := 0.0;
-            variable v_periods_minus_one_abserror : real;
-
-            variable real_target_value : real := 0.0;
-            variable v_clk_period_ns : real := 0.0;
-            variable v_time_difference_photons_ns_abs : real := 0.0;
-            variable v_clk_periods_difference_delay : natural := 0;
-
-            variable both_idelays : idelay_taps_hvphotons := (others => 0);
-        begin
-
-            report "PHOTON_H_DELAY_NS_REAL_ABS = " & real'image(PHOTON_H_DELAY_NS_REAL_ABS);
-            report "PHOTON_V_DELAY_NS_REAL_ABS = " & real'image(PHOTON_V_DELAY_NS_REAL_ABS);
-
-            -- No fine ps compensation if all delays are equal
-            if PHOTON_H_DELAY_NS_REAL_ABS = PHOTON_V_DELAY_NS_REAL_ABS then
-                both_idelays(0) := 0; -- V
-                both_idelays(1) := 0; -- H
-                return both_idelays;
-            end if;
-
-            v_clk_period_ns := (1.0/real(REAL_CLK_HZ) * 1.0e9);
-
-            -- Absolute time difference of H and V photons
-            v_time_difference_photons_ns_abs :=
-                abs(PHOTON_H_DELAY_NS_REAL_ABS-PHOTON_V_DELAY_NS_REAL_ABS);
-            report "v_time_difference_photons_ns_abs=" & real'image(v_time_difference_photons_ns_abs);
-
-            -- Delay in lock periods at clock 'REAL_CLK_HZ'
-            v_clk_periods_difference_delay :=
-                natural( ceil(v_time_difference_photons_ns_abs / v_clk_period_ns) );
-            report "ceil(v_time_difference_photns_ns_abs / v_clk_period_ns)=" & integer'image(v_clk_periods_difference_delay);
-
-            -- Calculate delay -1 clock cycle, +0 clock cycle, +1 clock cycle
-            -- to assess which one leads to more accurate delay compensation
-            -- at the 'REAL_CLK_HZ' clock
-            v_periods_plus_one := v_clk_period_ns * real(v_clk_periods_difference_delay+1);
-            v_periods_actual := v_clk_period_ns * real(v_clk_periods_difference_delay);
-            v_periods_minus_one := v_clk_period_ns * real(v_clk_periods_difference_delay-1);
-            report "v_periods_plus_one=" & real'image(v_periods_plus_one);
-            report "v_periods_actual=" & real'image(v_periods_actual);
-            report "v_periods_minus_one=" & real'image(v_periods_minus_one);
-
-            real_target_value := real(v_time_difference_photons_ns_abs);
-            report "real_target_value=" & real'image(v_periods_minus_one);
-
-            -- Compare differences from each case and select the one with minimum error 
-            -- (closest to the target delay value to be compensated)
-            if real_target_value < v_periods_plus_one then
-                v_periods_plus_one_abserror := v_periods_plus_one - real_target_value;
-            else
-                v_periods_plus_one_abserror := real_target_value - v_periods_plus_one;
-            end if;
-            report "v_periods_plus_one_abserror=" & real'image(v_periods_plus_one_abserror);
-
-
-            if real_target_value < v_periods_actual then
-                v_periods_actual_abserror := v_periods_actual - real_target_value;
-            else
-                v_periods_actual_abserror := real_target_value - v_periods_actual;
-            end if;
-            report "v_periods_actual_abserror=" & real'image(v_periods_actual_abserror);
-
-            if real_target_value < v_periods_minus_one then
-                v_periods_minus_one_abserror := v_periods_minus_one - real_target_value;
-            else
-                v_periods_minus_one_abserror := real_target_value - v_periods_minus_one;
-            end if;
-            report "v_periods_minus_one_abserror=" & real'image(v_periods_minus_one_abserror);
-
-            -- If CLK_PERIODS+1 gives less error
-            if v_periods_plus_one_abserror < v_periods_actual_abserror then
-                if v_periods_plus_one_abserror < v_periods_minus_one_abserror then
-
-                    v_clk_periods_difference_delay := v_clk_periods_difference_delay + 1;
-
-                    report "TOP: v_clk_periods_difference_delay + 1 = " & integer'image(v_clk_periods_difference_delay);
-                    report "TOP: v_periods_plus_one_abserror = " & real'image(v_periods_plus_one_abserror);
-                    if PHOTON_H_DELAY_NS_REAL_ABS < PHOTON_V_DELAY_NS_REAL_ABS then
-                        -- Since H (arrives realier) needs to match the delay of V 
-                        -- -> add additional, yet uncompensated, precise delay
-                        both_idelays(0) := 0; -- V
-                        both_idelays(1) := natural(v_periods_plus_one_abserror*1000.0/78.0); -- H; uncompensated fine delay difference->ps / 78ps IDELAY tap resolution
-                        report "TOP: both_idelays(0) = " & integer'image(both_idelays(0));
-                        report "TOP: both_idelays(1) = " & integer'image(both_idelays(1));
-                    else
-                        -- Since V (arrives earlier) needs to match the delay of H 
-                        -- -> add additional, yet uncompensated, precise delay
-                        both_idelays(0) := natural(v_periods_plus_one_abserror*1000.0/78.0); -- V; uncompensated fine delay difference->ps / 78ps IDELAY tap resolution
-                        both_idelays(1) := 0; -- H
-                        report "TOP: else both_idelays(0) = " & integer'image(both_idelays(0));
-                        report "TOP: else both_idelays(1) = " & integer'image(both_idelays(1));
-                    end if;
-                    return both_idelays;
-                end if;
-            end if;
-
-            -- If CLK_PERIODS-1 gives less error
-            if v_periods_minus_one_abserror < v_periods_actual_abserror then
-                if v_periods_minus_one_abserror < v_periods_plus_one_abserror then
-
-                    v_clk_periods_difference_delay := v_clk_periods_difference_delay - 1;
-
-                    report "TOP: v_clk_periods_difference_delay - 1 = " & integer'image(v_clk_periods_difference_delay);
-                    report "TOP: v_periods_minus_one_abserror = " & real'image(v_periods_minus_one_abserror);
-                    if PHOTON_H_DELAY_NS_REAL_ABS < PHOTON_V_DELAY_NS_REAL_ABS then
-                        -- Since H (arrives realier) needs to match the delay of V 
-                        -- -> add additional precise delay for precise compensation
-                        both_idelays(0) := 0; -- V
-                        both_idelays(1) := natural(v_periods_minus_one_abserror*1000.0/78.0); -- H; uncompensated fine delay difference->ps / 78ps IDELAY tap resolution
-                        report "TOP: both_idelays(0) = " & integer'image(both_idelays(0));
-                        report "TOP: both_idelays(1) = " & integer'image(both_idelays(1));
-                    else
-                        -- Since V (arrives earlier) needs to match the delay of H 
-                        -- -> add additional, yet uncompensated, precise delay
-                        both_idelays(0) := natural(v_periods_minus_one_abserror*1000.0/78.0); -- V; uncompensated fine delay difference->ps / 78ps IDELAY tap resolution
-                        both_idelays(1) := 0; -- H
-                        report "TOP: else both_idelays(0) = " & integer'image(both_idelays(0));
-                        report "TOP: else both_idelays(1) = " & integer'image(both_idelays(1));
-                    end if;
-                    return both_idelays;
-                end if;
-            end if;
-
-            report "TOP: v_clk_periods_difference_delay = " & integer'image(v_clk_periods_difference_delay);
-            report "TOP: v_periods_actual_abserror = " & real'image(v_periods_actual_abserror);
-            if PHOTON_H_DELAY_NS_REAL_ABS < PHOTON_V_DELAY_NS_REAL_ABS then
-                -- Since H (arrives realier) needs to match the delay of V 
-                -- -> add additional, yet uncompensated, precise delay
-                both_idelays(0) := 0; -- V
-                both_idelays(1) := natural(v_periods_actual_abserror*1000.0/78.0); -- H; uncompensated fine delay difference->ps / 78ps IDELAY tap resolution
-                report "TOP: both_idelays(0) = " & integer'image(both_idelays(0));
-                report "TOP: both_idelays(1) = " & integer'image(both_idelays(1));
-            else
-                -- Since V (arrives earlier) needs to match the delay of H 
-                -- -> add additional, yet uncompensated, precise delay
-                both_idelays(0) := natural(v_periods_actual_abserror*1000.0/78.0); -- V; uncompensated fine delay difference->ps / 78ps IDELAY tap resolution
-                both_idelays(1) := 0; -- H
-                report "TOP: else both_idelays(0) = " & integer'image(both_idelays(0));
-                report "TOP: else both_idelays(1) = " & integer'image(both_idelays(1));
-            end if;
-            return both_idelays;
-
-        end function;
-
-        --Example: if v_periods_actual_abserror = 0.8333 ns -> (0.8333*1000) ps / 78 ps IDELAY tap = 10.7 (round up) = 11 taps
-        constant TAPS_DELAY_COMPENSATION_IDELAY : idelay_taps_hvphotons_allqubits_2d := (
-            correct_periods(REAL_CLK_ACQ_HZ,PHOTON_6H_DELAY_NS,PHOTON_6V_DELAY_NS),
-            correct_periods(REAL_CLK_ACQ_HZ,PHOTON_5H_DELAY_NS,PHOTON_5V_DELAY_NS),
-            correct_periods(REAL_CLK_ACQ_HZ,PHOTON_4H_DELAY_NS,PHOTON_4V_DELAY_NS),
-            correct_periods(REAL_CLK_ACQ_HZ,PHOTON_3H_DELAY_NS,PHOTON_3V_DELAY_NS),
-            correct_periods(REAL_CLK_ACQ_HZ,PHOTON_2H_DELAY_NS,PHOTON_2V_DELAY_NS),
-            correct_periods(REAL_CLK_ACQ_HZ,PHOTON_1H_DELAY_NS,PHOTON_1V_DELAY_NS)
-        );
-
-
-        -- And gate to multiple signals
-        function or_all_bits_in_slv (
-            slv_signal : std_logic_vector; -- min 2 bit wide slv
-            SLV_WIDTH : positive
-        ) return std_logic is
-            variable v_slv_signal : std_logic_vector(SLV_WIDTH-1 downto 0) := (others => '0');
-            variable v_sl_output : std_logic := '0';
-        begin
-            v_slv_signal(SLV_WIDTH-1 downto 0) := slv_signal(SLV_WIDTH-1 downto 0);
-            v_sl_output := v_slv_signal(SLV_WIDTH-1);
-            for i in SLV_WIDTH-2 downto 0 loop
-                v_sl_output := v_sl_output or v_slv_signal(i);
-            end loop;
-            return v_sl_output;
-        end function;
-
-
-        type t_delays_before_eom_2d is array (6-2 downto 0) of natural;
-        constant INT_CTRL_PULSE_EXTRA_DELAY_QX_NS : t_delays_before_eom_2d := (
-            INT_CTRL_PULSE_EXTRA_DELAY_Q6_NS,
-            INT_CTRL_PULSE_EXTRA_DELAY_Q5_NS,
-            INT_CTRL_PULSE_EXTRA_DELAY_Q4_NS,
-            INT_CTRL_PULSE_EXTRA_DELAY_Q3_NS,
-            INT_CTRL_PULSE_EXTRA_DELAY_Q2_NS  -- index 0
-        );
-
     begin
 
+        ---------------------------------------------
+        -- Input Output Pads Assignments
+        ---------------------------------------------
+        -- Input Pads Break-down into H and V photons
         -- Re-assign and tie unused wires to zero to prevent width mismatch
         -- s_input_pads(INT_QUBITS_CNT*2-1 downto 0) <= input_pads(INT_QUBITS_CNT*2-1 downto 0);
         gen_assign_inputs : for i in 0 to INT_QUBITS_CNT-1 generate
             slv_input_pads_v(i) <= input_pads(i*2);
             slv_input_pads_h(i) <= input_pads(i*2 + 1);
         end generate;
-
-
-        -- The order is given by physical pins, defines the logic of the 'clk_acq_preload_indices' function
-        slv_mmcm_not_locked(2) <= not mmcm_locked;
-        slv_mmcm_not_locked(1) <= not mmcm_locked;
-        slv_mmcm_not_locked(0) <= not mmcm_locked;
-
 
         -- LEDs
         led(3) <= not mmcm_locked;
@@ -662,8 +406,10 @@
         led(0) <= not sl_led_fifo_full_latched;
 
 
+        ---------------------------------------------
+        -- Clock Generator
+        ---------------------------------------------
         -- Instances of Clock Synthesizers (Verilog)
-        -- NEW
         inst_clock_synthesizer : clock_synthesizer
         generic map (
             INT_SELECT_PRIMITIVE => -1,     -- 0=PLL; else MMCM (default)
@@ -761,13 +507,20 @@
             locked => mmcm_locked
         );
 
-        -- Modules be placed to 'X0Y4' bank
-        -- IDELAYCTRL:
+
+
+        ---------------------------------------------
+        -- IDELAYCTRL Modules for ISERDESE2
+        ---------------------------------------------
+        -- The order is given by physical pins, defines the logic of the 'clk_acq_preload_indices' function
         -- -> REFCLK = 200 Mhz -> tap delay is 78ps 
         -- -> REFCLK = 300 Mhz -> tap delay is 52ps (unavailable in -1 speed grade FPGAs)
         -- -> REFCLK = 400 Mhz -> tap delay is 39ps (unavailable in -1 speed grade FPGAs)
         -- * maximal precision of REFCLK is +- 10MHz
         -- * module requires 52 ns reset strobe
+
+        -- X0Y4 Bank: SRLC32E for reset strobe + IDELAYCTRL for precise delay compensation
+        slv_mmcm_not_locked(2) <= not mmcm_locked;
         inst_SRLC32E_idelayctrl_X0Y4 : SRLC32E
         generic map (
                 INIT => X"00000000")
@@ -787,7 +540,8 @@
         );
 
 
-        -- Modules to be placed to 'X0Y3' bank
+        -- X0Y3 Bank: SRLC32E for reset strobe + IDELAYCTRL for precise delay compensation
+        slv_mmcm_not_locked(1) <= not mmcm_locked;
         inst_SRLC32E_idelayctrl_X0Y3 : SRLC32E
         generic map (
                 INIT => X"00000000")
@@ -807,7 +561,8 @@
         );
 
 
-        -- Modules to be placed to 'X0Y2' bank
+        -- X0Y1 Bank: SRLC32E for reset strobe + IDELAYCTRL for precise delay compensation
+        slv_mmcm_not_locked(0) <= not mmcm_locked;
         inst_SRLC32E_idelayctrl_X0Y1 : SRLC32E
         generic map (
                 INIT => X"00000000")
@@ -828,9 +583,9 @@
 
 
 
-        ---------------------
-        -- GFLOW DATA PATH --
-        ---------------------
+        ---------------------------------------------
+        -- GFLOW Data Path: QDR Input Samplers
+        ---------------------------------------------
         -- Dedicated Xilinx Input Buffers and Samplers
         gen_emul_false0 : if INT_QUBITS_CNT >= 1 and INT_EMULATE_INPUTS = 0 generate
             -- Target bits that will be connected to the coarse delay compensator
@@ -840,8 +595,7 @@
             inst_xilinx_sdr_sampler_v0 : entity lib_src.xilinx_sdr_sampler(rtl)
             generic map (
                 SELECT_PRIMITIVE => 4,            -- 1 = FDRE, 2 = IDDR_2CLK, 3 = ISERDESE2, 4 = ISERDESE2+IDELAYE2, 0 = All (Simulation Purposes)
-                -- INT_IDELAY_TAPS => 0,
-                INT_IDELAY_TAPS => TAPS_DELAY_COMPENSATION_IDELAY(0)(0), -- NEW
+                INT_IDELAY_TAPS => 0,
                 REAL_IDELAY_REFCLK_FREQUENCY => 200.0
             ) port map (
                 -- Clocks
@@ -849,7 +603,7 @@
                 clk90 => acq_clk90,  -- 90 degrees phase-shift (only ISERDESE2)
                 clk180 => '0',   -- 180 degrees phase-shift (only IDDR_2CLK)
                 clk_idelay => '0', -- Clock at a frequency specified by REAL_IDELAY_REFCLK_FREQUENCY
-
+                
                 -- Input Data
                 in_pad => slv_input_pads_v(0),   -- FPGA pad (top-level input)
                 in_reset_iserdese2 => slv_mmcm_not_locked(BANK_ID(0)),    -- Reset for ISERDESE2 to initialize outputs
@@ -864,9 +618,7 @@
             inst_xilinx_sdr_sampler_h0 : entity lib_src.xilinx_sdr_sampler(rtl)
             generic map (
                 SELECT_PRIMITIVE => 4,            -- 1 = FDRE, 2 = IDDR_2CLK, 3 = ISERDESE2, 4 = ISERDESE2+IDELAYE2, 0 = All (Simulation Purposes)
-                -- #TODO
-                -- INT_IDELAY_TAPS => 0,
-                INT_IDELAY_TAPS => TAPS_DELAY_COMPENSATION_IDELAY(0)(1), -- NEW
+                INT_IDELAY_TAPS => 0,
                 REAL_IDELAY_REFCLK_FREQUENCY => 200.0
             ) port map (
                 -- Clocks
@@ -874,7 +626,7 @@
                 clk90 => acq_clk90,  -- 90 degrees phase-shift (only ISERDESE2)
                 clk180 => '0',   -- 180 degrees phase-shift (only IDDR_2CLK)
                 clk_idelay => '0', -- Clock at a frequency specified by REAL_IDELAY_REFCLK_FREQUENCY
-
+                
                 -- Input Data
                 in_pad => slv_input_pads_h(0),   -- FPGA pad (top-level input)
 
@@ -896,8 +648,7 @@
             inst_xilinx_sdr_sampler_v1 : entity lib_src.xilinx_sdr_sampler(rtl)
             generic map (
                 SELECT_PRIMITIVE => 4,            -- 1 = FDRE, 2 = IDDR_2CLK, 3 = ISERDESE2, 4 = ISERDESE2+IDELAYE2, 0 = All (Simulation Purposes)
-                -- INT_IDELAY_TAPS => 0,
-                INT_IDELAY_TAPS => TAPS_DELAY_COMPENSATION_IDELAY(1)(0),
+                INT_IDELAY_TAPS => 0,
                 REAL_IDELAY_REFCLK_FREQUENCY => 200.0
             ) port map (
                 -- Clocks
@@ -905,7 +656,7 @@
                 clk90 => acq_clk90,  -- 90 degrees phase-shift (only ISERDESE2)
                 clk180 => '0',                   -- 180 degrees phase-shift (only IDDR_2CLK)
                 clk_idelay => '0', -- Clock at a frequency specified by REAL_IDELAY_REFCLK_FREQUENCY
-
+                
                 -- Input Data
                 in_pad => slv_input_pads_v(1),   -- FPGA pad (top-level input)
 
@@ -921,8 +672,7 @@
             inst_xilinx_sdr_sampler_h1 : entity lib_src.xilinx_sdr_sampler(rtl)
             generic map (
                 SELECT_PRIMITIVE => 4,            -- 1 = FDRE, 2 = IDDR_2CLK, 3 = ISERDESE2, 4 = ISERDESE2+IDELAYE2, 0 = All (Simulation Purposes)
-                -- INT_IDELAY_TAPS => 0,
-                INT_IDELAY_TAPS => TAPS_DELAY_COMPENSATION_IDELAY(1)(1),
+                INT_IDELAY_TAPS => 0,
                 REAL_IDELAY_REFCLK_FREQUENCY => 200.0
             ) port map (
                 -- Clocks
@@ -930,7 +680,7 @@
                 clk90 => acq_clk90,  -- 90 degrees phase-shift (only ISERDESE2)
                 clk180 => '0',   -- 180 degrees phase-shift (only IDDR_2CLK)
                 clk_idelay => '0', -- Clock at a frequency specified by REAL_IDELAY_REFCLK_FREQUENCY
-
+                
                 -- Input Data
                 in_pad => slv_input_pads_h(1),    -- FPGA pad (top-level input)
 
@@ -952,8 +702,7 @@
             inst_xilinx_sdr_sampler_v2 : entity lib_src.xilinx_sdr_sampler(rtl)
             generic map (
                 SELECT_PRIMITIVE => 4,            -- 1 = FDRE, 2 = IDDR_2CLK, 3 = ISERDESE2, 4 = ISERDESE2+IDELAYE2, 0 = All (Simulation Purposes)
-                -- INT_IDELAY_TAPS => 0,
-                INT_IDELAY_TAPS => TAPS_DELAY_COMPENSATION_IDELAY(2)(0),
+                INT_IDELAY_TAPS => 0,
                 REAL_IDELAY_REFCLK_FREQUENCY => 200.0
             ) port map (
                 -- Clocks
@@ -961,7 +710,7 @@
                 clk90 => acq_clk90,  -- 90 degrees phase-shift (only ISERDESE2)
                 clk180 => '0',   -- 180 degrees phase-shift (only IDDR_2CLK)
                 clk_idelay => '0', -- Clock at a frequency specified by REAL_IDELAY_REFCLK_FREQUENCY
-
+                
                 -- Input Data
                 in_pad => slv_input_pads_v(2),   -- FPGA pad (top-level input)
 
@@ -977,8 +726,7 @@
             inst_xilinx_sdr_sampler_h2 : entity lib_src.xilinx_sdr_sampler(rtl)
             generic map (
                 SELECT_PRIMITIVE => 4,            -- 1 = FDRE, 2 = IDDR_2CLK, 3 = ISERDESE2, 4 = ISERDESE2+IDELAYE2, 0 = All (Simulation Purposes)
-                -- INT_IDELAY_TAPS => 0,
-                INT_IDELAY_TAPS => TAPS_DELAY_COMPENSATION_IDELAY(2)(1),
+                INT_IDELAY_TAPS => 0,
                 REAL_IDELAY_REFCLK_FREQUENCY => 200.0
             ) port map (
                 -- Clocks
@@ -986,7 +734,7 @@
                 clk90 => acq_clk90,  -- 90 degrees phase-shift (only ISERDESE2)
                 clk180 => '0',   -- 180 degrees phase-shift (only IDDR_2CLK)
                 clk_idelay => '0', -- Clock at a frequency specified by REAL_IDELAY_REFCLK_FREQUENCY
-
+                
                 -- Input Data
                 in_pad => slv_input_pads_h(2),  -- FPGA pad (top-level input)
 
@@ -1008,8 +756,7 @@
             inst_xilinx_sdr_sampler_v3 : entity lib_src.xilinx_sdr_sampler(rtl)
             generic map (
                 SELECT_PRIMITIVE => 4,            -- 1 = FDRE, 2 = IDDR_2CLK, 3 = ISERDESE2, 4 = ISERDESE2+IDELAYE2, 0 = All (Simulation Purposes)
-                -- INT_IDELAY_TAPS => 0,
-                INT_IDELAY_TAPS => TAPS_DELAY_COMPENSATION_IDELAY(3)(0),
+                INT_IDELAY_TAPS => 0,
                 REAL_IDELAY_REFCLK_FREQUENCY => 200.0
             ) port map (
                 -- Clocks
@@ -1033,8 +780,7 @@
             inst_xilinx_sdr_sampler_h3 : entity lib_src.xilinx_sdr_sampler(rtl)
             generic map (
                 SELECT_PRIMITIVE => 4,            -- 1 = FDRE, 2 = IDDR_2CLK, 3 = ISERDESE2, 4 = ISERDESE2+IDELAYE2, 0 = All (Simulation Purposes)
-                -- INT_IDELAY_TAPS => 0,
-                INT_IDELAY_TAPS => TAPS_DELAY_COMPENSATION_IDELAY(3)(1),
+                INT_IDELAY_TAPS => 0,
                 REAL_IDELAY_REFCLK_FREQUENCY => 200.0
             ) port map (
                 -- Clocks
@@ -1064,8 +810,7 @@
             inst_xilinx_sdr_sampler_v4 : entity lib_src.xilinx_sdr_sampler(rtl)
             generic map (
                 SELECT_PRIMITIVE => 4,            -- 1 = FDRE, 2 = IDDR_2CLK, 3 = ISERDESE2, 4 = ISERDESE2+IDELAYE2, 0 = All (Simulation Purposes)
-                -- INT_IDELAY_TAPS => 0,
-                INT_IDELAY_TAPS => TAPS_DELAY_COMPENSATION_IDELAY(4)(0),
+                INT_IDELAY_TAPS => 0,
                 REAL_IDELAY_REFCLK_FREQUENCY => 200.0
             ) port map (
                 -- Clocks
@@ -1089,8 +834,7 @@
             inst_xilinx_sdr_sampler_h4 : entity lib_src.xilinx_sdr_sampler(rtl)
             generic map (
                 SELECT_PRIMITIVE => 4,            -- 1 = FDRE, 2 = IDDR_2CLK, 3 = ISERDESE2, 4 = ISERDESE2+IDELAYE2, 0 = All (Simulation Purposes)
-                -- INT_IDELAY_TAPS => 0,
-                INT_IDELAY_TAPS => TAPS_DELAY_COMPENSATION_IDELAY(4)(1),
+                INT_IDELAY_TAPS => 0,
                 REAL_IDELAY_REFCLK_FREQUENCY => 200.0
             ) port map (
                 -- Clocks
@@ -1120,8 +864,7 @@
             inst_xilinx_sdr_sampler_v5 : entity lib_src.xilinx_sdr_sampler(rtl)
             generic map (
                 SELECT_PRIMITIVE => 4,            -- 1 = FDRE, 2 = IDDR_2CLK, 3 = ISERDESE2, 4 = ISERDESE2+IDELAYE2, 0 = All (Simulation Purposes)
-                -- INT_IDELAY_TAPS => 0,
-                INT_IDELAY_TAPS => TAPS_DELAY_COMPENSATION_IDELAY(5)(0),
+                INT_IDELAY_TAPS => 0,
                 REAL_IDELAY_REFCLK_FREQUENCY => 200.0
             ) port map (
                 -- Clocks
@@ -1145,8 +888,7 @@
             inst_xilinx_sdr_sampler_h5 : entity lib_src.xilinx_sdr_sampler(rtl)
             generic map (
                 SELECT_PRIMITIVE => 4,            -- 1 = FDRE, 2 = IDDR_2CLK, 3 = ISERDESE2, 4 = ISERDESE2+IDELAYE2, 0 = All (Simulation Purposes)
-                -- INT_IDELAY_TAPS => 0,
-                INT_IDELAY_TAPS => TAPS_DELAY_COMPENSATION_IDELAY(5)(1),
+                INT_IDELAY_TAPS => 0,
                 REAL_IDELAY_REFCLK_FREQUENCY => 200.0
             ) port map (
                 -- Clocks
@@ -1169,6 +911,9 @@
         end generate;
 
 
+        ---------------------------------------------
+        -- GFLOW Data Path: Pseudor. Input Emulation
+        ---------------------------------------------
         -- If Necessary, uncomment this input emulator for evaluation
         -- Instance Clock Synthesizer (Verilog) - simulate non-phase-locked pulse detection
         gen_emul_true : if INT_EMULATE_INPUTS /= 0 generate
@@ -1192,16 +937,34 @@
         end generate;
 
 
-        -- FIFO Read Reset: readout_clk domain:
+        ---------------------------------------------
+        -- GFLOW Data Path: Reset Per Clk Domain
+        ---------------------------------------------
+        -- FIFO Write Reset: eval_clk domain:
+        -- RST must be held high for at least five WRCLK clock cycles, 
+        --     and WREN must be low before RST becomes active high, 
+        --     and WREN remains low during this reset cycle.
+        -- Ensure the strobe is longer than the time that takes MMCM to lock (~260.1 ns)
+        inst_reset_fifo_eval_clk : entity lib_src.reset(rtl)
+        generic map (
+            -- 5*10^(-9) * 2^RST_STROBE_COUNTER_WIDTH / 2 = strobe duration (sec)
+            RST_STROBE_COUNTER_WIDTH => 7 -- 320.0 ns (min value)
+        )
+        port map (
+            CLK     => eval_clk,
+            IN_RST  => '1',             -- On Power-up
+            OUT_RST => sl_rst_eval_clk
+        );
+
+        -- FIFO Read Reset: readout_clk clk domain:
         --     RST must be held high for at least five RDCLK clock cycles, 
         --     and RDEN must be low before RST becomes active high, 
         --     and RDEN remains low during this reset cycle.
         -- Ensure the strobe is longer than the time that takes MMCM to lock (~260.1 ns)
-        -- NEW
         inst_reset_fifo_readout_clk : entity lib_src.reset(rtl)
         generic map (
-            -- 10.02 * 2^RST_STROBE_COUNTER_WIDTH / 2 = strobe duration (ns)
-            RST_STROBE_COUNTER_WIDTH => 6 -- = 320.64 ns (min value, should be lower by -1 than the above reset module's value)
+            -- 10.02*10^(-9) * 2^RST_STROBE_COUNTER_WIDTH / 2 = strobe duration (sec)
+            RST_STROBE_COUNTER_WIDTH => 6 -- = 320.64 ns (min value)
         )
         port map (
             CLK     => readout_clk,
@@ -1210,54 +973,16 @@
         );
 
 
-        -- FIFO Write Reset: eval_clk domain:
-        -- RST must be held high for at least five WRCLK clock cycles, 
-        --     and WREN must be low before RST becomes active high, 
-        --     and WREN remains low during this reset cycle.
-        -- Ensure the strobe is longer than the time that takes MMCM to lock (~260.1 ns)
-        -- NEW
-        inst_reset_fifo_eval_clk : entity lib_src.reset(rtl)
-        generic map (
-            -- 5 * 2^RST_STROBE_COUNTER_WIDTH / 2 = strobe duration (ns)
-            RST_STROBE_COUNTER_WIDTH => 7 -- 320 ns
-        )
-        port map (
-            CLK     => eval_clk,
-            IN_RST  => '1',             -- On Power-up
-            OUT_RST => sl_rst_eval_clk
-        );
-
-
-        -- FIFO Read Reset: dsp_clk domain:
-        --     RST must be held high for at least five RDCLK clock cycles, 
-        --     and RDEN must be low before RST becomes active high, 
-        --     and RDEN remains low during this reset cycle.
-        -- Ensure the strobe is longer than the time that takes MMCM to lock (~260.1 ns)
-        -- NEW
-        inst_reset_fifo_dsp_clk : entity lib_src.reset(rtl)
-        generic map (
-            -- 2.5 * 2^RST_STROBE_COUNTER_WIDTH / 2 = strobe duration (ns)
-            RST_STROBE_COUNTER_WIDTH => 9 -- = 640 ns (should be HIGHER than the strobe duration above)
-        )
-        port map (
-            CLK     => dsp_clk,
-            IN_RST  => '1',             -- On Power-up
-            OUT_RST => sl_rst_dsp_clk
-        );
-
-
         ---------------------------------------------
-        -- FEEDFORWARD Data Path: Data Readout
+        -- GFLOW Data Path: Data Readout
         ---------------------------------------------
         -- Readout with FIFO and CSV read instructions
         inst_csv_readout : entity lib_src.csv_readout(rtl)
         generic map (
             INT_QUBITS_CNT => INT_QUBITS_CNT,
             CLK_HZ => REAL_CLK_EVAL_HZ,
-            -- REGULAR_SAMPLER_SECONDS => 5.0e-6,  -- Change this value to alter the frequency of regular reporting
-            -- REGULAR_SAMPLER_SECONDS_2 => 5.0e-6 -- Change this value to alter the frequency of regular reporting
-            REGULAR_SAMPLER_SECONDS => 1.0,  -- Change this value to alter the frequency of regular reporting
-            REGULAR_SAMPLER_SECONDS_2 => 1.0 -- Change this value to alter the frequency of regular reporting
+            REGULAR_SAMPLER_SECONDS => 5.0e-6,  -- Change this value to alter the frequency of regular reporting
+            REGULAR_SAMPLER_SECONDS_2 => 6.0e-6 -- Change this value to alter the frequency of regular reporting
         ) port map (
             -- Reset
             wr_rst => sl_rst_eval_clk,
@@ -1268,12 +993,12 @@
 
             wr_photon_losses => slv_photon_losses,
             wr_channels_detections => slv_channels_detections_cntr,
-            wr_valid_feedfwd_success_done => sl_feedfwd_success_done_transferred,
+            wr_valid_feedfwd_success_done => sl_gflow_success_done_transferred,
             wr_data_qubit_buffer => slv_qubit_buffer_transferred_2d,
             wr_data_time_stamp_buffer => slv_time_stamp_buffer_transferred_2d,
-            wr_data_alpha_buffer => (others => (others => '0')),
-            wr_data_random_buffer => (others => (others => '0')),
-            wr_data_modulo_buffer => (others => (others => '0')),
+            wr_data_alpha_buffer => slv_alpha_buffer_transferred_2d,
+            wr_data_random_buffer => slv_random_buffer_transferred_2d,
+            wr_data_modulo_buffer => slv_modulo_buffer_transferred_2d,
 
             -- Optional: Readout endpoint signals
             readout_clk     => readout_clk,
@@ -1292,15 +1017,18 @@
         );
 
 
-        ---------------------------------------------------
-        -- FEEDFORWARD Data Path: Coarse Delay Compensation
-        ---------------------------------------------------
+
+        ---------------------------------------------
+        -- GFLOW Data Path: Coarse Delay Compensation
+        ---------------------------------------------
         -- Input metastability filter and H/V photon delay compensation
         slv_input_channels_donttouch(INT_QUBITS_CNT*2-1 downto 0) <= slv_input_channels(INT_QUBITS_CNT*2-1 downto 0);
+
         gen_photon_delay_compensation : for i in 0 to INT_QUBITS_CNT-1 generate
             inst_photon_delay_compensation : entity lib_src.delay_compensation(rtl)
             generic map (
                 RST_VAL                   => RST_VAL,
+                BUFFER_DEPTH              => BUFFER_DEPTH,
                 PATTERN_WIDTH             => PATTERN_WIDTH,
                 BUFFER_PATTERN            => BUFFER_PATTERN,
                 CLK_HZ                    => REAL_CLK_ACQ_HZ,
@@ -1328,9 +1056,10 @@
         end generate;
 
 
-        ----------------------------------------------------
-        -- FEEDFORWARD Data Path: CDCC: Inputs -> Controller
-        ----------------------------------------------------
+
+        ---------------------------------------------
+        -- GFLOW Data Path: CDCC: Inputs -> GFLOW
+        ---------------------------------------------
         -- n-FF CDCC (Cross Domain Crossing Circuit)
         gen_nff_cdcc_sysclk : for i in 0 to INT_QUBITS_CNT-1 generate
             slv_cdcc_rd_valid_to_fsm(i) <= slv_cdcc_rd_qubits_to_fsm((i+1)*2-1) or slv_cdcc_rd_qubits_to_fsm(i*2);
@@ -1339,13 +1068,12 @@
                 BYPASS => CDCC_BYPASS,
                 ASYNC_FLOPS_CNT => 2,
                 FLOPS_BEFORE_CROSSING_CNT => 1,
-                -- FLOPS_BEFORE_CROSSING_CNT => 2,
                 WR_READY_DEASSERTED_CYCLES => 4
             )
             port map (
                 clk_write => acq_clk0,
                 wr_en => s_stable_channels_to_cdcc((i+1)*2-1),
-                wr_ready => open,
+                wr_ready  => open,
 
                 -- dsp_clk
                 clk_read => dsp_clk,
@@ -1357,13 +1085,12 @@
                 BYPASS => CDCC_BYPASS,
                 ASYNC_FLOPS_CNT => 2,
                 FLOPS_BEFORE_CROSSING_CNT => 1,
-                -- FLOPS_BEFORE_CROSSING_CNT => 2,
                 WR_READY_DEASSERTED_CYCLES => 4
             )
             port map (
                 clk_write => acq_clk0,
                 wr_en => s_stable_channels_to_cdcc(i*2),
-                wr_ready => open,
+                wr_ready  => open,
 
                 -- dsp_clk
                 clk_read => dsp_clk,
@@ -1372,13 +1099,13 @@
         end generate;
 
 
-        ---------------------------------------------------
-        -- FEEDFORWARD Data Path: Flow Ambiguity Controller
-        ---------------------------------------------------
+
+        ---------------------------------------------
+        -- GFLOW Data Path: Flow Ambiguity Controller
+        ---------------------------------------------
         -- G-Flow Protocol FSM (path delay: +1)
-        inst_fsm_flowambiguity : entity lib_src.fsm_flowambiguity(rtl)
+        inst_fsm_gflow : entity lib_src.fsm_gflow(rtl)
         generic map (
-            INT_FEEDFWD_PROGRAMMING => INT_FEEDFWD_PROGRAMMING,
             RST_VAL                 => RST_VAL,
             CLK_HZ                  => REAL_CLK_DSP_HZ,
             CTRL_PULSE_DUR_WITH_DEADTIME_NS => CTRL_PULSE_DUR_WITH_DEADTIME_NS,
@@ -1394,37 +1121,41 @@
             PHOTON_5H_DELAY_NS      => PHOTON_5H_DELAY_NS,
             PHOTON_5V_DELAY_NS      => PHOTON_5V_DELAY_NS,
             PHOTON_6H_DELAY_NS      => PHOTON_6H_DELAY_NS,
-            PHOTON_6V_DELAY_NS      => PHOTON_6V_DELAY_NS
+            PHOTON_6V_DELAY_NS      => PHOTON_6V_DELAY_NS,
+            DISCARD_QUBITS_TIME_NS  => INT_DISCARD_QUBITS_TIME_NS
         )
         port map (
             clk                       => dsp_clk,
-            rst                       => sl_rst_dsp_clk,
+            rst                       => '0',
 
             qubits_sampled_valid      => slv_cdcc_rd_valid_to_fsm,
             qubits_sampled            => slv_cdcc_rd_qubits_to_fsm,
 
-            o_feedforward_pulse       => slv_feedforward_pulse,
-            o_feedforward_pulse_trigger => slv_feedforward_pulse_trigger,
+            feedback_mod_valid        => sl_math_data_valid,
+            feedback_mod              => slv_math_data_modulo,
 
             o_unsuccessful_qubits     => slv_photon_losses_to_cdcc(INT_QUBITS_CNT-2 downto 0),
 
-            feedfwd_success_flag      => sl_feedfwd_success_flag,
-            feedfwd_start             => sl_feedfwd_start,
+            gflow_success_flag        => sl_gflow_success_flag,
+            gflow_success_done        => sl_gflow_success_done,
             qubit_buffer              => slv_qubit_buffer_2d,
             time_stamp_buffer         => slv_time_stamp_buffer_2d,
+            alpha_buffer              => slv_alpha_buffer_2d,
+
+            to_math_alpha             => slv_alpha_to_math,
+            to_math_sx_xz             => slv_sx_sz_to_math,
 
             actual_qubit_valid        => sl_actual_qubit_valid,
             actual_qubit              => slv_actual_qubit,
-            state_feedfwd             => state_feedfwd,
-            eom_ctrl_pulse_ready      => eom_ctrl_pulse_ready_delayed(0),
-            o_sx_next                 => slv_o_sx_next_to_math
+            state_gflow               => state_gflow,
+            eom_ctrl_pulse_ready      => eom_ctrl_pulse_ready_delayed(0)
         );
 
 
 
-        --------------------------------------------------
-        -- FEEDFORWARD Data Path: Pseudornd. Bit Generator
-        --------------------------------------------------
+        ---------------------------------------------
+        -- GFLOW Data Path: Pseudornd. Bit Generator
+        ---------------------------------------------
         -- Pseudorandom number generator outputting bit by bit (on background)
         inst_lfsr_bitgen : entity lib_src.lfsr_bitgen(rtl)
         generic map (
@@ -1441,102 +1172,57 @@
 
 
 
-        -----------------------------------------------
-        -- FEEDFORWARD Data Path: Functional Dependence
-        -----------------------------------------------
-        -- Additional Math block (path delay+1 or +2)
-        -- inst_alu_flowambiguity : entity lib_src.alu_flowambiguity(rtl)
-        -- generic map (
-        --     RST_VAL => RST_VAL,
-        --     QUBITS_CNT => INT_QUBITS_CNT,
-        --     SYNCH_FACTORS_CALCULATION => true  -- +1 delay if true
-        -- )
-        -- port map (
-        --     CLK             => dsp_clk,
-        --     RST             => '0',
-        --     QUBIT_VALID     => sl_actual_qubit_valid,
-        --     STATE_QUBIT     => state_gflow,
-        --     S_X             => slv_sx_sz_to_math(0), -- X correction (EOM control)
-        --     S_Z             => slv_sx_sz_to_math(1), -- Z correction (masking)
-        --     ALPHA_POSITIVE  => slv_alpha_to_math,
-        --     RAND_BIT        => sl_pseudorandom_to_math,
-        --     RANDOM_BUFFER   => slv_random_buffer_2d,
-        --     MODULO_BUFFER   => slv_modulo_buffer_2d,
-        --     DATA_MODULO_OUT => slv_math_data_modulo,
-        --     DATA_VALID      => sl_math_data_valid
-        -- );
-        
-
-
-        ------------------------------------------------
-        -- FEEDFORWARD Data Path: CDCC: Gflow -> Readout
-        ------------------------------------------------
-        -- CDCC Data transfer to slower readout clock domain
-        -- Success Flag Transfer
-        inst_shiftreg_queue_success_flag : entity lib_src.shiftreg_queue_shifter(rtl)
+        ---------------------------------------------
+        -- GFLOW Data Path: Functional Dependence
+        ---------------------------------------------
+        -- Math block (path delay+1 or +2)
+        inst_alu_gflow : entity lib_src.alu_gflow(rtl)
         generic map (
-            REAL_CLK_HZ => REAL_CLK_DSP_HZ,
-            INT_DATA_WIDTH => 1,
-            INT_QUEUE_DEPTH => 3
-        ) port map (
-            clk => dsp_clk, -- clock
-            i_wr_data_valid => sl_feedfwd_success_flag, -- Write request and Input to queue
-            i_wr_data     => (others => '0'), 
-            i_rd_valid    => sl_feedfwd_success_done_to_transfer_rd_valid,-- Read request and Output from queue
-            o_rd_data     => open,
-            o_rd_data_rdy => sl_feedfwd_success_done_to_transfer_rd_rdy,
-
-            o_buffer_empty => open,
-            o_queue_empty => open,
-            o_buffer_full => open,
-            o_queue_full => open,
-            o_buffer_full_latched => open,
-            o_queue_full_latched => open,
-            o_data_loss => open -- to LED - should never be asserted
+            RST_VAL => RST_VAL,
+            QUBITS_CNT => INT_QUBITS_CNT,
+            SYNCH_FACTORS_CALCULATION => true  -- +1 delay if true
+        )
+        port map (
+            CLK             => dsp_clk,
+            RST             => '0',
+            QUBIT_VALID     => sl_actual_qubit_valid,
+            STATE_QUBIT     => state_gflow,
+            S_X             => slv_sx_sz_to_math(0),
+            S_Z             => slv_sx_sz_to_math(1),
+            ALPHA_POSITIVE  => slv_alpha_to_math,
+            RAND_BIT        => sl_pseudorandom_to_math,
+            RANDOM_BUFFER   => slv_random_buffer_2d,
+            MODULO_BUFFER   => slv_modulo_buffer_2d,
+            DATA_MODULO_OUT => slv_math_data_modulo,
+            DATA_VALID      => sl_math_data_valid
         );
 
 
-        inst_nff_cdcc_success_done_test : entity lib_src.nff_cdcc(rtl)
+        ---------------------------------------------
+        -- GFLOW Data Path: CDCC: Gflow -> Readout
+        ---------------------------------------------
+        -- CDCC Data transfer to slower readout clock domain
+        -- Success Flag Transfer
+        inst_nff_cdcc_success_done : entity lib_src.nff_cdcc(rtl)
         generic map (
             BYPASS => false,
             ASYNC_FLOPS_CNT => 2,
             DATA_WIDTH => 1,
             FLOPS_BEFORE_CROSSING_CNT => 1,
-            WR_READY_DEASSERTED_CYCLES => 20
+            WR_READY_DEASSERTED_CYCLES => 2
         )
         port map (
             -- Write ports
             clk_write => dsp_clk,
-            wr_en     => sl_feedfwd_success_done_to_transfer_rd_rdy,
+            wr_en     => sl_gflow_success_done,
             wr_data   => (others => '0'),
-            wr_ready  => sl_feedfwd_success_done_to_transfer_rd_valid,
+            wr_ready  => open,
 
             -- Read ports
             clk_read => eval_clk,
-            rd_valid => sl_feedfwd_success_done_transferred,
+            rd_valid => sl_gflow_success_done_transferred,
             rd_data  => open
         );
-
-        -- inst_nff_cdcc_success_flag : entity lib_src.nff_cdcc(rtl)
-        -- generic map (
-        --     BYPASS => false,
-        --     ASYNC_FLOPS_CNT => 2,
-        --     DATA_WIDTH => 1,
-        --     FLOPS_BEFORE_CROSSING_CNT => 1,
-        --     WR_READY_DEASSERTED_CYCLES => 2
-        -- )
-        -- port map (
-        --     -- Write ports
-        --     clk_write => dsp_clk,
-        --     wr_en     => sl_feedfwd_success_flag,
-        --     wr_data   => (others => '0'),
-        --     wr_ready  => open,
-
-        --     -- Read ports
-        --     clk_read => eval_clk,
-        --     rd_valid => sl_feedfwd_success_done_transferred,
-        --     rd_data  => open
-        -- );
 
         -- Count unsuccessful qubits per channel and transfer the value to the readout domain
         gen_cdcc_photon_losses_flags : for i in INT_QUBITS_CNT-2 downto 0 generate
@@ -1564,7 +1250,7 @@
             inst_nff_cdcc_cntr_ch_photons : entity lib_src.nff_cdcc_cntr(rtl)
                 generic map (
                     ASYNC_FLOPS_CNT => 2,
-                    CNTR_WIDTH => 1,
+                    CNTR_WIDTH => 8,
                     FLOPS_BEFORE_CROSSING_CNT => 1,
                     WR_READY_DEASSERTED_CYCLES => 3 -- Optional handshake
                 )
@@ -1583,144 +1269,124 @@
 
         gen_cdcc_transfer_data : for i in 0 to INT_QUBITS_CNT-1 generate
             -- CDCC Qubit Buffer
-            inst_shiftreg_queue_qubit_buffer : entity lib_src.shiftreg_queue_shifter(rtl)
-            generic map (
-                REAL_CLK_HZ => REAL_CLK_DSP_HZ,
-                INT_DATA_WIDTH => 2,
-                INT_QUEUE_DEPTH => 3
-            ) port map (
-                clk => dsp_clk, -- clock
-                i_wr_data_valid => sl_feedfwd_success_flag, -- Write request and Input to queue
-                i_wr_data     => slv_qubit_buffer_2d(i), 
-                i_rd_valid    => slv_qubit_buffer_to_transfer_rd_valid(i),-- Read request and Output from queue
-                o_rd_data     => slv_qubit_buffer_to_transfer_2d(i),
-                o_rd_data_rdy => slv_qubit_buffer_to_transfer_rd_rdy(i),
+            inst_nff_cdcc_qubit_buffer : entity lib_src.nff_cdcc(rtl)
+                generic map (
+                    BYPASS => false,
+                    ASYNC_FLOPS_CNT => 2,
+                    DATA_WIDTH => 2,
+                    FLOPS_BEFORE_CROSSING_CNT => 1,
+                    WR_READY_DEASSERTED_CYCLES => 2
+                )
+                port map (
+                    -- Write ports
+                    clk_write => dsp_clk,
+                    wr_en     => sl_gflow_success_done,
+                    wr_data   => slv_qubit_buffer_2d(i),
+                    wr_ready  => open,
 
-                o_buffer_empty => open,
-                o_queue_empty => open,
-                o_buffer_full => open,
-                o_queue_full => open,
-                o_buffer_full_latched => open,
-                o_queue_full_latched => open,
-                o_data_loss => open -- to LED - should never be asserted
-            );
+                    -- Read ports
+                    clk_read => eval_clk,
+                    rd_valid => open,
+                    rd_data  => slv_qubit_buffer_transferred_2d(i)
+                );
 
-            inst_nff_cdcc_qubit_buffer_test : entity lib_src.nff_cdcc(rtl)
-            generic map (
-                BYPASS => false,
-                ASYNC_FLOPS_CNT => 2,
-                DATA_WIDTH => 2,
-                FLOPS_BEFORE_CROSSING_CNT => 1,
-                WR_READY_DEASSERTED_CYCLES => 20
-            )
-            port map (
-                -- Write ports
-                clk_write => dsp_clk,
-                wr_en     => slv_qubit_buffer_to_transfer_rd_rdy(i),
-                wr_data   => slv_qubit_buffer_to_transfer_2d(i),
-                wr_ready  => slv_qubit_buffer_to_transfer_rd_valid(i),
+                -- CDCC Alpha Buffer
+                inst_nff_cdcc_alpha_buffer : entity lib_src.nff_cdcc(rtl)
+                generic map (
+                    BYPASS => false,
+                    ASYNC_FLOPS_CNT => 2,
+                    DATA_WIDTH => 2,
+                    FLOPS_BEFORE_CROSSING_CNT => 1,
+                    WR_READY_DEASSERTED_CYCLES => 2
+                )
+                port map (
+                    -- Write ports
+                    clk_write => dsp_clk,
+                    wr_en     => sl_gflow_success_done,
+                    wr_data   => slv_alpha_buffer_2d(i),
+                    wr_ready  => open,
 
-                -- Read ports
-                clk_read => eval_clk,
-                rd_valid => open,
-                rd_data  => slv_qubit_buffer_transferred_2d(i)
-            );
+                    -- Read ports
+                    clk_read => eval_clk,
+                    rd_valid => open,
+                    rd_data  => slv_alpha_buffer_transferred_2d(i)
+                );
 
-            -- inst_nff_cdcc_qubit_buffer : entity lib_src.nff_cdcc(rtl)
-            --     generic map (
-            --         BYPASS => false,
-            --         ASYNC_FLOPS_CNT => 2,
-            --         DATA_WIDTH => 2,
-            --         FLOPS_BEFORE_CROSSING_CNT => 1,
-            --         WR_READY_DEASSERTED_CYCLES => 2
-            --     )
-            --     port map (
-            --         -- Write ports
-            --         clk_write => dsp_clk,
-            --         wr_en     => sl_feedfwd_success_flag,
-            --         wr_data   => slv_qubit_buffer_2d(i),
-            --         wr_ready  => open,
+                -- CDCC Modulo Buffer
+                inst_nff_cdcc_modulo_buffer : entity lib_src.nff_cdcc(rtl)
+                generic map (
+                    BYPASS => false,
+                    ASYNC_FLOPS_CNT => 2,
+                    DATA_WIDTH => 2,
+                    FLOPS_BEFORE_CROSSING_CNT => 1,
+                    WR_READY_DEASSERTED_CYCLES => 2
+                )
+                port map (
+                    -- Write ports
+                    clk_write => dsp_clk,
+                    wr_en     => sl_gflow_success_done,
+                    wr_data   => slv_modulo_buffer_2d(i),
+                    wr_ready  => open,
 
-            --         -- Read ports
-            --         clk_read => eval_clk,
-            --         rd_valid => open,
-            --         rd_data  => slv_qubit_buffer_transferred_2d(i)
-            --     );
+                    -- Read ports
+                    clk_read => eval_clk,
+                    rd_valid => open,
+                    rd_data  => slv_modulo_buffer_transferred_2d(i)
+                );
+
+                -- CDCC Random Bit Buffer
+                inst_nff_cdcc_random_buffer : entity lib_src.nff_cdcc(rtl)
+                generic map (
+                    BYPASS => false,
+                    ASYNC_FLOPS_CNT => 2,
+                    DATA_WIDTH => 1,
+                    FLOPS_BEFORE_CROSSING_CNT => 1,
+                    WR_READY_DEASSERTED_CYCLES => 2
+                )
+                port map (
+                    -- Write ports
+                    clk_write => dsp_clk,
+                    wr_en     => sl_gflow_success_done,
+                    wr_data   => slv_random_buffer_2d(i),
+                    wr_ready  => open,
+
+                    -- Read ports
+                    clk_read => eval_clk,
+                    rd_valid => open,
+                    rd_data  => slv_random_buffer_transferred_2d(i)
+                );
         end generate;
 
 
         -- CDCC Timestamp Buffer
-        gen_cdcc_transfer_feedfwd_timestamps : for i in 0 to INT_QUBITS_CNT generate
-            inst_shiftreg_queue_timestamp_buffer : entity lib_src.shiftreg_queue_shifter(rtl)
-            generic map (
-                REAL_CLK_HZ => REAL_CLK_DSP_HZ,
-                INT_DATA_WIDTH => 32-4,
-                INT_QUEUE_DEPTH => 3
-            ) port map (
-                clk => dsp_clk, -- clock
-                i_wr_data_valid => sl_feedfwd_success_flag, -- Write request and Input to queue
-                i_wr_data => slv_time_stamp_buffer_2d(i), 
-                i_rd_valid => slv_time_stamp_buffer_to_transfer_rd_valid(i),-- Read request and Output from queue
-                o_rd_data => slv_time_stamp_buffer_to_transfer_2d(i),
-                o_rd_data_rdy => slv_time_stamp_buffer_to_transfer_rd_rdy(i),
-
-                o_buffer_empty => open,
-                o_queue_empty => open,
-                o_buffer_full => open,
-                o_queue_full => open,
-                o_buffer_full_latched => open,
-                o_queue_full_latched => open,
-                o_data_loss => open -- to LED - should never be asserted
-            );
-
-            inst_nff_cdcc_timestamp_buffer_test : entity lib_src.nff_cdcc(rtl)
+        gen_cdcc_transfer_gflow_timestamps : for i in 0 to INT_QUBITS_CNT generate
+            inst_nff_cdcc_timestamp_buffer : entity lib_src.nff_cdcc(rtl)
             generic map (
                 BYPASS => false,
                 ASYNC_FLOPS_CNT => 2,
                 DATA_WIDTH => 32-4,
                 FLOPS_BEFORE_CROSSING_CNT => 1,
-                WR_READY_DEASSERTED_CYCLES => 20
+                WR_READY_DEASSERTED_CYCLES => 2
             )
             port map (
                 -- Write ports
                 clk_write => dsp_clk,
-                wr_en     => slv_time_stamp_buffer_to_transfer_rd_rdy(i),
-                wr_data   => slv_time_stamp_buffer_to_transfer_2d(i),
-                wr_ready  => slv_time_stamp_buffer_to_transfer_rd_valid(i),
+                wr_en     => sl_gflow_success_done,
+                wr_data   => slv_time_stamp_buffer_2d(i),
+                wr_ready  => open,
 
                 -- Read ports
                 clk_read => eval_clk,
                 rd_valid => open,
                 rd_data  => slv_time_stamp_buffer_transferred_2d(i)
             );
-
-            -- inst_nff_cdcc_timestamp_buffer : entity lib_src.nff_cdcc(rtl)
-            -- generic map (
-            --     BYPASS => false,
-            --     ASYNC_FLOPS_CNT => 2,
-            --     DATA_WIDTH => 32-4,
-            --     FLOPS_BEFORE_CROSSING_CNT => 1,
-            --     WR_READY_DEASSERTED_CYCLES => 2
-            -- )
-            -- port map (
-            --     -- Write ports
-            --     clk_write => dsp_clk,
-            --     wr_en     => sl_feedfwd_success_flag,
-            --     wr_data   => slv_time_stamp_buffer_2d(i),
-            --     wr_ready  => open,
-
-            --     -- Read ports
-            --     clk_read => eval_clk,
-            --     rd_valid => open,
-            --     rd_data  => slv_time_stamp_buffer_transferred_2d(i)
-            -- );
         end generate;
 
 
 
-        -------------------------------------------------
-        -- FEEDFORWARD Data Path: Output Pulse Generation
-        -------------------------------------------------
+        ---------------------------------------------
+        -- GFLOW Data Path: Output Pulse Generation
+        ---------------------------------------------
         -- EOM Trigger logic
         inst_pulse_gen : entity lib_src.pulse_gen(rtl)
         generic map (
@@ -1733,155 +1399,66 @@
         port map (
             CLK           => dsp_clk,
             RST           => '0',
-            PULSE_TRIGGER => sl_actual_qubit_valid,
-            -- IN_DATA       => slv_feedforward_pulse(0 downto 0),
-            IN_DATA       => slv_o_sx_next_to_math(0 downto 0),
-            PULSES_OUT    => slv_feedfwd_eom_pulse,
+            PULSE_TRIGGER => sl_math_data_valid,
+            IN_DATA       => slv_math_data_modulo(1 downto 1), -- take higher modulo bit
+            PULSES_OUT    => slv_modulo_bit_pulse,
             READY         => eom_ctrl_pulse_ready,
             BUSY          => eom_ctrl_pulse_busy
         );
 
-        -- Feedforward start flag
-        inst_pulse_gen_feedfwd_start_flag : entity lib_src.pulse_gen(rtl)
+
+
+        ---------------------------------------------
+        -- GFLOW Data Path: Coarse Delay Line
+        ---------------------------------------------
+        -- EOM Trigger modulo pulse delay
+        inst_reg_delay_modulo_pulse : entity lib_src.reg_delay(rtl)
         generic map (
-            RST_VAL                => RST_VAL,
-            DATA_WIDTH             => 1,
-            REAL_CLK_HZ            => REAL_CLK_DSP_HZ,
-            PULSE_DURATION_HIGH_NS => 5,
-            PULSE_DURATION_LOW_NS  => 5
-        )
-        port map (
-            CLK           => dsp_clk,
-            RST           => '0',
-            PULSE_TRIGGER => sl_feedfwd_start,
-            IN_DATA       => "1",
-            PULSES_OUT    => slv_feedfwd_start,
-            READY         => open,
-            BUSY          => open
-        );
-
-        -- Feedforward success flag
-        inst_pulse_gen_feedfwd_success_flag : entity lib_src.pulse_gen(rtl)
-        generic map (
-            RST_VAL                => RST_VAL,
-            DATA_WIDTH             => 1,
-            REAL_CLK_HZ            => REAL_CLK_DSP_HZ,
-            PULSE_DURATION_HIGH_NS => 5,
-            PULSE_DURATION_LOW_NS  => 5
-        )
-        port map (
-            CLK           => dsp_clk,
-            RST           => '0',
-            PULSE_TRIGGER => sl_feedfwd_success_flag,
-            IN_DATA       => "1",
-            PULSES_OUT    => slv_feedfwd_success_flag,
-            READY         => open,
-            BUSY          => open
-        );
-
-
-        -- Coincidence detection trigger
-        inst_pulse_gen_coincidence_flag : entity lib_src.pulse_gen(rtl)
-        generic map (
-            RST_VAL                => RST_VAL,
-            DATA_WIDTH             => 1,
-            REAL_CLK_HZ            => REAL_CLK_DSP_HZ,
-            PULSE_DURATION_HIGH_NS => 5,
-            PULSE_DURATION_LOW_NS  => 5
-        )
-        port map (
-            CLK           => dsp_clk,
-            RST           => '0',
-            PULSE_TRIGGER => sl_actual_qubit_valid,
-            IN_DATA       => slv_feedforward_pulse_trigger(0 downto 0),
-            -- IN_DATA       => "1",
-            PULSES_OUT    => eom_ctrl_pulse_coincidence,
-            READY         => open,
-            BUSY          => open
-        );
-
-
-
-        -------------------------------------------
-        -- FEEDFORWARD Data Path: Coarse Delay Line
-        -------------------------------------------
-        -- EOM Trigger pulse delay
-        gen_reg_delays_before_eom : for i in 0 to INT_QUBITS_CNT-2 generate
-            -- inst_reg_delay_eom_pulse : entity lib_src.reg_delay(rtl)
-            inst_shiftreg_delay_eom_pulse : entity lib_src.shiftreg_delay(rtl)
-            generic map (
-                CLK_HZ => REAL_CLK_DSP_HZ, -- NEW
-                RST_VAL => RST_VAL,
-                DATA_WIDTH => 1,
-                DELAY_CYCLES => 0, -- Keep DELAY_CYCLES zero to allow DELAY_NS value to be used for the delay calculation
-                DELAY_NS => INT_CTRL_PULSE_EXTRA_DELAY_QX_NS(i) -- This value should be a multiple of clock period for precise results
-            )
-            port map (
-                clk    => dsp_clk,
-                i_en   => state_feedfwd(i+1),
-                i_data => slv_feedfwd_eom_pulse,
-                o_data => slv_feedfwd_eom_pulse_delayed(i downto i)
-            );
-        end generate;
-
-        -- One extra delay line for multigate OR
-        slv_feedfwd_eom_pulse_delayed_ored(0) <= 
-            or_all_bits_in_slv(slv_feedfwd_eom_pulse_delayed, slv_feedfwd_eom_pulse_delayed'length);
-        inst_reg_delay_eom_pulse : entity lib_src.reg_delay(rtl)
-        generic map (
-            CLK_HZ => REAL_CLK_DSP_HZ, -- NEW
             RST_VAL => RST_VAL,
             DATA_WIDTH => 1,
-            DELAY_CYCLES => 3, -- Keep DELAY_CYCLES zero to allow DELAY_NS value to be used for the delay calculation
-            DELAY_NS => 0 -- This value should be a multiple of clock period for precise results
+            DELAY_CYCLES => 0, -- Keep DELAY_CYCLES zero to allow DELAY_NS value to be the base for the delay calculation
+            DELAY_NS => INT_CTRL_PULSE_EXTRA_DELAY_NS -- This value should be a multiple of clock period for precise results
         )
         port map (
             clk    => dsp_clk,
-            i_en   => '1',
-            i_data => slv_feedfwd_eom_pulse_delayed_ored,
-            o_data => slv_feedfwd_eom_pulse_delayed_ored_ff
+            i_data => slv_modulo_bit_pulse,
+            o_data => slv_modulo_bit_pulse_delayed
         );
 
 
         -- Pulse Gen Ready delay
         inst_reg_delay_pulse_gen_ready : entity lib_src.reg_delay(rtl)
         generic map (
-            CLK_HZ => REAL_CLK_DSP_HZ,
             RST_VAL => RST_VAL,
             DATA_WIDTH => 1,
             DELAY_CYCLES => 0, -- Keep DELAY_CYCLES zero to allow DELAY_NS value to be the base for the delay calculation
-            DELAY_NS => INT_CTRL_PULSE_EXTRA_DELAY_Q2_NS -- This value should be a multiple of clock period for precise results
+            DELAY_NS => INT_CTRL_PULSE_EXTRA_DELAY_NS -- This value should be a multiple of clock period for precise results
         )
         port map (
             clk    => dsp_clk,
-            i_en   => '1',
             i_data => eom_ctrl_pulse_ready,
             o_data => eom_ctrl_pulse_ready_delayed
         );
 
-
         inst_reg_delay_pulse_gen_busy : entity lib_src.reg_delay(rtl)
         generic map (
-            CLK_HZ => REAL_CLK_DSP_HZ,
             RST_VAL => RST_VAL,
             DATA_WIDTH => 1,
             DELAY_CYCLES => 0, -- Keep DELAY_CYCLES zero to allow DELAY_NS value to be the base for the delay calculation
-            DELAY_NS => INT_CTRL_PULSE_EXTRA_DELAY_Q2_NS -- This value should be a multiple of clock period for precise results
+            DELAY_NS => INT_CTRL_PULSE_EXTRA_DELAY_NS -- This value should be a multiple of clock period for precise results
         )
         port map (
             clk    => dsp_clk,
-            i_en   => '1',
             i_data => eom_ctrl_pulse_busy,
             o_data => eom_ctrl_pulse_busy_delayed
         );
 
 
-        -----------------------------------------------
-        -- FEEDFORWARD Data Path: EOM Modulation Output
-        -----------------------------------------------
+        ---------------------------------------------
+        -- GFLOW Data Path: Output Signal Drivers
+        ---------------------------------------------
         -- Xilinx OBUFs
         -- +1 clk cycle delay
-        -- EOM CONTROL PULSE
         o_eom_ctrl_pulse <= slv_eom_ctrl_pulse(0);
         inst_xilinx_obuf_eom : entity lib_src.xilinx_obufs(rtl)
         generic map (
@@ -1889,61 +1466,17 @@
         )
         port map (
             clk      => dsp_clk,
-            data_in  => slv_feedfwd_eom_pulse_delayed_ored_ff,
+            data_in  => slv_modulo_bit_pulse_delayed,
             data_out => slv_eom_ctrl_pulse(0 downto 0)
         );
 
 
 
-        -----------------------------------------------
-        -- FEEDFORWARD Data Path: Signals for Debugging
-        -----------------------------------------------
-        -- DEBUG signals to ensure correct functionality
-    
-        -- A pulse that has a similar duration as the APD pulse width
-        -- +1 clk cycle delay
-        -- EOM CONTROL PULSE -> OSCILLOSCOPE
-        o_debug_port_1 <= slv_debug_port_1(0);
-        inst_xilinx_obuf_debug1 : entity lib_src.xilinx_obufs(rtl)
-        generic map (
-            PINS_CNT => 1
-        )
-        port map (
-            clk      => dsp_clk,
-            data_in  => slv_feedfwd_eom_pulse_delayed_ored,
-            data_out => slv_debug_port_1(0 downto 0)
-        );
-
-        -- +1 clk cycle delay
-        -- FEEDFORWARD SUCCESS
-        o_debug_port_2 <= slv_debug_port_2(0);
-        inst_xilinx_obuf_debug2 : entity lib_src.xilinx_obufs(rtl)
-        generic map (
-            PINS_CNT => 1
-        )
-        port map (
-            clk      => dsp_clk,
-            data_in  => slv_feedfwd_success_flag(0 downto 0),
-            data_out => slv_debug_port_2(0 downto 0)
-        );
-
-        -- +1 clk cycle delay
-        -- FEEDFORWARD START
-        o_debug_port_3 <= slv_debug_port_3(0);
-        inst_xilinx_obuf_debug3 : entity lib_src.xilinx_obufs(rtl)
-        generic map (
-            PINS_CNT => 1
-        )
-        port map (
-            clk      => dsp_clk,
-            data_in  => slv_feedfwd_start(0 downto 0),
-            data_out => slv_debug_port_3(0 downto 0)
-        );
-
-
-
-        -- For simulation (not outputted from the FPGA)
-        -- +1 clk cycle delay
+        ---------------------------------------------
+        -- GFLOW Data Path: Signals for Debugging
+        ---------------------------------------------
+        -- DEBUG signals to ensure functionality
+        -- +1 clk cycle delay; slv_photon_1v BEFORE CDCC
         o_eom_ctrl_pulsegen_busy <= slv_eom_ctrl_pulsegen_busy(0);
         inst_xilinx_obuf_pulsegen_busy : entity lib_src.xilinx_obufs(rtl)
         generic map (
@@ -1953,6 +1486,34 @@
             clk      => dsp_clk, -- original
             data_in  => eom_ctrl_pulse_busy_delayed, -- original
             data_out => slv_eom_ctrl_pulsegen_busy(0 downto 0)
+        );
+
+
+        -- A pulse that has a similar duration as the APD pulse width
+        o_debug_port_1 <= apd_emul_clk;
+
+        -- +1 clk cycle delay; slv_photon_1v AFTER CDCC
+        o_debug_port_3 <= slv_photon_1v(0);
+        inst_xilinx_obuf_debug2 : entity lib_src.xilinx_obufs(rtl)
+        generic map (
+            PINS_CNT => 1
+        )
+        port map (
+            clk      => dsp_clk,
+            data_in  => slv_cdcc_rd_qubits_to_fsm(0 downto 0),
+            data_out => slv_photon_1v(0 downto 0)
+        );
+
+        -- +1 clk cycle delay; slv_photon_1h AFTER CDCC
+        o_debug_port_2 <= slv_photon_1h(0);
+        inst_xilinx_obuf_debug3 : entity lib_src.xilinx_obufs(rtl)
+        generic map (
+            PINS_CNT => 1
+        )
+        port map (
+            clk      => dsp_clk,
+            data_in  => slv_cdcc_rd_qubits_to_fsm(1 downto 1),
+            data_out => slv_photon_1h(0 downto 0)
         );
 
     end architecture;
