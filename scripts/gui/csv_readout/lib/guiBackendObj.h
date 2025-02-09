@@ -72,6 +72,7 @@ class guiBackendObj {
     int qubits_count;
     double float_run_time_seconds;
     char* bitfile_name;
+    // std::string bitfile_name;
 
     OpalKelly::FrontPanelDevices allOkDevices;
     OpalKelly::FrontPanelPtr okDevicePtr;
@@ -101,8 +102,8 @@ public:
         bool program_only=false,
         int qubits_count=4, 
         double float_run_time_seconds=5, 
-        // char* bitfile_name="bitfile.bit"
-        std::string bitfile_name="bitfile.bit"
+        char* bitfile_name="bitfile.bit"
+        // std::string bitfile_name="bitfile.bit"
     ) : ready_new_value{false} {
 
         std::cout << "guiBackendObj: Constructor started" << std::endl;
@@ -116,11 +117,13 @@ public:
         // Add the null terminator at the end
         // std::vector<char> modifiable_string(bitfile_name.begin(), bitfile_name.end());
 
-        std::vector<char> vec(bitfile_name.begin(), bitfile_name.end());
-        vec.push_back('\0'); // Ensure null-termination
-        char* bitfile_name_converted = vec.data(); // Access the underlying array
-        this->bitfile_name = bitfile_name_converted;
-        std::cout << "bitfile_name == " << this->bitfile_name << std::endl;
+        // std::vector<char> vec(bitfile_name.begin(), bitfile_name.end());
+        // vec.push_back('\0'); // Ensure null-termination
+        // char* bitfile_name_converted = vec.data(); // Access the underlying array
+        // this->bitfile_name = bitfile_name_converted;
+        this->bitfile_name = bitfile_name;
+        std::cout << "bitfile_name == " << bitfile_name << std::endl;
+        std::cout << "this->bitfile_name == " << this->bitfile_name << std::endl;
 
         // modifiable_string.push_back('\0');
         // this->bitfile_name = vec.data();

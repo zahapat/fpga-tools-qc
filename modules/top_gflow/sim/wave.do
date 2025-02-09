@@ -2,7 +2,6 @@ onerror {resume}
 quietly WaveActivateNextPane {} 0
 add wave -noupdate /top_gflow_tb/input_pads(0)
 add wave -noupdate /top_gflow_tb/input_pads(1)
-add wave -noupdate /top_gflow_tb/o_eom_ctrl_pulse
 add wave -noupdate /top_gflow_tb/dut_top_gflow/slv_input_channels
 add wave -noupdate /top_gflow_tb/dut_top_gflow/slv_input_pads_v
 add wave -noupdate /top_gflow_tb/dut_top_gflow/slv_input_pads_h
@@ -54,7 +53,6 @@ add wave -noupdate /top_gflow_tb/dut_top_gflow/slv_sx_sz_to_math
 add wave -noupdate /top_gflow_tb/dut_top_gflow/sl_pseudorandom_to_math
 add wave -noupdate /top_gflow_tb/dut_top_gflow/slv_math_data_modulo
 add wave -noupdate /top_gflow_tb/dut_top_gflow/slv_qubit_buffer_2d
-add wave -noupdate /top_gflow_tb/dut_top_gflow/slv_time_stamp_buffer_2d
 add wave -noupdate /top_gflow_tb/dut_top_gflow/slv_alpha_buffer_2d
 add wave -noupdate /top_gflow_tb/dut_top_gflow/slv_modulo_buffer_2d
 add wave -noupdate /top_gflow_tb/dut_top_gflow/slv_random_buffer_2d
@@ -86,7 +84,7 @@ add wave -noupdate /top_gflow_tb/readout_data_ready
 add wave -noupdate /top_gflow_tb/readout_data_valid
 add wave -noupdate /top_gflow_tb/readout_csv2_line_done_event
 add wave -noupdate /top_gflow_tb/readout_enable
-add wave -noupdate -expand /top_gflow_tb/readout_data_32b
+add wave -noupdate /top_gflow_tb/readout_data_32b
 add wave -noupdate /top_gflow_tb/readout_photons
 add wave -noupdate /top_gflow_tb/readout_alpha
 add wave -noupdate /top_gflow_tb/readout_random
@@ -157,7 +155,13 @@ add wave -noupdate -color Magenta /top_gflow_tb/dut_top_gflow/inst_fsm_gflow/slv
 add wave -noupdate -color Magenta /top_gflow_tb/dut_top_gflow/inst_fsm_gflow/slv_sx_all_qubits
 add wave -noupdate -color Magenta -expand -subitemconfig {/top_gflow_tb/dut_top_gflow/inst_fsm_gflow/state_feedfwd(3) {-color Magenta -height 15} /top_gflow_tb/dut_top_gflow/inst_fsm_gflow/state_feedfwd(2) {-color Magenta -height 15} /top_gflow_tb/dut_top_gflow/inst_fsm_gflow/state_feedfwd(1) {-color Magenta -height 15} /top_gflow_tb/dut_top_gflow/inst_fsm_gflow/state_feedfwd(0) {-color Magenta -height 15}} /top_gflow_tb/dut_top_gflow/inst_fsm_gflow/state_feedfwd
 add wave -noupdate -color Gold /top_gflow_tb/dut_top_gflow/inst_fsm_gflow/actual_qubit_valid
+add wave -noupdate /top_gflow_tb/dut_top_gflow/inst_fsm_gflow/o_sx_next
 add wave -noupdate -color Magenta /top_gflow_tb/dut_top_gflow/slv_o_sx_next_to_math
+add wave -noupdate /top_gflow_tb/dut_top_gflow/slv_feedfwd_eom_pulse
+add wave -noupdate /top_gflow_tb/dut_top_gflow/slv_feedfwd_eom_pulse_en
+add wave -noupdate /top_gflow_tb/dut_top_gflow/slv_feedfwd_eom_pulse_delayed
+add wave -noupdate /top_gflow_tb/o_eom_ctrl_pulse
+add wave -noupdate -color Coral -radix decimal -childformat {{/top_gflow_tb/dut_top_gflow/slv_time_stamp_buffer_2d(6) -radix decimal} {/top_gflow_tb/dut_top_gflow/slv_time_stamp_buffer_2d(5) -radix decimal} {/top_gflow_tb/dut_top_gflow/slv_time_stamp_buffer_2d(4) -radix decimal} {/top_gflow_tb/dut_top_gflow/slv_time_stamp_buffer_2d(3) -radix decimal} {/top_gflow_tb/dut_top_gflow/slv_time_stamp_buffer_2d(2) -radix decimal} {/top_gflow_tb/dut_top_gflow/slv_time_stamp_buffer_2d(1) -radix decimal} {/top_gflow_tb/dut_top_gflow/slv_time_stamp_buffer_2d(0) -radix decimal}} -expand -subitemconfig {/top_gflow_tb/dut_top_gflow/slv_time_stamp_buffer_2d(6) {-color Coral -height 15 -radix decimal} /top_gflow_tb/dut_top_gflow/slv_time_stamp_buffer_2d(5) {-color Coral -height 15 -radix decimal} /top_gflow_tb/dut_top_gflow/slv_time_stamp_buffer_2d(4) {-color Coral -height 15 -radix decimal} /top_gflow_tb/dut_top_gflow/slv_time_stamp_buffer_2d(3) {-color Coral -height 15 -radix decimal} /top_gflow_tb/dut_top_gflow/slv_time_stamp_buffer_2d(2) {-color Coral -height 15 -radix decimal} /top_gflow_tb/dut_top_gflow/slv_time_stamp_buffer_2d(1) {-color Coral -height 15 -radix decimal} /top_gflow_tb/dut_top_gflow/slv_time_stamp_buffer_2d(0) {-color Coral -height 15 -radix decimal}} /top_gflow_tb/dut_top_gflow/slv_time_stamp_buffer_2d
 add wave -noupdate -color Magenta /top_gflow_tb/dut_top_gflow/inst_fsm_gflow/slv_sx_all_qubits_ored
 add wave -noupdate /top_gflow_tb/dut_top_gflow/inst_fsm_gflow/ROM_SX_MASK_2D
 add wave -noupdate /top_gflow_tb/dut_top_gflow/inst_fsm_gflow/ROM_SZ_MASK_2D
@@ -170,7 +174,7 @@ add wave -noupdate /top_gflow_tb/dut_top_gflow/sl_actual_gflow_buffer_to_transfe
 add wave -noupdate /top_gflow_tb/dut_top_gflow/sl_actual_gflow_buffer_to_transfer_rd_valid
 add wave -noupdate /top_gflow_tb/dut_top_gflow/slv_actual_gflow_buffer_transferred
 TreeUpdate [SetDefaultTree]
-WaveRestoreCursors {{Cursor 1} {15175100 ps} 0}
+WaveRestoreCursors {{Cursor 1} {40900000 ps} 0}
 quietly wave cursor active 1
 configure wave -namecolwidth 644
 configure wave -valuecolwidth 185
@@ -186,4 +190,4 @@ configure wave -griddelta 40
 configure wave -timeline 0
 configure wave -timelineunits ns
 update
-WaveRestoreZoom {0 ps} {89305125 ps}
+WaveRestoreZoom {0 ps} {169323105 ps}

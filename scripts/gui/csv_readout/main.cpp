@@ -681,7 +681,7 @@ int guiBackendObj::thread1_acquire()
     std::cout << "thread1_acquire: Verification: program_only = " << program_only << std::endl;
     std::cout << "thread1_acquire: Verification: qubits_count = " << qubits_count << std::endl;
     std::cout << "thread1_acquire: Verification: float_run_time_seconds = " << float_run_time_seconds << std::endl;
-    std::cout << "thread1_acquire: Verification: bitfile_name = " << this->bitfile_name << std::endl;
+    std::cout << "thread1_acquire: Verification: bitfile_name = " << bitfile_name << std::endl;
 
 
     // Establish connection with the device given by okBoardOnSerial (if "", then gets one device)
@@ -713,21 +713,21 @@ int guiBackendObj::thread1_acquire()
     // Program the FPGA, gracefully terminate the program if initializeFPGA is unsuccessful
     if (!thread1_stop_request){
         try {
-            if (false == initializeFPGA(okDevice, this->bitfile_name)) {
-                std::cout << "thread1_acquire: Target FPGA '" << okDevice << "' could not be initialized with the given bitfile: '" << this->bitfile_name << "'" << std::endl;
+            if (false == initializeFPGA(okDevice, bitfile_name)) {
+                std::cout << "thread1_acquire: Target FPGA '" << okDevice << "' could not be initialized with the given bitfile: '" << bitfile_name << "'" << std::endl;
                 throw std::runtime_error("thread1_acquire: RUNTIME ERROR: An error occurred while programming the FPGA.");
                 thread1_stop_request = true;
             } 
             else {
-                std::cout << "thread1_acquire: Target FPGA '" << okDevice << "' has been programmed successfully with bitfile: '" << this->bitfile_name << "'" << std::endl;
+                std::cout << "thread1_acquire: Target FPGA '" << okDevice << "' has been programmed successfully with bitfile: '" << bitfile_name << "'" << std::endl;
             }
         }
         catch (const std::runtime_error &e) {
-            std::cout << "thread1_acquire: runtime_error handler: " << e.what() << " Bitfile used: '" << this->bitfile_name << "'" << std::endl;
+            std::cout << "thread1_acquire: runtime_error handler: " << e.what() << " Bitfile used: '" << bitfile_name << "'" << std::endl;
             thread1_stop_request = true;
         }
         catch (...) {
-            std::cout << "thread1_acquire: Exception handler: FPGA initialization was unsuccessful using the bitfile: '" << this->bitfile_name << "'" << std::endl;
+            std::cout << "thread1_acquire: Exception handler: FPGA initialization was unsuccessful using the bitfile: '" << bitfile_name << "'" << std::endl;
             thread1_stop_request = true;
         }
     }
@@ -1002,7 +1002,7 @@ int main(int argc, char** argv)
 
 
     // Declare the Opal Kelly csv_readout class
-    std::string str(bitfile_name);
+    // std::string str(bitfile_name);
     // std::string str_bitfile_name = std::string str(bitfile_name)
     guiBackendObj f(
         program_only=program_only,

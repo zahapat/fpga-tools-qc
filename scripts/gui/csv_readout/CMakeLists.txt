@@ -8,9 +8,9 @@ set( CMAKE_C_COMPILER "C:/Program Files/Microsoft Visual Studio/2022/Community/V
 set( CMAKE_CXX_COMPILER "C:/Program Files/Microsoft Visual Studio/2022/Community/VC/Tools/MSVC/14.34.31933/bin/Hostx64/x64/cl.exe" )
 
 # Set the latest C++ language standard: add /std:c++latest flag to MSVC compiler arguments
-if(MSVC)
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /std:c++latest")
-endif(MSVC)
+# if(MSVC)
+#     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /std:c++latest")
+# endif(MSVC)
 
 set(
     SRCS 

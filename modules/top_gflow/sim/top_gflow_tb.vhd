@@ -103,7 +103,7 @@
 
         constant INT_FEEDFWD_PROGRAMMING : integer := 01101011;
         constant INT_NUMBER_OF_GFLOWS : integer := 9; -- Total number of Gflows
-        constant INT_GFLOW_NUMBER : integer := 0; -- Set to 0 for all Gflows, set to greater than 0 to pick one Gflow
+        constant INT_GFLOW_NUMBER : integer := 1; -- Set to 0 for all Gflows, set to greater than 0 to pick one Gflow
 
         -- I/O Channels
         constant INPUT_PADS_CNT     : positive := 2*INT_QUBITS_CNT;
@@ -115,7 +115,7 @@
         signal led : std_logic_vector(4-1 downto 0);
 
         signal input_pads : std_logic_vector(INPUT_PADS_CNT-1 downto 0) := (others => '0');
-        signal i_enable_feedforward : std_logic := '0';
+        signal i_enable_feedforward : std_logic := '1';
         signal i_rand_feedforward : std_logic_vector(INT_QUBITS_CNT-1 downto 0) := (others => '0');
         signal output_pads : std_logic_vector(1 downto 0);
         signal o_eom_ctrl_pulse : std_logic;
@@ -1316,13 +1316,13 @@
             wait for WAIT_BEFORE_FIRST_PHOTON_NS; -- NEW
             ctrl_input_emulation_mode <= SEND_CLUSTER_THEN_WAIT;
             ctrl_sim_start <= '1';
-            i_enable_feedforward <= '1';
+            -- i_enable_feedforward <= '1';
 
 
             -- Simulate Gflow Duty Cycle
             for i in 0 to 2**(INT_QUBITS_CNT+1)-1 loop
                 wait for 5 us;
-                i_enable_feedforward <= not i_enable_feedforward;
+                -- i_enable_feedforward <= not i_enable_feedforward;
 
                 -- If feedforward is paused, update the random bit string immediately
                 wait for 0 ns;

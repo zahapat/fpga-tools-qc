@@ -348,7 +348,9 @@
 
             -- Feedforward control
             i_enable_feedforward => slv_tin_ep40(0),
+            -- i_enable_feedforward => '1',
             i_rand_feedforward => slv_tin_ep40(INT_QUBITS_CNT downto 1),
+            -- i_rand_feedforward => (others => '0'),
 
             -- PCD Trigger
             o_eom_ctrl_pulse => o_eom_ctrl_pulse,
