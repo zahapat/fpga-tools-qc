@@ -18,12 +18,12 @@ if __name__ == "__main__":
         # that allows to control the FPGA in real time
         gflow = GflowFPGA(
             qubits_cnt = 4,               # Set the number of qubits of the desired feedforward operation
-            run_seconds = 10.0,           # Run the experiment for ... seconds
-            bitfile_name = f"bitfile_top_gflow_all.bit" # Name of the FPGA configuration file
+            run_seconds = 40.0,           # Run the experiment for ... seconds
+            bitfile_name = f"bitfile_top_gflow_1.bit" # Name of the FPGA configuration file
         )
 
         # Do not touch
-        wait_for_consumer_response_ms = 2000 # Change handshaking time
+        wait_for_consumer_response_ms = 10000 # Change handshaking timeout
 
         # Set initial feedforward control variables
         feedforward_active = False           # At the beginning, turn off the feedforward

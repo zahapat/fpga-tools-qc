@@ -10,23 +10,23 @@ typedef unsigned int UINT32;
 
 class guiBackendObj {
 
-    // Declare Variables for Shared Memory and Semaphores
-    HANDLE shm_handle_runff;
-    bool* shm_runff;
-    HANDLE sem_producer_runff;
-    HANDLE sem_consumer_runff;
-    bool sampled_shm_runff;
+    // // Declare Variables for Shared Memory and Semaphores
+    // HANDLE shm_handle_runff;
+    // bool* shm_runff;
+    // HANDLE sem_producer_runff;
+    // HANDLE sem_consumer_runff;
+    // bool sampled_shm_runff;
 
-    // Performance Optimization, event-based operation
-    bool sampled_shm_runff_p1;
-    bool first_run;
+    // // Performance Optimization, event-based operation
+    // bool sampled_shm_runff_p1;
+    // bool first_run;
 
-    HANDLE shm_handle_rand;
-    int* shm_rand;
-    HANDLE sem_producer_rand;
-    HANDLE sem_consumer_rand;
-    int sampled_shm_rand;
-    UINT32 uint32_sampled_shm_rand;
+    // HANDLE shm_handle_rand;
+    // int* shm_rand;
+    // HANDLE sem_producer_rand;
+    // HANDLE sem_consumer_rand;
+    // int sampled_shm_rand;
+    // UINT32 uint32_sampled_shm_rand;
 
 
 
@@ -137,8 +137,9 @@ public:
         // (1048576 BytesTotal / 4 BytesPerTransaction = 262144 TransactionsTotal)
         //  1048576 = 1 * 1024 * 1024 = 1x TransferSize
 
-        // m_u32BlockSize = 16; // Before
-        m_u32BlockSize = 64; // After
+        m_u32BlockSize = 16; // Before
+        // m_u32BlockSize = 64; // After
+
 
         // m_u32SegmentSize = 64 * m_u32BlockSize; original
         
