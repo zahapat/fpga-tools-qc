@@ -427,18 +427,18 @@ std::tuple<int, int> guiBackendObj::processReceivedData(std::tuple<int, int> col
         // Create the CSV line based on the received lower 4 bits stored in 'command_parsed'
         switch(command) {
             case 15: // x"F" Print out the line buffer to outFile1/2, FPGA time overflow (match with active output file)
-                if (actual_file_csv3){
-                    outFile3 << "," << std::to_string(data) << std::endl;
-                    actual_file_csv3 = false; // NEW
-                }
+                //if (actual_file_csv3){
+                //    outFile3 << std::to_string(data) << std::endl;
+                //    actual_file_csv3 = false; // NEW
+                //}
 
                 if (actual_file_csv2){
-                    outFile2 << "," << std::to_string(data) << std::endl;
+                    outFile2 << std::to_string(data) << std::endl;
                     actual_file_csv2 = false; // NEW
                 }
 
                 if (actual_file_csv1){
-                    outFile1 << "," << std::to_string(data) << std::endl;
+                    outFile1 << std::to_string(data) << std::endl;
                     actual_file_csv1 = false; // NEW
                 }
                 break;
@@ -450,9 +450,9 @@ std::tuple<int, int> guiBackendObj::processReceivedData(std::tuple<int, int> col
                 else if (actual_file_csv2){
                     outFile2 << ",";
                 }
-                else if (actual_file_csv3){
-                    outFile3 << ",";
-                }
+                //else if (actual_file_csv3){
+                //    outFile3 << ",";
+                //}
                 break;
 
             case 1:  // x"1" Event-based data group (Photons H/V) to outFile1
@@ -497,33 +497,33 @@ std::tuple<int, int> guiBackendObj::processReceivedData(std::tuple<int, int> col
                 actual_file_csv2 = true; // NEW
                 break;
 
-            case 8:  // x"8" Regular reporting (Photon Channel Counting)
-                outFile3 << std::to_string(data) << ",";
-                actual_file_csv3 = true; // NEW
-                break;
+            //case 8:  // x"8" Regular reporting (Photon Channel Counting)
+                //outFile3 << std::to_string(data) << ",";
+                //actual_file_csv3 = true; // NEW
+                //break;
 
-            case 9:  // x"9" Regular reporting (Photon Losses)
-                outFile3 << std::to_string(data) << ",";
-                actual_column_cntr_csv3++;
-                actual_file_csv3 = true; // NEW
-                break;
+            // case 9:  // x"9" Regular reporting (Photon Losses)
+                //outFile3 << std::to_string(data) << ",";
+                //actual_column_cntr_csv3++;
+                //actual_file_csv3 = true; // NEW
+                //break;
             
-            case 10:  // x"A" FPGA time (match with active output file)
-                if (actual_file_csv3){
-                    outFile3 << "," << std::to_string(data) << std::endl;
-                }
+            //case 10:  // x"A" FPGA time (match with active output file)
+                //if (actual_file_csv3){
+                //    outFile3 << "," << std::to_string(data) << ",";
+                //}
 
                 if (actual_file_csv2){
-                    outFile2 << "," << std::to_string(data) << std::endl;
+                    outFile2 << "," << std::to_string(data) << ",";
                 }
 
                 if (actual_file_csv1){
-                    outFile1 << "," << std::to_string(data) << std::endl;
+                    outFile1 << "," << std::to_string(data) << ",";
                 }
                 break;
             
             default:
-                std::cout << "Udefined behaviour: Undefined cmd or cmd out of range (0 to 2^4). Detected cmd: " << command << std::endl;
+                // std::cout << "Udefined behaviour: Undefined cmd or cmd out of range (0 to 2^4). Detected cmd: " << command << std::endl;
                 break;
         }
     }
@@ -650,6 +650,23 @@ int guiBackendObj::thread1_acquire()
 
     // If set to true = initialization OK, false = Error
     bool shm_init_status = true;
+
+    // Declare Variables for Shared Memory and Semaphores
+    HANDLE shm_handle_runff;
+    bool* shm_runff;
+    HANDLE sem_producer_runff;
+    HANDLE sem_consumer_runff;
+    bool sampled_shm_runff;
+
+    // Performance Optimization, event-based operation
+    bool sampled_shm_runff_p1;
+    bool first_run;
+
+    HANDLE shm_handle_rand;
+    int* shm_rand;
+    HANDLE sem_producer_rand;
+    HANDLE sem_consumer_rand;
+    UINT32 uint32_sampled_shm_rand;
 
     // Connect Shared Memory (bool) and Semaphores: Feedforward Control Bit ***
     if (shm_init_status = true) {
@@ -783,6 +800,7 @@ int guiBackendObj::thread1_acquire()
         } else {
             // Wait for an infinite amount of time for feedforward control signal
             sampled_shm_runff = get_sharedmem_data_handshake<bool>(sem_consumer_runff, sem_producer_runff, shm_runff, INFINITE);
+            // sampled_shm_runff = get_sharedmem_data_handshake<bool>(sem_consumer_runff, sem_producer_runff, shm_runff, 0);
             sampled_shm_runff_p1 = !sampled_shm_runff; // Artificially trigger the below condition
             first_run = false;
         }
@@ -797,13 +815,15 @@ int guiBackendObj::thread1_acquire()
 
             // 2. Wait for new random bit from Python on Pause feedforward and forward it to Opal Kelly API, then allow Python to proceed using handshaking
             if (sampled_shm_runff == false) {
-                // Send Disable Feedforward bit
-                // Update Random bits
+                // Send Disable Feedforward bit + Update Random bits
                 uint32_sampled_shm_rand = (UINT32)get_sharedmem_data_handshake<int>(sem_consumer_rand, sem_producer_rand, shm_rand, INFINITE);
-                std::cout << "Consmuer: Received random number is " << sampled_shm_rand << std::endl;
+                std::cout << "Consmuer: Received random number is " << uint32_sampled_shm_rand << std::endl;
                 uint32_sampled_shm_rand = uint32_sampled_shm_rand << 1;
-                uint32_sampled_shm_rand = uint32_sampled_shm_rand + 0;
-                okDevice->ActivateTriggerIn(0x40, uint32_sampled_shm_rand);
+                // uint32_sampled_shm_rand = uint32_sampled_shm_rand + 0;
+                std::cout << "Consmuer: Transmitting to the FPGA: " << uint32_sampled_shm_rand << std::endl;
+                // okDevice->ActivateTriggerIn(0x40, uint32_sampled_shm_rand);
+                //okDevice->SetWireInValue(0x00, uint32_sampled_shm_rand, 0x00000000); // mask = 0xffffffff
+                //okDevice->UpdateWireIns();
 
                 // okDevice->ActivateTriggerIn(0x40, 0x00);
                 // okDevice->SetWireInValue(0x03, uint32_sampled_shm_rand);
@@ -811,9 +831,16 @@ int guiBackendObj::thread1_acquire()
 
             } else {
                 // Send Enable Feedforward bit
+                // uint32_sampled_shm_rand = uint32_sampled_shm_rand + 1;
+                // uint32_sampled_shm_rand = pow(2, 32)-1;
                 uint32_sampled_shm_rand = uint32_sampled_shm_rand + 1;
-                okDevice->ActivateTriggerIn(0x40, uint32_sampled_shm_rand);
+                std::cout << "Consmuer: Transmitting to the FPGA: " << uint32_sampled_shm_rand << std::endl;
+                // okDevice->ActivateTriggerIn(0x40, uint32_sampled_shm_rand);
+                //okDevice->SetWireInValue(0x00, uint32_sampled_shm_rand, 0xffffffff);
+                //okDevice->UpdateWireIns();
             }
+            okDevice->SetWireInValue(0x00, uint32_sampled_shm_rand, 0xffffffff);
+            okDevice->UpdateWireIns();
         }
 
         // Update the event detector
@@ -825,10 +852,13 @@ int guiBackendObj::thread1_acquire()
         if (!thread1_stop_request) {
             // Read per 1x TransferSize blocks of processed_data, scan for errors and notify thread 2 later if stop condition is asserted
             // Note: The FIFO must not be empty while performing this operation
+            //  Transfer Failed with Error: -2
+            // FREEZE HERE!!
             thread1_stop_request = Read_PipeOut(dataBufferRead, okDevice, 1);
 
             if (thread1_stop_request)
                 std::cout << "thread1_acquire: [Read]: An error occurred while performing Read operation. Exit." << std::endl;
+
         }
 
         // Update OK/NOK status
@@ -901,6 +931,7 @@ void guiBackendObj::thread2_process_data()
 
             // Wake up thread1_acquire
             ready_new_value = false;
+
             cv.notify_one();
 
             col_and_file_id = processReceivedData(col_and_file_id, thread2_dataBufferRead, m_u32TransferSize);

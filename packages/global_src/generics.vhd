@@ -37,7 +37,7 @@ package generics is
     constant INT_CTRL_PULSE_EXTRA_DELAY_Q6_NS : integer := 20;
     constant INT_FEEDFWD_PROGRAMMING : integer := 01101011;
     constant INT_NUMBER_OF_GFLOWS : integer := 9;
-    constant INT_GFLOW_NUMBER : integer := 1;
+    constant INT_GFLOW_NUMBER : integer := 0;
 
 end package generics;
 

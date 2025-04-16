@@ -22,8 +22,6 @@ if __name__ == "__main__":
             bitfile_name = f"bitfile_top_gflow_all.bit" # Name of the FPGA configuration file
         )
 
-        # Do not touch
-        wait_for_consumer_response_ms = 2000 # Change handshaking time
 
         # Set initial feedforward control variables
         feedforward_active = False           # At the beginning, turn off the feedforward

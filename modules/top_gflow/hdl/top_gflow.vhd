@@ -1327,15 +1327,19 @@
             slv_alpha_buffer_transferred_2d(i)(0) <= slv_sx_buffer_transferred(i);
             slv_modulo_buffer_transferred_2d(i)(0) <= slv_sz_buffer_transferred(i);
         end generate;
-        
+
         inst_csv_readout : entity lib_src.csv_readout(rtl)
         generic map (
             INT_QUBITS_CNT => INT_QUBITS_CNT,
             CLK_HZ => REAL_CLK_EVAL_HZ,
             -- REGULAR_SAMPLER_SECONDS => 5.0e-6,  -- Change this value to alter the frequency of regular reporting
             -- REGULAR_SAMPLER_SECONDS_2 => 5.0e-6 -- Change this value to alter the frequency of regular reporting
-            REGULAR_SAMPLER_SECONDS => 1.0,  -- Change this value to alter the frequency of regular reporting
-            REGULAR_SAMPLER_SECONDS_2 => 1.0 -- Change this value to alter the frequency of regular reporting
+            
+            -- REGULAR_SAMPLER_SECONDS => 1.0,  -- Change this value to alter the frequency of regular reporting
+            -- REGULAR_SAMPLER_SECONDS_2 => 1.0 -- Change this value to alter the frequency of regular reporting
+
+            REGULAR_SAMPLER_SECONDS => 0.1,  -- Change this value to alter the frequency of regular reporting
+            REGULAR_SAMPLER_SECONDS_2 => 0.1 -- Change this value to alter the frequency of regular reporting
         ) port map (
             -- Reset
             wr_rst => sl_rst_eval_clk,

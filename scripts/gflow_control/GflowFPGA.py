@@ -22,7 +22,8 @@ class GflowFPGA:
         self.program_only = False
 
         # *** Handshaking Variables ***
-        self.timeout_ms = 2000
+        # self.timeout_ms = 2000
+        self.timeout_ms = 10000
 
         # Clean existing shared memory instances
         self.remove_shared_mem(shm_name="Global/runff_sharedmem")
