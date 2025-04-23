@@ -100,7 +100,7 @@
         signal okEHx : std_logic_vector(OUT_ENDPTS_TOTAL_CNT*65-1 downto 0);
         
         -- Endpoint: WireIn
-        signal slv_tin_ep40               : std_logic_vector(32-1 downto 0) := (others => '0');
+        signal slv_tin_ep40               : std_logic_vector(32-1 downto 0);
         signal slv_win_ep00               : std_logic_vector(31 downto 0) := (others => '0');
         signal slv_win_ep01_throttle_out  : std_logic_vector(31 downto 0) := (others => '0');
         signal slv_win_ep02_throttle_in   : std_logic_vector(31 downto 0) := (others => '0');

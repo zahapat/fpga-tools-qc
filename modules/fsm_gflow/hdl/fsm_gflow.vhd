@@ -696,6 +696,7 @@
 
         -- Gflow Mask generator
         signal slv_cntr_mask : std_logic_vector(actual_gflow_buffer'range) := (others => '0');
+        signal slv_cntr_mask_p1 : std_logic_vector(actual_gflow_buffer'range) := (others => '0');
         signal slv_actual_gflow_buffer : std_logic_vector(actual_gflow_buffer'range);
 
 
@@ -708,10 +709,13 @@
             sx : std_logic_vector(QUBITS_CNT-1 downto 0);
             sz : std_logic_vector(QUBITS_CNT-1 downto 0);
             rand : std_logic_vector(QUBITS_CNT-1 downto 0);
-            sx_mask : st_sx_mask
+            sx_mask : st_sx_mask;
+            actual_gflow : std_logic_vector(slv_cntr_mask'range)
         ) return std_logic is
             variable v_masked_actual_qubits : std_logic_vector(actual_qubits'range) := (others => '0');
             variable v_masked_previous_qubits : t_qubit_buffer_2d := (others => (others => '0'));
+            variable v_rand_bit_select : std_logic := '0';
+            variable v_rand_bit_select_2 : std_logic := '0';
         begin
 
             -- Mask qubits
@@ -730,13 +734,13 @@
             -- Sx correction dependence sets for 9 possible Gflows:
             -- Photon        1st  2nd  3rd  4th
             -- Gflow(1) Sx    0    a    0    c
-            -- Gflow(2) Sx    0    0    a    c
+            -- Gflow(2) Sx    0    0    a    c x1
             -- Gflow(3) Sx    0    0    0    c
-            -- Gflow(4) Sx    0    0    a    b
+            -- Gflow(4) Sx    0    0    a    b x3
             -- Gflow(5) Sx    0    a    0    b
             -- Gflow(6) Sx    0    0    0    b
             -- Gflow(7) Sx    0    a    0    0
-            -- Gflow(8) Sx    0    0    a    0
+            -- Gflow(8) Sx    0    0    a    0 x7
             -- Gflow(9) Sx    0    0    0    0
 
             -- The function being performed in each qubit stage:
@@ -744,9 +748,18 @@
             -- Sx_i = b_i xor Sz_i
 
             -- 1st qubit: 0 
-            -- -> control 2nd qubit 0 or a
+            -- -> feedforward on 2nd qubit: 0 or a
             if ACTUAL_QUBIT = 0 then -- @a
-                return '0'
+                -- Define the logic for selecting the correct random bit per gflow and per actual qubit
+                if actual_gflow = std_logic_vector(to_unsigned(0, actual_gflow'length)) then -- Counting from 0
+                    v_rand_bit_select := rand(0); -- a
+                elsif actual_gflow = std_logic_vector(to_unsigned(4, actual_gflow'length)) then
+                    v_rand_bit_select := rand(0); -- a
+                elsif actual_gflow = std_logic_vector(to_unsigned(6, actual_gflow'length)) then
+                    v_rand_bit_select := rand(0); -- a
+                end if;
+
+                return sx_mask(ACTUAL_QUBIT+1)       -- Mask/Unmask the measurement outcome based on the Gflow being performed
                     -- original
                     -- -- xor (actual_qubits(ACTUAL_QUBIT*2)   -- b': Only current qubit outcome; if '1' then it is V, else H
                     -- -- xor (previous_qubits(N/A)(0)         -- b': Only previous qubit outcomes (N/A -> '0')
@@ -756,18 +769,26 @@
                     -- -- xor sz(ACTUAL_QUBIT-1);              -- Sz: Target Sz (N/A -> '0')
 
                     -- new
-                    xor (actual_qubits(ACTUAL_QUBIT*2)   -- b': Only current qubit outcome; if '1' then it is V, else H
+                    and (actual_qubits(ACTUAL_QUBIT*2)   -- b': Only current qubit outcome; if '1' then it is V, else H
                     -- xor (previous_qubits(0)(0)           -- b': Only previous qubit outcomes, Valid indices: 0 to 0; if '1' then it is V, else H
-                        and sx_mask(ACTUAL_QUBIT+1))       -- Mask/Unmask the measurement outcome based on the Gflow being performed
-                    xor rand(ACTUAL_QUBIT);               -- r: Random bit for Decryption
+                        xor v_rand_bit_select);               -- r: Random bit for Decryption
 
                     -- xor sz(ACTUAL_QUBIT-1);              -- Sz: Target Sz
             end if;
 
             -- 2nd qubit: 0 or a 
-            -- -> control 3rd qubit 0 or a
+            -- -> feedforward on 3rd qubit: 0 or a
             if ACTUAL_QUBIT = 1 then -- @b
-                return '0'
+                -- Define the logic for selecting the correct random bit per gflow and per actual qubit
+                if actual_gflow = std_logic_vector(to_unsigned(1, actual_gflow'length)) then -- Counting from 0
+                    v_rand_bit_select := rand(0); -- a
+                elsif actual_gflow = std_logic_vector(to_unsigned(3, actual_gflow'length)) then
+                    v_rand_bit_select := rand(0); -- a
+                elsif actual_gflow = std_logic_vector(to_unsigned(7, actual_gflow'length)) then
+                    v_rand_bit_select := rand(0); -- a
+                end if;
+
+                return sx_mask(ACTUAL_QUBIT+1)       -- Mask/Unmask the measurement outcome based on the Gflow being performed
                     -- original
                     -- -- xor (actual_qubits(ACTUAL_QUBIT*2)   -- b': Only current qubit outcome; if '1' then it is V, else H
                     -- xor (previous_qubits(0)(0)           -- b': Only previous qubit outcomes, Valid indices: 0 to 0; if '1' then it is V, else H
@@ -778,16 +799,32 @@
 
                     -- new
                     -- xor (actual_qubits(ACTUAL_QUBIT*2)   -- b': Only current qubit outcome; if '1' then it is V, else H
-                    xor (previous_qubits(0)(0)           -- b': Only previous qubit outcomes, Valid indices: 0 to 0; if '1' then it is V, else H
-                        and sx_mask(ACTUAL_QUBIT+1))      -- Mask/Unmask the measurement outcome based on the Gflow being performed
-                    xor rand(ACTUAL_QUBIT)               -- r: Random bit for Decryption
+                    and (previous_qubits(0)(0)           -- b': Only previous qubit outcomes, Valid indices: 0 to 0; if '1' then it is V, else H
+                    xor v_rand_bit_select               -- r: Random bit for Decryption
+                    xor sz(ACTUAL_QUBIT-1));              -- Sz: Target Sz
 
-                    xor sz(ACTUAL_QUBIT-1);              -- Sz: Target Sz
             end if;
 
             -- 3rd qubit: 0 or a 
-            -- -> control 4th qubit c or b or 0
+            -- -> feedforward on 4th qubit: c or b or 0
             if ACTUAL_QUBIT = 2 then -- @c
+                -- Define the logic for selecting the correct random bit per gflow and per actual qubit
+                if actual_gflow = std_logic_vector(to_unsigned(0, actual_gflow'length)) then -- Counting from 0
+                    v_rand_bit_select := rand(2); -- c
+                elsif actual_gflow = std_logic_vector(to_unsigned(1, actual_gflow'length)) then
+                    v_rand_bit_select := rand(2); -- c
+                elsif actual_gflow = std_logic_vector(to_unsigned(2, actual_gflow'length)) then
+                    v_rand_bit_select := rand(2); -- c
+                end if;
+
+                if actual_gflow = std_logic_vector(to_unsigned(3, actual_gflow'length)) then -- Counting from 0
+                    v_rand_bit_select_2 := rand(1); -- b
+                elsif actual_gflow = std_logic_vector(to_unsigned(4, actual_gflow'length)) then
+                    v_rand_bit_select_2 := rand(1); -- b
+                elsif actual_gflow = std_logic_vector(to_unsigned(5, actual_gflow'length)) then
+                    v_rand_bit_select_2 := rand(1); -- b
+                end if;
+
                 return '0'
                     -- original
                     -- -- xor (actual_qubits(ACTUAL_QUBIT*2)   -- b': Only current qubit outcome; if '1' then it is V, else H
@@ -802,20 +839,22 @@
                     -- xor (actual_qubits(ACTUAL_QUBIT*2)   -- b': Only current qubit outcome; if '1' then it is V, else H
                     xor (
                         -- measurement c mask
-                        (actual_qubits(ACTUAL_QUBIT*2)   -- b': Only previous qubit outcomes, Valid indices: 0 to 2; if '1' then it is V, else H 
-                            and sx_mask(ACTUAL_QUBIT+1))   -- Mask/Unmask the measurement outcome based on the Gflow being performed
-                        or 
+                        ((actual_qubits(ACTUAL_QUBIT*2)   -- b': Only previous qubit outcomes, Valid indices: 0 to 2; if '1' then it is V, else H 
+                            xor v_rand_bit_select               -- r: Random bit for Decryption
+                            xor sz(ACTUAL_QUBIT-1))              -- Sz: Target Sz
+                        and sx_mask(ACTUAL_QUBIT+1))   -- Mask/Unmask the measurement outcome based on the Gflow being performed
+                        or
                         -- measurement b mask
-                        (previous_qubits(1)(0)           -- b': Only previous qubit outcomes, Valid indices: 0 to 2; if '1' then it is V, else H
-                            and sx_mask(ACTUAL_QUBIT+2)) -- Mask/Unmask the measurement outcome based on the Gflow being performed
-                    )
-                    xor rand(ACTUAL_QUBIT)               -- r: Random bit for Decryption
-                    xor sz(ACTUAL_QUBIT-1);              -- Sz: Target Sz
+                        ((previous_qubits(1)(0)           -- b': Only previous qubit outcomes, Valid indices: 0 to 2; if '1' then it is V, else H
+                            xor v_rand_bit_select_2               -- r: Random bit for Decryption
+                            xor sz(ACTUAL_QUBIT-1))              -- Sz: Target Sz
+                        and sx_mask(ACTUAL_QUBIT+2)) -- Mask/Unmask the measurement outcome based on the Gflow being performed
+                    );
             end if;
 
             -- SPECIAL CASE
             -- 4th qubit: c or b or 0
-            -- -> no feedforward
+            -- -> no feedforward on 5th qubit
             if ACTUAL_QUBIT = 3 then -- @d
                 return '0'
                     -- original
@@ -837,13 +876,23 @@
             end if;
 
             -- 5th qubit
+            -- -> no feedforward (model example)
+            -- Define the logic for selecting the correct random bit per gflow and per actual qubit
+            -- if actual_gflow = std_logic_vector(to_unsigned(0, actual_gflow'length)) then -- Counting from 0
+            --     v_rand_bit_select := rand(2); -- c
+            -- end if;
+            -- if actual_gflow = std_logic_vector(to_unsigned(1, actual_gflow'length)) then
+            --     v_rand_bit_select := rand(2); -- c
+            -- end if;
+            -- if actual_gflow = std_logic_vector(to_unsigned(2, actual_gflow'length)) then
+            --     v_rand_bit_select := rand(2); -- c
+            -- end if;
             if ACTUAL_QUBIT = 4 then
-                return '0'
+                return sx_mask(ACTUAL_QUBIT+1)       -- Mask/Unmask the measurement outcome based on the Gflow being performed
                     -- xor (actual_qubits(ACTUAL_QUBIT*2)    -- b': Only current qubit outcome; if '1' then it is V, else H
-                    xor (previous_qubits(ACTUAL_QUBIT)(0) -- b': Only previous qubit outcomes, Valid indices: 0 to 3; if '1' then it is V, else H
-                         and sx_mask(ACTUAL_QUBIT+1))       -- Mask/Unmask the measurement outcome based on the Gflow being performed
-                    xor rand(ACTUAL_QUBIT)                -- r: Random bit for Decryption
-                    xor sz(ACTUAL_QUBIT-1);               -- Sz: Target Sz
+                    and (previous_qubits(ACTUAL_QUBIT)(0) -- b': Only previous qubit outcomes, Valid indices: 0 to 3; if '1' then it is V, else H
+                    xor v_rand_bit_select                -- r: Random bit for Decryption
+                    xor sz(ACTUAL_QUBIT-1));               -- Sz: Target Sz
             end if;
 
             return '0';
@@ -858,10 +907,12 @@
             sx : std_logic_vector(QUBITS_CNT-1 downto 0);
             sz : std_logic_vector(QUBITS_CNT-1 downto 0);
             rand : std_logic_vector(QUBITS_CNT-1 downto 0);
-            sz_mask : st_sz_mask
+            sz_mask : st_sz_mask;
+            actual_gflow : std_logic_vector(slv_cntr_mask'range)
         ) return std_logic is
             variable v_masked_actual_qubits : std_logic_vector(actual_qubits'range) := (others => '0');
             variable v_masked_previous_qubits : t_qubit_buffer_2d := (others => (others => '0'));
+            variable v_rand_bit_select : std_logic := '0';
         begin
 
             -- Mask qubits
@@ -894,9 +945,10 @@
             -- Sz_i = b_i
 
             -- 1st qubit: 0
-            -- -> 0 or c(not yet measured -> set to 0, postprocess after readout)
+            -- -> feedforward on 2nd qubit: 0 or c(not yet measured -> set to 0, postprocess after readout)
+            v_rand_bit_select := '0'; -- default
             if ACTUAL_QUBIT = 0 then -- @a
-            return '0'
+            return '0';
                 -- original
                 -- -- xor (actual_qubits(ACTUAL_QUBIT*2)   -- Only current qubit outcome; if '1' then it is V, else H
                 -- -- xor (previous_qubits(N/A)(0)         -- Only previous qubit outcomes (N/A -> '0')
@@ -909,13 +961,23 @@
                 -- xor (previous_qubits(N/A)(0)         -- Only previous qubit outcomes (N/A -> '0')
                     --  and sz_mask(ACTUAL_QUBIT))      -- Mask/Unmask the measurement outcome based on the Gflow being performed
                 -- xor sz(ACTUAL_QUBIT-1)               -- Sz: Target Sz (N/A -> '0')
-                xor rand(ACTUAL_QUBIT);              -- Random bit for Decryption
+                -- xor rand(ACTUAL_QUBIT);              -- Random bit for Decryption
             end if;
 
             -- 2nd qubit: 0 or c(not yet measured -> set to 0, postprocess after readout)
-            -- -> 0 or b
+            -- -> feedforward on 3rd qubit: 0 or b
             if ACTUAL_QUBIT = 1 then -- @b
-                return '0'
+                -- Define the logic for selecting the correct random bit per gflow and per actual qubit
+                -- Define the logic for selecting the correct random bit per gflow and per actual qubit
+                if actual_gflow = std_logic_vector(to_unsigned(3, actual_gflow'length)) then -- Counting from 0
+                    v_rand_bit_select := rand(1); -- b
+                elsif actual_gflow = std_logic_vector(to_unsigned(4, actual_gflow'length)) then
+                    v_rand_bit_select := rand(1); -- b
+                elsif actual_gflow = std_logic_vector(to_unsigned(5, actual_gflow'length)) then
+                    v_rand_bit_select := rand(1); -- b
+                end if;
+                
+                return sz_mask(ACTUAL_QUBIT+1)       -- Mask/Unmask the measurement outcome based on the Gflow being performed
                     -- original
                     -- -- xor *actual_qubits(ACTUAL_QUBIT*2)    -- Only current qubit outcome; if '1' then it is V, else H
                     -- -- xor (previous_qubits(not measured)(0) -- Only previous qubit outcomes, Valid indices: 0 to 0; if '1' then it is V, else H
@@ -924,17 +986,27 @@
                     -- xor rand(ACTUAL_QUBIT);               -- Random bit for Decryption
 
                     -- new
-                    xor (actual_qubits(ACTUAL_QUBIT*2)    -- Only current qubit outcome; if '1' then it is V, else H
+                    and (actual_qubits(ACTUAL_QUBIT*2)    -- Only current qubit outcome; if '1' then it is V, else H
                     -- xor (previous_qubits(1)(0)            -- Only previous qubit outcomes, Valid indices: 0 to 1; if '1' then it is V, else H
-                        and sz_mask(ACTUAL_QUBIT+1))       -- Mask/Unmask the measurement outcome based on the Gflow being performed
                     xor sz(ACTUAL_QUBIT-1)                -- Sz: Target Sz
-                    xor rand(ACTUAL_QUBIT);               -- Random bit for Decryption
+                    xor v_rand_bit_select);               -- Random bit for Decryption
             end if;
 
             -- 3rd qubit: 0 or b
-            -- -> 0 or a
+            -- -> feedforward on 4th qubit: 0 or a
             if ACTUAL_QUBIT = 2 then -- @c
-                return '0'
+                -- Define the logic for selecting the correct random bit per gflow and per actual qubit
+                if actual_gflow = std_logic_vector(to_unsigned(2, actual_gflow'length)) then -- Counting from 0
+                    v_rand_bit_select := '0'; -- a
+                elsif actual_gflow = std_logic_vector(to_unsigned(5, actual_gflow'length)) then
+                    v_rand_bit_select := '0'; -- a
+                elsif actual_gflow = std_logic_vector(to_unsigned(8, actual_gflow'length)) then
+                    v_rand_bit_select := '0'; -- a
+                else
+                    v_rand_bit_select := rand(0); -- a
+                end if;
+                
+                return sz_mask(ACTUAL_QUBIT+1)       -- Mask/Unmask the measurement outcome based on the Gflow being performed
                     -- original
                     -- -- xor (actual_qubits(ACTUAL_QUBIT*2)    -- Only current qubit outcome; if '1' then it is V, else H
                     -- xor (previous_qubits(1)(0)            -- Only previous qubit outcomes, Valid indices: 0 to 1; if '1' then it is V, else H
@@ -944,13 +1016,13 @@
                     -- xor (actual_qubits(ACTUAL_QUBIT*2)    -- Only current qubit outcome; if '1' then it is V, else H
 
                     -- new
-                    xor (previous_qubits(0)(0)            -- Only previous qubit outcomes, Valid indices: 0 to 2; if '1' then it is V, else H
-                        and sz_mask(ACTUAL_QUBIT+1))       -- Mask/Unmask the measurement outcome based on the Gflow being performed
+                    and (previous_qubits(0)(0)            -- Only previous qubit outcomes, Valid indices: 0 to 2; if '1' then it is V, else H
                     xor sz(ACTUAL_QUBIT-1)                -- Sz: Target Sz
-                    xor rand(ACTUAL_QUBIT);               -- Random bit for Decryption
+                    xor v_rand_bit_select);               -- Random bit for Decryption
             end if;
 
             -- 4th qubit: 0 or a
+            -- -> no feedforward (last qubit)
             if ACTUAL_QUBIT = 3 then -- @d
                 return '0'
                     -- original
@@ -965,14 +1037,21 @@
             end if;
 
             -- 5th qubit
-            -- -> no feedforward
+            -- -> no feedforward (model example)
             if ACTUAL_QUBIT = 4 then
-                return '0'
+                -- Define the logic for selecting the correct random bit per gflow and per actual qubit
+                -- if actual_gflow = std_logic_vector(to_unsigned(3, actual_gflow'length)) -- Counting from 0
+                --     or std_logic_vector(to_unsigned(4, actual_gflow'length))
+                --     or std_logic_vector(to_unsigned(5, actual_gflow'length)) 
+                -- then 
+                --     v_rand_bit_select := rand(1); -- b
+                -- end if;
+
+                return sz_mask(ACTUAL_QUBIT)       -- Mask/Unmask the measurement outcome based on the Gflow being performed
                     -- xor (actual_qubits(ACTUAL_QUBIT*2)    -- Only current qubit outcome; if '1' then it is V, else H
-                    xor (previous_qubits(ACTUAL_QUBIT)(0) -- Only previous qubit outcomes, Valid indices: 0 to 3; if '1' then it is V, else H
-                         and sz_mask(ACTUAL_QUBIT))       -- Mask/Unmask the measurement outcome based on the Gflow being performed
+                    and (previous_qubits(ACTUAL_QUBIT)(0) -- Only previous qubit outcomes, Valid indices: 0 to 3; if '1' then it is V, else H
                     xor sz(ACTUAL_QUBIT-1)                -- Sz: Target Sz
-                    xor rand(ACTUAL_QUBIT);               -- Random bit for Decryption
+                    xor v_rand_bit_select);               -- Random bit for Decryption
             end if;
 
             return '0';
@@ -989,16 +1068,16 @@
             proc_gen_sx_sz_mask : process(clk)
             begin
                 if rising_edge(clk) then
-                    -- Do not count beyond the max range of the ROM memory
-                    slv_cntr_mask <= std_logic_vector(unsigned(slv_cntr_mask) + "1");
-                    if slv_cntr_mask = std_logic_vector(to_unsigned(INT_NUMBER_OF_GFLOWS-1, slv_cntr_mask'length)) then
-                        slv_cntr_mask <= (others => '0');
+                    -- Do not count beyond the max range of the ROM memory, do not count when feedforward is running
+                    if qubits_sampled_valid(QUBITS_CNT-1) = '1' then
+                        slv_cntr_mask <= std_logic_vector(unsigned(slv_cntr_mask) + "1");
+                        if slv_cntr_mask = std_logic_vector(to_unsigned(INT_NUMBER_OF_GFLOWS-1, slv_cntr_mask'length)) then
+                            slv_cntr_mask <= (others => '0');
+                        end if;
                     end if;
 
-                    -- slv_gen_sx_mask <= ROM_SX_MASK_2D(to_integer(unsigned(slv_cntr_mask)));
-                    -- slv_gen_sz_mask <= ROM_SZ_MASK_2D(to_integer(unsigned(slv_cntr_mask)));
-
-                    -- Sample the content of the current slv_cntr_mask address pointer
+                    -- Sample the content of the current slv_cntr_mask address pointer and gflow number to be in synch
+                    slv_cntr_mask_p1 <= slv_cntr_mask;
                     for i in 0 to INT_NUMBER_OF_GFLOWS-1 loop
                         if std_logic_vector(to_unsigned(i, slv_cntr_mask'length)) = slv_cntr_mask then
                             -- slv_gen_sx_mask <= ROM_SX_MASK_2D(to_integer(unsigned(slv_cntr_mask)));
@@ -1014,7 +1093,7 @@
 
         -- Output constant Sx and Sz masks, and Gflow number
         gen_specific_gflow : if GFLOW_NUMBER > 0 generate
-            slv_cntr_mask <= std_logic_vector(to_unsigned(GFLOW_NUMBER-1, slv_cntr_mask'length));
+            slv_cntr_mask_p1 <= std_logic_vector(to_unsigned(GFLOW_NUMBER-1, slv_cntr_mask'length));
             slv_gen_sx_mask <= ROM_SX_MASK_2D(GFLOW_NUMBER-1);
             slv_gen_sz_mask <= ROM_SZ_MASK_2D(GFLOW_NUMBER-1);
         end generate;
@@ -1147,14 +1226,14 @@
                         -- Sample which Gflow will be implemented in the next feedforward run
                         -- Sample also Sx and Sz masks to enable/disable qubit measurements
                         -- in the Sx and Sz correction table
-                        slv_actual_gflow_buffer <= slv_cntr_mask;
+                        slv_actual_gflow_buffer <= slv_cntr_mask_p1;
                         slv_actual_sx_mask <= slv_gen_sx_mask;
                         slv_actual_sz_mask <= slv_gen_sz_mask;
 
                         -- For EOM control & encryption
-                        slv_o_sx_next(0) <= sx_correction_logic(0, slv_qubits_sampled, slv_qubit_buffer_2d, slv_sx_buffer, slv_sz_buffer, slv_random_string, slv_actual_sx_mask);
-                        slv_sx_buffer(0+1) <= sx_correction_logic(0, slv_qubits_sampled, slv_qubit_buffer_2d, slv_sx_buffer, slv_sz_buffer, slv_random_string, slv_actual_sx_mask);
-                        slv_sz_buffer(0+1) <= sz_correction_logic(0, slv_qubits_sampled, slv_qubit_buffer_2d, slv_sx_buffer, slv_sz_buffer, slv_random_string, slv_actual_sz_mask);
+                        slv_o_sx_next(0) <= sx_correction_logic(0, slv_qubits_sampled, slv_qubit_buffer_2d, slv_sx_buffer, slv_sz_buffer, slv_random_string, slv_actual_sx_mask, slv_cntr_mask_p1);
+                        slv_sx_buffer(0+1) <= sx_correction_logic(0, slv_qubits_sampled, slv_qubit_buffer_2d, slv_sx_buffer, slv_sz_buffer, slv_random_string, slv_actual_sx_mask, slv_cntr_mask_p1);
+                        slv_sz_buffer(0+1) <= sz_correction_logic(0, slv_qubits_sampled, slv_qubit_buffer_2d, slv_sx_buffer, slv_sz_buffer, slv_random_string, slv_actual_sz_mask, slv_cntr_mask_p1);
 
                         -- Next state
                         actual_qubit_valid <= qubits_sampled_valid(0);
@@ -1191,9 +1270,9 @@
                             slv_random_buffer_2d(QUBIT_ID(i))(0) <= slv_random_string(QUBIT_ID(i));
 
                             -- For EOM control & encryption
-                            slv_o_sx_next(0) <= sx_correction_logic(QUBIT_ID(i), slv_qubits_sampled, slv_qubit_buffer_2d, slv_sx_buffer, slv_sz_buffer, slv_random_string, slv_actual_sx_mask);
-                            slv_sx_buffer(QUBIT_ID(i+1)) <= sx_correction_logic(QUBIT_ID(i), slv_qubits_sampled, slv_qubit_buffer_2d, slv_sx_buffer, slv_sz_buffer, slv_random_string, slv_actual_sx_mask);
-                            slv_sz_buffer(QUBIT_ID(i+1)) <= sz_correction_logic(QUBIT_ID(i), slv_qubits_sampled, slv_qubit_buffer_2d, slv_sx_buffer, slv_sz_buffer, slv_random_string, slv_actual_sz_mask);
+                            slv_o_sx_next(0) <= sx_correction_logic(QUBIT_ID(i), slv_qubits_sampled, slv_qubit_buffer_2d, slv_sx_buffer, slv_sz_buffer, slv_random_string, slv_actual_sx_mask, slv_cntr_mask_p1);
+                            slv_sx_buffer(QUBIT_ID(i+1)) <= sx_correction_logic(QUBIT_ID(i), slv_qubits_sampled, slv_qubit_buffer_2d, slv_sx_buffer, slv_sz_buffer, slv_random_string, slv_actual_sx_mask, slv_cntr_mask_p1);
+                            slv_sz_buffer(QUBIT_ID(i+1)) <= sz_correction_logic(QUBIT_ID(i), slv_qubits_sampled, slv_qubit_buffer_2d, slv_sx_buffer, slv_sz_buffer, slv_random_string, slv_actual_sz_mask, slv_cntr_mask_p1);
 
                             -- If the counter has reached the max delay, don't ask and reset it and assess the next state
                             v_int_precalculate_delay_qx_1(QUBIT_ID(i)) := MAX_PERIODS_DIFF(QUBIT_ID(i)) + MAX_PERIODS_DIFF_CORR(QUBIT_ID(i)); -- NEW CORR

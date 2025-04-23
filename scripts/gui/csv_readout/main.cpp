@@ -508,7 +508,7 @@ std::tuple<int, int> guiBackendObj::processReceivedData(std::tuple<int, int> col
                 //actual_file_csv3 = true; // NEW
                 //break;
             
-            //case 10:  // x"A" FPGA time (match with active output file)
+            case 10:  // x"A" FPGA time (match with active output file)
                 //if (actual_file_csv3){
                 //    outFile3 << "," << std::to_string(data) << ",";
                 //}

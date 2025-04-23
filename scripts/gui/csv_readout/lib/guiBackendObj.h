@@ -137,7 +137,7 @@ public:
         // (1048576 BytesTotal / 4 BytesPerTransaction = 262144 TransactionsTotal)
         //  1048576 = 1 * 1024 * 1024 = 1x TransferSize
 
-        m_u32BlockSize = 16; // Before
+        m_u32BlockSize = 64; // Before
         // m_u32BlockSize = 64; // After
 
 

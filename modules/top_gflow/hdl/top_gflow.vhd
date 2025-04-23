@@ -1338,7 +1338,10 @@
             -- REGULAR_SAMPLER_SECONDS => 1.0,  -- Change this value to alter the frequency of regular reporting
             -- REGULAR_SAMPLER_SECONDS_2 => 1.0 -- Change this value to alter the frequency of regular reporting
 
-            REGULAR_SAMPLER_SECONDS => 0.1,  -- Change this value to alter the frequency of regular reporting
+            -- Coincidences Table
+            REGULAR_SAMPLER_SECONDS => 1.0,  -- Change this value to alter the frequency of regular reporting
+
+            -- Channel Detections
             REGULAR_SAMPLER_SECONDS_2 => 0.1 -- Change this value to alter the frequency of regular reporting
         ) port map (
             -- Reset

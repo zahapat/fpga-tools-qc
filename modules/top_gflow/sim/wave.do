@@ -154,6 +154,12 @@ add wave -noupdate -color Magenta /top_gflow_tb/dut_top_gflow/inst_fsm_gflow/slv
 add wave -noupdate -color Magenta /top_gflow_tb/dut_top_gflow/inst_fsm_gflow/slv_sz_buffer
 add wave -noupdate -color Magenta /top_gflow_tb/dut_top_gflow/inst_fsm_gflow/slv_sx_all_qubits
 add wave -noupdate -color Magenta -expand -subitemconfig {/top_gflow_tb/dut_top_gflow/inst_fsm_gflow/state_feedfwd(3) {-color Magenta -height 15} /top_gflow_tb/dut_top_gflow/inst_fsm_gflow/state_feedfwd(2) {-color Magenta -height 15} /top_gflow_tb/dut_top_gflow/inst_fsm_gflow/state_feedfwd(1) {-color Magenta -height 15} /top_gflow_tb/dut_top_gflow/inst_fsm_gflow/state_feedfwd(0) {-color Magenta -height 15}} /top_gflow_tb/dut_top_gflow/inst_fsm_gflow/state_feedfwd
+add wave -noupdate -radix unsigned /top_gflow_tb/dut_top_gflow/inst_fsm_gflow/slv_cntr_mask
+add wave -noupdate -color Gold -radix unsigned /top_gflow_tb/dut_top_gflow/inst_fsm_gflow/slv_cntr_mask_p1
+add wave -noupdate -color Gold /top_gflow_tb/dut_top_gflow/inst_fsm_gflow/slv_gen_sx_mask
+add wave -noupdate -color Gold /top_gflow_tb/dut_top_gflow/inst_fsm_gflow/slv_gen_sz_mask
+add wave -noupdate /top_gflow_tb/dut_top_gflow/inst_fsm_gflow/slv_actual_sx_mask
+add wave -noupdate /top_gflow_tb/dut_top_gflow/inst_fsm_gflow/slv_actual_sz_mask
 add wave -noupdate -color Gold /top_gflow_tb/dut_top_gflow/inst_fsm_gflow/actual_qubit_valid
 add wave -noupdate /top_gflow_tb/dut_top_gflow/inst_fsm_gflow/o_sx_next
 add wave -noupdate -color Magenta /top_gflow_tb/dut_top_gflow/slv_o_sx_next_to_math
@@ -165,16 +171,16 @@ add wave -noupdate -color Coral -radix decimal -childformat {{/top_gflow_tb/dut_
 add wave -noupdate -color Magenta /top_gflow_tb/dut_top_gflow/inst_fsm_gflow/slv_sx_all_qubits_ored
 add wave -noupdate /top_gflow_tb/dut_top_gflow/inst_fsm_gflow/ROM_SX_MASK_2D
 add wave -noupdate /top_gflow_tb/dut_top_gflow/inst_fsm_gflow/ROM_SZ_MASK_2D
-add wave -noupdate /top_gflow_tb/dut_top_gflow/inst_fsm_gflow/slv_actual_sx_mask
-add wave -noupdate /top_gflow_tb/dut_top_gflow/inst_fsm_gflow/slv_actual_sz_mask
-add wave -noupdate /top_gflow_tb/dut_top_gflow/inst_fsm_gflow/slv_cntr_mask
 add wave -noupdate /top_gflow_tb/dut_top_gflow/slv_actual_gflow_buffer
 add wave -noupdate /top_gflow_tb/dut_top_gflow/slv_actual_gflow_buffer_to_transfer
 add wave -noupdate /top_gflow_tb/dut_top_gflow/sl_actual_gflow_buffer_to_transfer_rd_rdy
 add wave -noupdate /top_gflow_tb/dut_top_gflow/sl_actual_gflow_buffer_to_transfer_rd_valid
 add wave -noupdate /top_gflow_tb/dut_top_gflow/slv_actual_gflow_buffer_transferred
+add wave -noupdate /top_gflow_tb/INT_GFLOW_NUMBER
+add wave -noupdate /top_gflow_tb/dut_top_gflow/INT_GFLOW_NUMBER
+add wave -noupdate /top_gflow_tb/dut_top_gflow/inst_fsm_gflow/GFLOW_NUMBER
 TreeUpdate [SetDefaultTree]
-WaveRestoreCursors {{Cursor 1} {40900000 ps} 0}
+WaveRestoreCursors {{Cursor 1} {992306 ps} 0}
 quietly wave cursor active 1
 configure wave -namecolwidth 644
 configure wave -valuecolwidth 185
@@ -190,4 +196,4 @@ configure wave -griddelta 40
 configure wave -timeline 0
 configure wave -timelineunits ns
 update
-WaveRestoreZoom {0 ps} {169323105 ps}
+WaveRestoreZoom {3850569 ps} {11789444 ps}

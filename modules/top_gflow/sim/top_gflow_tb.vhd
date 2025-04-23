@@ -103,7 +103,7 @@
 
         constant INT_FEEDFWD_PROGRAMMING : integer := 01101011;
         constant INT_NUMBER_OF_GFLOWS : integer := 9; -- Total number of Gflows
-        constant INT_GFLOW_NUMBER : integer := 1; -- Set to 0 for all Gflows, set to greater than 0 to pick one Gflow
+        constant INT_GFLOW_NUMBER : integer := 0; -- Set to 0 for all Gflows, set to greater than 0 to pick one Gflow
 
         -- I/O Channels
         constant INPUT_PADS_CNT     : positive := 2*INT_QUBITS_CNT;
